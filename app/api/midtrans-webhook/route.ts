@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import crypto from 'node:crypto'; // FIX: Gunakan node:crypto agar aman di Cloudflare Pages
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+
+// WAJIB UNTUK CLOUDFLARE PAGES
 export const runtime = 'edge';
 
 // Inisialisasi Resend untuk kirim email
@@ -16,12 +17,18 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    // 1. Verifikasi Keamanan (Wajib agar tidak ditembak hacker)
-    const hash = crypto.createHash('sha512')
-      .update(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`)
-      .digest('hex');
+    // 1. Verifikasi Keamanan Menggunakan Web Crypto API (Aman untuk Edge Runtime)
+    const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`;
+    
+    // Proses Hashing SHA-512 ala Web Crypto API
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(textToHash);
+    const hashBuffer = await crypto.subtle.digest('SHA-512', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    if (data.signature_key !== hash) {
+    // Cocokkan signature dari Midtrans dengan hasil hash kita
+    if (data.signature_key !== hashHex) {
       return NextResponse.json({ error: 'Signature tidak valid' }, { status: 403 });
     }
 
@@ -70,7 +77,7 @@ export async function POST(req: Request) {
 
       if (restoError) throw restoError;
 
-      // 7. Panggil Fungsi Kirim Email yang sebenarnya
+      // 7. Panggil Fungsi Kirim Email
       await sendEmailCredentials(customerEmail, restoName, generatedUsername, generatedPassword);
     }
 
@@ -82,15 +89,13 @@ export async function POST(req: Request) {
 }
 
 // ============================================================================
-// FUNGSI KIRIM EMAIL DENGAN RESEND API (SUDAH FIX)
+// FUNGSI KIRIM EMAIL DENGAN RESEND API
 // ============================================================================
 async function sendEmailCredentials(email: string, restoName: string, username: string, pass: string) {
   try {
     await resend.emails.send({
-      // CATATAN: Selama testing gratis di Resend, wajib gunakan email 'onboarding@resend.dev'
-      // Nanti setelah Bos verifikasi domain sendiri di Resend, ganti dengan 'hello@askara.com'
       from: 'Askara POS <onboarding@resend.dev>', 
-      to: email, // Saat testing gratis di Resend, pastikan email ini adalah email yang Bos pakai daftar Resend
+      to: email, 
       subject: 'Akses Aplikasi Askara Smart POS Anda',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px;">
