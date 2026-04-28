@@ -124,8 +124,8 @@ _Saya berkomitmen aktif mengirimkan feedback selama 1 bulan dan menyetujui syara
 const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
   const [formData, setFormData] = useState({
     namaPemilik: '', email: '', namaResto: '', outlet: 1,
-    restoUsername: '', restoPassword: '',
-    ownerUsername: '', ownerPassword: ''
+    restoUsername: '', restoPassword: '', repeatRestoPassword: '', // Ditambah repeat
+    ownerUsername: '', ownerPassword: '', repeatOwnerPassword: ''  // Ditambah repeat
   });
 
   const handleChange = (e: any) => {
@@ -133,7 +133,7 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
     setFormData(prev => ({ ...prev, [name]: name === 'outlet' ? parseInt(value) : value }));
   };
 
-  // FIX 2: Validasi Password Kuat
+  // Validasi Password Kuat
   const isPasswordStrong = (password: string) => {
     // Minimal 8 karakter, ada huruf besar, huruf kecil, dan angka/simbol
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+~`|}{\[\]:;?><,./\-=0-9]).{8,}$/;
@@ -143,14 +143,26 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validasi Password Kasir
+    if (formData.restoPassword !== formData.repeatRestoPassword) {
+      alert("⚠️ Ulangi Password App (Kasir) tidak cocok!");
+      return;
+    }
     if (!isPasswordStrong(formData.restoPassword)) {
-      alert("⚠️ Password Kasir terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
+      alert("⚠️ Password App (Kasir) terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
       return;
     }
 
-    if (formData.outlet > 1 && !isPasswordStrong(formData.ownerPassword)) {
-      alert("⚠️ Password Owner terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
-      return;
+    // Validasi Password Owner (Jika > 1 Outlet)
+    if (formData.outlet > 1) {
+      if (formData.ownerPassword !== formData.repeatOwnerPassword) {
+        alert("⚠️ Ulangi Password Owner tidak cocok!");
+        return;
+      }
+      if (!isPasswordStrong(formData.ownerPassword)) {
+        alert("⚠️ Password Owner terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
+        return;
+      }
     }
 
     onSubmit(formData);
@@ -201,32 +213,42 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
                   </div>
                 </div>
 
+                {/* FORM KREDENSIAL KASIR */}
                 <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 mt-4">
                   <h4 className="font-bold text-purple-800 text-sm mb-3">Kredensial Login App (Kasir)</h4>
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Username App *</label>
+                    <input type="text" name="restoUsername" required value={formData.restoUsername} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Cth: kasir1" />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Username App *</label>
-                      <input type="text" name="restoUsername" required value={formData.restoUsername} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Cth: kasir1" />
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Password App *</label>
+                      <input type="password" name="restoPassword" required value={formData.restoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Password App *</label>
-                      <input type="text" name="restoPassword" required value={formData.restoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Ulangi Password *</label>
+                      <input type="password" name="repeatRestoPassword" required value={formData.repeatRestoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Ulangi password" />
                     </div>
                   </div>
                 </div>
 
+                {/* FORM KREDENSIAL OWNER (JIKA > 1 OUTLET) */}
                 {formData.outlet > 1 && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-orange-50 p-4 rounded-xl border border-orange-100 mt-4">
                     <h4 className="font-bold text-askara-orange text-sm mb-3">Kredensial Dashboard Owner</h4>
                     <p className="text-xs text-gray-600 mb-3">Akses khusus manager untuk memantau {formData.outlet} outlet.</p>
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Username Owner *</label>
+                      <input type="text" name="ownerUsername" required value={formData.ownerUsername} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Cth: owner_budi" />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Username Owner *</label>
-                        <input type="text" name="ownerUsername" required value={formData.ownerUsername} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Cth: owner_budi" />
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Password Owner *</label>
+                        <input type="password" name="ownerPassword" required value={formData.ownerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Password Owner *</label>
-                        <input type="text" name="ownerPassword" required value={formData.ownerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Ulangi Password *</label>
+                        <input type="password" name="repeatOwnerPassword" required value={formData.repeatOwnerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Ulangi password" />
                       </div>
                     </div>
                   </motion.div>

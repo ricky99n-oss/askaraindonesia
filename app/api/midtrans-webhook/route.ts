@@ -85,6 +85,9 @@ export async function POST(req: Request) {
 // ============================================================================
 // FUNGSI KIRIM EMAIL DENGAN RESEND API
 // ============================================================================
+// ============================================================================
+// FUNGSI KIRIM EMAIL DENGAN RESEND API
+// ============================================================================
 async function sendEmailCredentials(email: string, restoName: string, ru: string, rp: string, ou: string, op: string, outlet: number) {
   try {
     let ownerHtmlBlock = '';
@@ -92,8 +95,8 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
     if (outlet > 1) {
       ownerHtmlBlock = `
         <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #ffd180;">
-          <h3 style="color: #FF8C00; margin-top: 0; font-size: 15px;">Dashboard Owner (Manager)</h3>
-          <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk memantau semua outlet Anda.</p>
+          <h3 style="color: #FF8C00; margin-top: 0; font-size: 15px;">Dashboard Owner (Akses Web)</h3>
+          <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk memantau semua outlet Anda dari Website.</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #d84315;">${ou}</span></p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #d84315;">${op}</span></p>
         </div>
@@ -101,10 +104,7 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
     }
 
     await resend.emails.send({
-      // CATATAN: Jika status domain di Resend sudah Verified (Hijau), 
-      // ganti tulisan 'onboarding@resend.dev' di bawah ini menjadi email resmi Bos.
-      // Contoh: 'admin@askaraindonesia.my.id'
-      from: 'Askara POS <hello@askaraindonesia.my.id>',
+      from: 'Askara POS <admin@askaraindonesia.my.id>', // Pastikan ini email resmi bos yang sudah diverifikasi
       to: email, 
       subject: 'Akses Aplikasi Askara Smart POS Anda',
       html: `
@@ -115,12 +115,19 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
           
           <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left; border: 1px solid #e1bee7;">
             <h3 style="color: #6a1b9a; margin-top: 0; font-size: 15px;">Aplikasi Kasir (Outlet)</h3>
-            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk login di tablet kasir.</p>
+            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk login utama di aplikasi tablet kasir.</p>
             <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #4A00E0;">${ru}</span></p>
             <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #4A00E0;">${rp}</span></p>
           </div>
           
           ${ownerHtmlBlock}
+
+          <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #90caf9;">
+            <h3 style="color: #0277bd; margin-top: 0; font-size: 15px;">Akun Manager (Aplikasi)</h3>
+            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun default ini untuk mengakses menu Manager & Pengaturan di dalam Aplikasi Kasir (bisa diubah nanti di Pengaturan):</p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #0277bd;">admin</span></p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #0277bd;">admin</span></p>
+          </div>
           
           <p style="margin-top: 20px; font-size: 14px;">Masa aktif Anda berlaku selama <strong>30 Hari</strong> ke depan dengan kuota <strong>5.000 Struk Transaksi</strong>.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
