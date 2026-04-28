@@ -1,10 +1,7 @@
-// app/api/midtrans-webhook/route.ts
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
-// WAJIB UNTUK CLOUDFLARE PAGES
 export const runtime = 'edge';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -16,7 +13,6 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    // 1. Verifikasi Web Crypto API (Aman untuk Edge Runtime)
     const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`;
     
     const encoder = new TextEncoder();
@@ -29,50 +25,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Signature tidak valid' }, { status: 403 });
     }
 
-    // 2. Cek Jika Pembayaran Berhasil (Settlement)
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
       
       const ownerName = data.custom_field1;
       const customerEmail = data.custom_field2;
       
-      // 3. Ekstrak Kredensial dari JSON
+      // EKSTRAK DATA TERMASUK LIMIT DARI MIDTRANS
       const secretData = JSON.parse(data.custom_field3);
-      const { rn, ru, rp, ou, op, out } = secretData; // rn = restoName, ru = restoUsername, dll
+      const { rn, ru, rp, ou, op, out, l } = secretData; 
 
       const expiredAt = new Date();
-      expiredAt.setMonth(expiredAt.getMonth() + 1); // Masa aktif 1 bulan
+      expiredAt.setMonth(expiredAt.getMonth() + 1);
 
-      // 4. Insert ke Tabel Owners (Tambahan: Simpan Email Pelanggan)
       const { data: ownerData, error: ownerError } = await supabase
         .from('owners')
         .insert({
           owner_name: ownerName,
           owner_username: ou,
           owner_password: op,
-          email: customerEmail // <--- DISIMPAN KE SUPABASE AGAR BISA RESET PASSWORD NANTINYA
+          email: customerEmail 
         })
         .select()
         .single();
 
       if (ownerError) throw ownerError;
 
-      // 5. Insert ke Tabel Restaurants
       const { error: restoError } = await supabase
         .from('restaurants')
         .insert({
           owner_id: ownerData.id,
-          name: rn, // Menggunakan Nama Resto dari JSON
+          name: rn, 
           username: ru,
           password: rp, 
           subscription_plan: 'Premium',
-          transaction_limit: 5000, 
+          transaction_limit: l || 5000, // <--- MASUKKAN KUOTA DINAMIS KE DATABASE
           expired_at: expiredAt.toISOString()
         });
 
       if (restoError) throw restoError;
 
-      // 6. Kirim Email Pemberitahuan (Pisahkan Info Owner jika > 1 Outlet)
-      await sendEmailCredentials(customerEmail, rn, ru, rp, ou, op, out);
+      // KIRIM EMAIL BERSAMA INFO LIMIT KUOTA
+      await sendEmailCredentials(customerEmail, rn, ru, rp, ou, op, out, l || 5000);
     }
 
     return NextResponse.json({ status: 'success' });
@@ -85,13 +78,9 @@ export async function POST(req: Request) {
 // ============================================================================
 // FUNGSI KIRIM EMAIL DENGAN RESEND API
 // ============================================================================
-// ============================================================================
-// FUNGSI KIRIM EMAIL DENGAN RESEND API
-// ============================================================================
-async function sendEmailCredentials(email: string, restoName: string, ru: string, rp: string, ou: string, op: string, outlet: number) {
+async function sendEmailCredentials(email: string, restoName: string, ru: string, rp: string, ou: string, op: string, outlet: number, limit: number) {
   try {
     let ownerHtmlBlock = '';
-    // Jika jumlah outlet lebih dari 1, tampilkan juga data login khusus Owner
     if (outlet > 1) {
       ownerHtmlBlock = `
         <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #ffd180;">
@@ -106,30 +95,41 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
     await resend.emails.send({
       from: 'Askara POS <admin@askaraindonesia.my.id>', // Pastikan ini email resmi bos yang sudah diverifikasi
       to: email, 
-      subject: 'Akses Aplikasi Askara Smart POS Anda',
+      subject: `Akses Aplikasi Askara Smart POS - ${restoName}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px;">
-          <h2 style="color: #4A00E0; text-align: center;">Selamat Datang di Askara Smart POS!</h2>
-          <p>Terima kasih telah berlangganan. Pembayaran untuk <strong>${restoName}</strong> telah kami terima.</p>
-          <p>Berikut adalah kredensial yang telah Anda atur untuk mengakses sistem kami:</p>
           
-          <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left; border: 1px solid #e1bee7;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #4A00E0; margin-bottom: 5px;">Selamat Datang di Askara Smart POS!</h2>
+            <p style="color: #555; margin-top: 0;">Pembayaran untuk <strong>${restoName}</strong> berhasil kami terima.</p>
+          </div>
+
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="https://askaraindonesia.my.id/download" style="background-color: #FF8C00; color: white; padding: 14px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(255,140,0,0.3);">
+              ↓ Download Aplikasi Sekarang
+            </a>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">Hanya untuk perangkat Android / Tablet POS</p>
+          </div>
+
+          <p>Berikut adalah kredensial untuk mengakses sistem kami:</p>
+          
+          <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #e1bee7;">
             <h3 style="color: #6a1b9a; margin-top: 0; font-size: 15px;">Aplikasi Kasir (Outlet)</h3>
-            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk login utama di aplikasi tablet kasir.</p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #4A00E0;">${ru}</span></p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #4A00E0;">${rp}</span></p>
+            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk login utama di aplikasi.</p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #4A00E0; font-weight:bold;">${ru}</span></p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #4A00E0; font-weight:bold;">${rp}</span></p>
           </div>
           
           ${ownerHtmlBlock}
 
           <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #90caf9;">
-            <h3 style="color: #0277bd; margin-top: 0; font-size: 15px;">Akun Manager (Aplikasi)</h3>
-            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun default ini untuk mengakses menu Manager & Pengaturan di dalam Aplikasi Kasir (bisa diubah nanti di Pengaturan):</p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #0277bd;">admin</span></p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #0277bd;">admin</span></p>
+            <h3 style="color: #0277bd; margin-top: 0; font-size: 15px;">Akun Karyawan / Manager (Dalam App)</h3>
+            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun default ini untuk mengakses menu Manager di dalam Aplikasi Kasir (Password dapat diubah nanti):</p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #0277bd; font-weight:bold;">admin</span></p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #0277bd; font-weight:bold;">admin</span></p>
           </div>
           
-          <p style="margin-top: 20px; font-size: 14px;">Masa aktif Anda berlaku selama <strong>30 Hari</strong> ke depan dengan kuota <strong>5.000 Struk Transaksi</strong>.</p>
+          <p style="margin-top: 20px; font-size: 14px;">Masa aktif Anda berlaku selama <strong>30 Hari</strong> ke depan dengan Kuota <strong>${limit.toLocaleString('id-ID')} Struk Transaksi</strong>.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="font-size: 12px; color: #777; text-align: center;">
             Salam hangat,<br><strong>Tim Askara Indonesia</strong><br>
