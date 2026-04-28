@@ -119,7 +119,7 @@ export default function Home() {
                   maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)'
                 }}
               >
-                <Image src="/hero-tech.png" alt="Teknologi Askara" fill className="object-cover mix-blend-luminosity opacity-90" priority />
+                <Image src="/hero-tech(2).png" alt="Teknologi Askara" fill className="object-cover mix-blend-luminosity opacity-90" priority />
               </div>
             </motion.div>
           </div>
