@@ -133,8 +133,26 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
     setFormData(prev => ({ ...prev, [name]: name === 'outlet' ? parseInt(value) : value }));
   };
 
+  // FIX 2: Validasi Password Kuat
+  const isPasswordStrong = (password: string) => {
+    // Minimal 8 karakter, ada huruf besar, huruf kecil, dan angka/simbol
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+~`|}{\[\]:;?><,./\-=0-9]).{8,}$/;
+    return regex.test(password);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isPasswordStrong(formData.restoPassword)) {
+      alert("⚠️ Password Kasir terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
+      return;
+    }
+
+    if (formData.outlet > 1 && !isPasswordStrong(formData.ownerPassword)) {
+      alert("⚠️ Password Owner terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
+      return;
+    }
+
     onSubmit(formData);
   };
 
@@ -192,7 +210,7 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Password App *</label>
-                      <input type="password" name="restoPassword" required value={formData.restoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="******" />
+                      <input type="text" name="restoPassword" required value={formData.restoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
                     </div>
                   </div>
                 </div>
@@ -208,7 +226,7 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Password Owner *</label>
-                        <input type="password" name="ownerPassword" required value={formData.ownerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="******" />
+                        <input type="text" name="ownerPassword" required value={formData.ownerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
                       </div>
                     </div>
                   </motion.div>
@@ -275,7 +293,6 @@ const PricingSection = ({ onOpenCheckout, onOpenBeta }: { onOpenCheckout: () => 
           </div>
         </div>
 
-        {/* TOMBOL PURCHASE AKTIF */}
         <button onClick={onOpenCheckout} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl text-lg mb-4 shadow-lg hover:scale-[1.02] transition-all">
           Berlangganan Sekarang
         </button>
@@ -335,9 +352,24 @@ export default function AskaraSmartPOS() {
         })
       });
       const data = await response.json();
+      
       if (data.token) {
         setIsCheckoutOpen(false);
-        (window as any).snap.pay(data.token);
+        // FIX 1: Mencegah redirect ke example.com dengan callback
+        (window as any).snap.pay(data.token, {
+          onSuccess: function(result: any) {
+            alert("✅ Pembayaran Berhasil!\n\nKredensial dan instruksi login telah dikirimkan ke email Anda.");
+          },
+          onPending: function(result: any) {
+            alert("⏳ Menunggu pembayaran diselesaikan.");
+          },
+          onError: function(result: any) {
+            alert("❌ Pembayaran Gagal. Silakan coba lagi.");
+          },
+          onClose: function() {
+            // Aksi jika user menutup popup secara manual
+          }
+        });
       } else {
         alert('Gagal mendapatkan token pembayaran');
       }
