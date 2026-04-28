@@ -1,3 +1,5 @@
+// app/api/midtrans-webhook/route.ts
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
@@ -26,46 +28,87 @@ export async function POST(req: Request) {
     }
 
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
+      const orderId = data.order_id as String;
+
+      // =========================================================================
+      // SKENARIO 1: PEMBELIAN ADD-ON / TOPUP DARI DALAM APLIKASI
+      // =========================================================================
+      if (orderId.startsWith('ASKARA-TOPUP-')) {
+        const tipe = data.custom_field1; // 'kuota', 'hari', atau 'paket'
+        const restoId = data.custom_field2;
+        const value = parseInt(data.custom_field3); // nilai tambahan (contoh: 1000 struk atau 30 hari)
+
+        // Ambil data resto saat ini
+        const { data: currentResto, error: fetchError } = await supabase
+            .from('restaurants')
+            .select('transaction_limit, expired_at')
+            .eq('id', restoId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        let updatePayload: any = {};
+
+        if (tipe === 'kuota') {
+          // TAMBAH KUOTA STRUK
+          updatePayload.transaction_limit = currentResto.transaction_limit + value;
+        } 
+        else if (tipe === 'hari') {
+          // TAMBAH MASA AKTIF
+          const currentExpiry = new Date(currentResto.expired_at);
+          currentExpiry.setDate(currentExpiry.getDate() + value);
+          updatePayload.expired_at = currentExpiry.toISOString();
+        } 
+        else if (tipe === 'paket') {
+          // UPGRADE PAKET (Reset limit ke kuota paket baru, tambah masa aktif 30 hari)
+          const newExpiry = new Date();
+          newExpiry.setMonth(newExpiry.getMonth() + 1);
+          
+          updatePayload.transaction_limit = value; // contoh value: 5000 / 10000
+          updatePayload.expired_at = newExpiry.toISOString();
+        }
+
+        // Eksekusi Update ke Supabase
+        const { error: updateError } = await supabase
+            .from('restaurants')
+            .update(updatePayload)
+            .eq('id', restoId);
+
+        if (updateError) throw updateError;
+        console.log(`TopUp Sukses untuk Resto ID: ${restoId}`);
+      } 
       
-      const ownerName = data.custom_field1;
-      const customerEmail = data.custom_field2;
-      
-      // EKSTRAK DATA TERMASUK LIMIT DARI MIDTRANS
-      const secretData = JSON.parse(data.custom_field3);
-      const { rn, ru, rp, ou, op, out, l } = secretData; 
+      // =========================================================================
+      // SKENARIO 2: PENDAFTARAN PELANGGAN BARU VIA WEBSITE
+      // =========================================================================
+      else if (orderId.startsWith('ASKARA-SUB-')) {
+        const ownerName = data.custom_field1;
+        const customerEmail = data.custom_field2;
+        const secretData = JSON.parse(data.custom_field3);
+        const { rn, ru, rp, ou, op, out, l } = secretData; 
 
-      const expiredAt = new Date();
-      expiredAt.setMonth(expiredAt.getMonth() + 1);
+        const expiredAt = new Date();
+        expiredAt.setMonth(expiredAt.getMonth() + 1);
 
-      const { data: ownerData, error: ownerError } = await supabase
-        .from('owners')
-        .insert({
-          owner_name: ownerName,
-          owner_username: ou,
-          owner_password: op,
-          email: customerEmail 
-        })
-        .select()
-        .single();
+        const { data: ownerData, error: ownerError } = await supabase
+          .from('owners')
+          .insert({ owner_name: ownerName, owner_username: ou, owner_password: op, email: customerEmail })
+          .select().single();
 
-      if (ownerError) throw ownerError;
+        if (ownerError) throw ownerError;
 
-      const { error: restoError } = await supabase
-        .from('restaurants')
-        .insert({
-          owner_id: ownerData.id,
-          name: rn, 
-          username: ru,
-          password: rp, 
-          subscription_plan: 'Premium',
-          transaction_limit: l || 5000, // <--- MASUKKAN KUOTA DINAMIS KE DATABASE
-          expired_at: expiredAt.toISOString()
-        });
+        const { error: restoError } = await supabase
+          .from('restaurants')
+          .insert({
+            owner_id: ownerData.id, name: rn, username: ru, password: rp, 
+            subscription_plan: 'Premium', transaction_limit: l || 5000, 
+            expired_at: expiredAt.toISOString()
+          });
 
-      if (restoError) throw restoError;
+        if (restoError) throw restoError;
 
-      // KIRIM EMAIL BERSAMA INFO LIMIT KUOTA
-      await sendEmailCredentials(customerEmail, rn, ru, rp, ou, op, out, l || 5000);
+        await sendEmailCredentials(customerEmail, rn, ru, rp, ou, op, out, l || 5000);
+      }
     }
 
     return NextResponse.json({ status: 'success' });
@@ -76,7 +119,7 @@ export async function POST(req: Request) {
 }
 
 // ============================================================================
-// FUNGSI KIRIM EMAIL DENGAN RESEND API
+// FUNGSI KIRIM EMAIL DENGAN RESEND API (TETAP SAMA SEPERTI SEBELUMNYA)
 // ============================================================================
 async function sendEmailCredentials(email: string, restoName: string, ru: string, rp: string, ou: string, op: string, outlet: number, limit: number) {
   try {
@@ -93,7 +136,7 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
     }
 
     await resend.emails.send({
-      from: 'Askara POS <admin@askaraindonesia.my.id>', // Pastikan ini email resmi bos yang sudah diverifikasi
+      from: 'Askara POS <admin@askaraindonesia.my.id>', 
       to: email, 
       subject: `Akses Aplikasi Askara Smart POS - ${restoName}`,
       html: `
