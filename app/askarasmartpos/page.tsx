@@ -1,3 +1,5 @@
+// app/askarasmartpos/page.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -10,6 +12,9 @@ import BetaTesterModal from './components/BetaTesterModal';
 import CheckoutModal from './components/CheckoutModal';
 import PricingSection from './components/PricingSection';
 
+// ============================================================================
+// KOMPONEN HERO SECTION (DITAMBAH TOMBOL DOWNLOAD)
+// ============================================================================
 const HeroSection = ({ onOpenBeta }: any) => (
   <section className="text-white py-16 md:py-32 px-6 bg-linear-to-br from-[#4A00E0] via-[#6a11cb] to-[#8E2DE2] overflow-hidden">
     <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center text-left">
@@ -17,10 +22,19 @@ const HeroSection = ({ onOpenBeta }: any) => (
         <div className="bg-askara-orange text-[10px] md:text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">PRODUK UNGGULAN</div>
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight uppercase tracking-tight">Askara <span className="text-askara-orange">Smart POS</span>.</h1>
         <p className="text-base md:text-xl text-purple-100 max-w-md mb-8">Solusi sistem kasir pintar paling stabil. Dirancang agar pemilik restoran bisa memantau bisnis dengan tenang dari mana saja.</p>
-        <div className="flex flex-col sm:flex-row justify-start gap-4">
+        
+        {/* GRUP TOMBOL CTA */}
+        <div className="flex flex-col sm:flex-row justify-start gap-4 flex-wrap">
           <button onClick={onOpenBeta} className="bg-askara-orange hover:bg-[#e67e00] text-white px-8 py-3.5 rounded-xl font-bold shadow-xl shadow-orange-500/20 hover:scale-105 transition-all text-center">
             Klaim Gratis 1 Bulan
           </button>
+          
+          {/* TOMBOL DOWNLOAD BARU */}
+          <a href="/download" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Download App
+          </a>
+
           <a href="#pricing" className="bg-white/10 hover:bg-white/20 border border-white/30 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all text-center">
             Lihat Harga
           </a>
@@ -66,7 +80,7 @@ export default function AskaraSmartPOS() {
         body: JSON.stringify({
           planName: selectedPlan.name,
           price: selectedPlan.price,
-          limit: selectedPlan.limit, // <-- DATA LIMIT DINAMIS DIKIRIM KE API
+          limit: selectedPlan.limit,
           customerName: formData.namaPemilik,
           customerEmail: formData.email,
           restoName: formData.namaResto,
@@ -109,7 +123,15 @@ export default function AskaraSmartPOS() {
           <Link href="/" className="flex items-center">
             <Image src="/logo.png" alt="Logo Askara Indonesia" width={180} height={50} className="object-contain h-10 w-auto md:h-12" priority onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<span class="text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-[#4A00E0] to-[#8E2DE2]">ASKARA <span class="font-medium text-askara-orange">INDONESIA</span></span>'; }} />
           </Link>
-          <Link href="/" className="text-gray-500 hover:text-askara-orange transition font-bold text-sm flex items-center gap-2"><span>&larr;</span> Kembali</Link>
+          
+          {/* HEADER MENU DENGAN TOMBOL DOWNLOAD */}
+          <div className="flex items-center gap-4">
+            <a href="/download" className="hidden md:flex items-center gap-2 text-sm font-bold text-purple-600 bg-purple-50 border border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              Download App
+            </a>
+            <Link href="/" className="text-gray-500 hover:text-askara-orange transition font-bold text-sm flex items-center gap-2"><span>&larr;</span> Kembali</Link>
+          </div>
         </div>
       </header>
 
