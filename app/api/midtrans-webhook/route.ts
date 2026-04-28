@@ -16,8 +16,9 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    // 1. Verifikasi Web Crypto API
+    // 1. Verifikasi Web Crypto API (Aman untuk Edge Runtime)
     const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`;
+    
     const encoder = new TextEncoder();
     const dataBuffer = encoder.encode(textToHash);
     const hashBuffer = await crypto.subtle.digest('SHA-512', dataBuffer);
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Signature tidak valid' }, { status: 403 });
     }
 
-    // 2. Cek Jika Pembayaran Berhasil
+    // 2. Cek Jika Pembayaran Berhasil (Settlement)
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
       
       const ownerName = data.custom_field1;
@@ -41,13 +42,14 @@ export async function POST(req: Request) {
       const expiredAt = new Date();
       expiredAt.setMonth(expiredAt.getMonth() + 1); // Masa aktif 1 bulan
 
-      // 4. Insert ke Tabel Owners (Gunakan Username/Password dari Form Pelanggan)
+      // 4. Insert ke Tabel Owners (Tambahan: Simpan Email Pelanggan)
       const { data: ownerData, error: ownerError } = await supabase
         .from('owners')
         .insert({
           owner_name: ownerName,
           owner_username: ou,
-          owner_password: op
+          owner_password: op,
+          email: customerEmail // <--- DISIMPAN KE SUPABASE AGAR BISA RESET PASSWORD NANTINYA
         })
         .select()
         .single();
@@ -99,7 +101,10 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
     }
 
     await resend.emails.send({
-      from: 'Askara POS <onboarding@resend.dev>', // Ganti dengan admin@askaraindonesia.my.id setelah verify domain
+      // CATATAN: Jika status domain di Resend sudah Verified (Hijau), 
+      // ganti tulisan 'onboarding@resend.dev' di bawah ini menjadi email resmi Bos.
+      // Contoh: 'admin@askaraindonesia.my.id'
+      from: 'Askara POS <hello@askaraindonesia.my.id>',
       to: email, 
       subject: 'Akses Aplikasi Askara Smart POS Anda',
       html: `
