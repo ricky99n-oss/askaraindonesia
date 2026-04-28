@@ -117,15 +117,14 @@ _Saya berkomitmen aktif mengirimkan feedback selama 1 bulan dan menyetujui syara
     </AnimatePresence>
   );
 };
-
 // ============================================================================
-// 2. KOMPONEN MODAL CHECKOUT KUSTOM (MIDTRANS)
+// 2. KOMPONEN MODAL CHECKOUT KUSTOM (MIDTRANS) - DENGAN VALIDASI REALTIME
 // ============================================================================
 const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
   const [formData, setFormData] = useState({
     namaPemilik: '', email: '', namaResto: '', outlet: 1,
-    restoUsername: '', restoPassword: '', repeatRestoPassword: '', // Ditambah repeat
-    ownerUsername: '', ownerPassword: '', repeatOwnerPassword: ''  // Ditambah repeat
+    restoUsername: '', restoPassword: '', repeatRestoPassword: '',
+    ownerUsername: '', ownerPassword: '', repeatOwnerPassword: ''
   });
 
   const handleChange = (e: any) => {
@@ -133,36 +132,40 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
     setFormData(prev => ({ ...prev, [name]: name === 'outlet' ? parseInt(value) : value }));
   };
 
-  // Validasi Password Kuat
+  // Validasi Regex Password Kuat
   const isPasswordStrong = (password: string) => {
-    // Minimal 8 karakter, ada huruf besar, huruf kecil, dan angka/simbol
+    if (!password) return false;
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+~`|}{\[\]:;?><,./\-=0-9]).{8,}$/;
     return regex.test(password);
+  };
+
+  // PENGECEKAN STATUS REAL-TIME
+  const restoPassValid = formData.restoPassword === '' || isPasswordStrong(formData.restoPassword);
+  const restoRepeatValid = formData.repeatRestoPassword === '' || formData.restoPassword === formData.repeatRestoPassword;
+  
+  const ownerPassValid = formData.ownerPassword === '' || isPasswordStrong(formData.ownerPassword);
+  const ownerRepeatValid = formData.repeatOwnerPassword === '' || formData.ownerPassword === formData.repeatOwnerPassword;
+
+  // FUNGSI PEMBERI WARNA KOTAK INPUT OTOMATIS
+  const getPassInputClass = (isValid: boolean, value: string) => {
+    if (value === '') return "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-colors";
+    return isValid 
+      ? "w-full px-4 py-2.5 border-2 border-green-500 rounded-lg outline-none bg-green-50 transition-colors" 
+      : "w-full px-4 py-2.5 border-2 border-red-500 rounded-lg outline-none bg-red-50 transition-colors text-red-700";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validasi Password Kasir
-    if (formData.restoPassword !== formData.repeatRestoPassword) {
-      alert("⚠️ Ulangi Password App (Kasir) tidak cocok!");
-      return;
-    }
-    if (!isPasswordStrong(formData.restoPassword)) {
-      alert("⚠️ Password App (Kasir) terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
+    // Cegah submit jika masih ada yang merah
+    if (!restoPassValid || !restoRepeatValid || formData.restoPassword === '') {
+      alert("⚠️ Cek kembali Password App (Kasir) Anda!");
       return;
     }
 
-    // Validasi Password Owner (Jika > 1 Outlet)
-    if (formData.outlet > 1) {
-      if (formData.ownerPassword !== formData.repeatOwnerPassword) {
-        alert("⚠️ Ulangi Password Owner tidak cocok!");
-        return;
-      }
-      if (!isPasswordStrong(formData.ownerPassword)) {
-        alert("⚠️ Password Owner terlalu lemah!\n\nMinimal 8 karakter dan harus mengandung kombinasi huruf BESAR, huruf kecil, serta angka/simbol.");
-        return;
-      }
+    if (formData.outlet > 1 && (!ownerPassValid || !ownerRepeatValid || formData.ownerPassword === '')) {
+      alert("⚠️ Cek kembali Password Owner Anda!");
+      return;
     }
 
     onSubmit(formData);
@@ -192,69 +195,81 @@ const CheckoutModal = ({ isOpen, onClose, onSubmit, isLoading }: any) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pemilik *</label>
-                    <input type="text" name="namaPemilik" required value={formData.namaPemilik} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+                    <input type="text" name="namaPemilik" required value={formData.namaPemilik} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email Aktif *</label>
-                    <input type="email" name="email" required value={formData.email} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+                    <input type="email" name="email" required value={formData.email} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nama Resto *</label>
-                    <input type="text" name="namaResto" required value={formData.namaResto} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+                    <input type="text" name="namaResto" required value={formData.namaResto} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Outlet *</label>
-                    <select name="outlet" value={formData.outlet} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white">
+                    <select name="outlet" value={formData.outlet} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white">
                       {[1,2,3,4,5].map(num => (<option key={num} value={num}>{num} Outlet</option>))}
                     </select>
                   </div>
                 </div>
 
-                {/* FORM KREDENSIAL KASIR */}
+                {/* KREDENSIAL APP (KASIR) DENGAN REALTIME WARNING */}
                 <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 mt-4">
                   <h4 className="font-bold text-purple-800 text-sm mb-3">Kredensial Login App (Kasir)</h4>
                   <div className="mb-3">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Username App *</label>
-                    <input type="text" name="restoUsername" required value={formData.restoUsername} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Cth: kasir1" />
+                    <input type="text" name="restoUsername" required value={formData.restoUsername} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500" placeholder="Cth: kasir1" />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Password App *</label>
-                      <input type="password" name="restoPassword" required value={formData.restoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
+                      <input type="password" name="restoPassword" required value={formData.restoPassword} onChange={handleChange} className={getPassInputClass(restoPassValid, formData.restoPassword)} placeholder="Minimal 8 karakter" />
+                      {!restoPassValid && <p className="text-red-500 text-[10px] mt-1.5 leading-tight font-medium">Harus kombinasi huruf BESAR, kecil & angka/simbol.</p>}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Ulangi Password *</label>
-                      <input type="password" name="repeatRestoPassword" required value={formData.repeatRestoPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Ulangi password" />
+                      <input type="password" name="repeatRestoPassword" required value={formData.repeatRestoPassword} onChange={handleChange} className={getPassInputClass(restoRepeatValid, formData.repeatRestoPassword)} placeholder="Ulangi password" />
+                      {!restoRepeatValid && <p className="text-red-500 text-[10px] mt-1.5 leading-tight font-medium">Password tidak sama!</p>}
                     </div>
                   </div>
                 </div>
 
-                {/* FORM KREDENSIAL OWNER (JIKA > 1 OUTLET) */}
+                {/* KREDENSIAL OWNER DENGAN REALTIME WARNING */}
                 {formData.outlet > 1 && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-orange-50 p-4 rounded-xl border border-orange-100 mt-4">
                     <h4 className="font-bold text-askara-orange text-sm mb-3">Kredensial Dashboard Owner</h4>
                     <p className="text-xs text-gray-600 mb-3">Akses khusus manager untuk memantau {formData.outlet} outlet.</p>
                     <div className="mb-3">
                       <label className="block text-xs font-medium text-gray-700 mb-1">Username Owner *</label>
-                      <input type="text" name="ownerUsername" required value={formData.ownerUsername} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Cth: owner_budi" />
+                      <input type="text" name="ownerUsername" required value={formData.ownerUsername} onChange={handleChange} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-orange-500" placeholder="Cth: owner_budi" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Password Owner *</label>
-                        <input type="password" name="ownerPassword" required value={formData.ownerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="A-Z, a-z, simbol/angka" />
+                        <input type="password" name="ownerPassword" required value={formData.ownerPassword} onChange={handleChange} className={getPassInputClass(ownerPassValid, formData.ownerPassword)} placeholder="Minimal 8 karakter" />
+                        {!ownerPassValid && <p className="text-red-500 text-[10px] mt-1.5 leading-tight font-medium">Harus kombinasi huruf BESAR, kecil & angka/simbol.</p>}
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Ulangi Password *</label>
-                        <input type="password" name="repeatOwnerPassword" required value={formData.repeatOwnerPassword} onChange={handleChange} className="w-full px-4 py-2.5 border rounded-lg outline-none" placeholder="Ulangi password" />
+                        <input type="password" name="repeatOwnerPassword" required value={formData.repeatOwnerPassword} onChange={handleChange} className={getPassInputClass(ownerRepeatValid, formData.repeatOwnerPassword)} placeholder="Ulangi password" />
+                        {!ownerRepeatValid && <p className="text-red-500 text-[10px] mt-1.5 leading-tight font-medium">Password tidak sama!</p>}
                       </div>
                     </div>
                   </motion.div>
                 )}
 
-                <button type="submit" disabled={isLoading} className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02] flex justify-center items-center">
+                <button 
+                  type="submit" 
+                  disabled={isLoading || !restoPassValid || !restoRepeatValid || (formData.outlet > 1 && (!ownerPassValid || !ownerRepeatValid))} 
+                  className={`w-full mt-6 py-3.5 rounded-xl font-bold shadow-lg transition-all flex justify-center items-center ${
+                    (!restoPassValid || !restoRepeatValid || (formData.outlet > 1 && (!ownerPassValid || !ownerRepeatValid)))
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700 text-white hover:scale-[1.02]'
+                  }`}
+                >
                   {isLoading ? 'Memproses...' : 'Lanjutkan Pembayaran (Rp 149.000)'}
                 </button>
               </form>
