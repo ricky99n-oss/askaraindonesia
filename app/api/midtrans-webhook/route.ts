@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'node:crypto'; // FIX: Gunakan node:crypto agar aman di Cloudflare Pages
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+export const runtime = 'edge';
 
 // Inisialisasi Resend untuk kirim email
 const resend = new Resend(process.env.RESEND_API_KEY);
