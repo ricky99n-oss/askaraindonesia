@@ -1,16 +1,55 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// Inisialisasi Supabase Client
+// Pastikan variabel environment ini sudah ada di file .env.local website Bos
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const IconCheck = () => (
   <svg className="w-5 h-5 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
 );
 
 export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenCheckout: (plan: any) => void, onOpenBeta: () => void }) {
-  const plans = [
-    { id: 'BASIC', name: 'BASIC', price: 149000, limit: 2500, desc: 'Cocok untuk usaha kecil / baru mulai', est: '±80 transaksi/hari', recommended: false },
-    { id: 'GROWTH', name: 'GROWTH', price: 249000, limit: 5000, desc: 'Cocok untuk usaha menengah / berkembang', est: '±150 transaksi/hari', recommended: true },
-    { id: 'PRO', name: 'PRO (Scale Up)', price: 349000, limit: 10000, desc: 'Cocok untuk usaha ramai / multi shift', est: '300+ transaksi/hari', recommended: false }
-  ];
+  const [plans, setPlans] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPackages() {
+      try {
+        const { data, error } = await supabase
+          .from('packages')
+          .select('*')
+          .eq('is_active', true)
+          .order('price', { ascending: true });
+
+        if (error) throw error;
+
+        if (data) {
+          // Format data dari Supabase ke format yang dibutuhkan UI
+          const formattedPlans = data.map((item: any) => ({
+            id: item.id, // Gunakan UUID dari database
+            name: item.name,
+            price: item.price,
+            limit: item.limit_tx,
+            desc: item.description || '',
+            // Rumus otomatis: Limit dibagi 30 hari
+            est: item.limit_tx >= 10000 ? '300+ transaksi/hari' : `±${Math.round(item.limit_tx / 30)} transaksi/hari`,
+            recommended: item.is_recommended
+          }));
+          setPlans(formattedPlans);
+        }
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPackages();
+  }, []);
 
   return (
     <section id="pricing" className="py-24 px-6 bg-gray-50 border-t border-gray-100">
@@ -20,32 +59,43 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">Semua paket mendapatkan fitur lengkap tanpa dikunci. Perbedaan hanya pada kuota struk transaksi per bulan.</p>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-8 items-center">
-          {plans.map((plan) => (
-            <div key={plan.id} className={`bg-white rounded-3xl p-8 relative transition-all duration-300 ${plan.recommended ? 'border-2 border-purple-500 shadow-2xl md:scale-105 z-10' : 'border border-gray-200 shadow-lg hover:shadow-xl'}`}>
-              {plan.recommended && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider">
-                  PALING POPULER
+        {/* State Loading */}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            Paket belum tersedia saat ini.
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-8 items-center">
+            {plans.map((plan) => (
+              <div key={plan.id} className={`bg-white rounded-3xl p-8 relative transition-all duration-300 ${plan.recommended ? 'border-2 border-purple-500 shadow-2xl md:scale-105 z-10' : 'border border-gray-200 shadow-lg hover:shadow-xl'}`}>
+                {plan.recommended && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider">
+                    PALING POPULER
+                  </div>
+                )}
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                <p className="text-sm text-gray-500 mb-6 h-10">{plan.desc}</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-gray-900">Rp {plan.price.toLocaleString('id-ID')}</span>
+                  <span className="text-gray-500 font-medium">/bln</span>
                 </div>
-              )}
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-              <p className="text-sm text-gray-500 mb-6 h-10">{plan.desc}</p>
-              <div className="mb-6">
-                <span className="text-4xl font-black text-gray-900">Rp {plan.price.toLocaleString('id-ID')}</span>
-                <span className="text-gray-500 font-medium">/bln</span>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3"><IconCheck /> <span className="font-bold text-purple-700">{plan.limit.toLocaleString('id-ID')} Struk / bulan</span></li>
+                  <li className="flex items-center gap-3"><IconCheck /> <span className="text-gray-600">Estimasi {plan.est}</span></li>
+                  <li className="flex items-center gap-3"><IconCheck /> <span className="text-gray-600">Semua Fitur Premium Terbuka</span></li>
+                  <li className="flex items-center gap-3"><IconCheck /> <span className="text-gray-600">Support Prioritas WhatsApp</span></li>
+                </ul>
+                <button onClick={() => onOpenCheckout(plan)} className={`w-full py-4 rounded-xl font-bold transition-all ${plan.recommended ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30 hover:scale-105' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`}>
+                  Pilih Paket {plan.name}
+                </button>
               </div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center gap-3"><IconCheck /> <span className="font-bold text-purple-700">{plan.limit.toLocaleString('id-ID')} Struk / bulan</span></li>
-                <li className="flex items-center gap-3"><IconCheck /> <span className="text-gray-600">Estimasi {plan.est}</span></li>
-                <li className="flex items-center gap-3"><IconCheck /> <span className="text-gray-600">Semua Fitur Premium Terbuka</span></li>
-                <li className="flex items-center gap-3"><IconCheck /> <span className="text-gray-600">Support Prioritas WhatsApp</span></li>
-              </ul>
-              <button onClick={() => onOpenCheckout(plan)} className={`w-full py-4 rounded-xl font-bold transition-all ${plan.recommended ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30 hover:scale-105' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`}>
-                Pilih Paket {plan.name}
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-20 max-w-4xl mx-auto bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
           <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">Butuh Tambahan Kuota? (Add-On)</h3>
