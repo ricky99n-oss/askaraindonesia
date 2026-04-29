@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// 1. TAMBAHKAN INI AGAR CLOUDFLARE TIDAK ERROR (Wajib untuk API di Cloudflare Pages)
+export const runtime = 'edge';
+
 // KUNCI MASTER: Hanya boleh dipanggil di backend (server)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,8 +30,8 @@ export async function POST(req: Request) {
     // 2. BUAT AKUN DI SUPABASE AUTH
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: customerEmail,
-      password: restoPassword, // Akan di-hash otomatis oleh Supabase
-      email_confirm: true,     // Langsung dianggap valid (opsional)
+      password: restoPassword, 
+      email_confirm: true,     
     });
 
     if (authError) {
@@ -41,8 +44,8 @@ export async function POST(req: Request) {
     const { data: newResto, error: restoError } = await supabaseAdmin.from('restaurants').insert({
       auth_id: authId,
       email: customerEmail,
-      username: customerEmail, // Disamakan agar tidak error constraint DB lama
-      password: 'ENCRYPTED_BY_SUPABASE', // Hapus plain text
+      username: customerEmail, 
+      password: 'ENCRYPTED_BY_SUPABASE', 
       name: restoName,
       subscription_plan: plan.name,
       transaction_limit: plan.limit_tx,
@@ -50,20 +53,21 @@ export async function POST(req: Request) {
     }).select('id').single();
 
     if (restoError || !newResto) {
-      // Rollback Auth jika insert gagal (Pembersihan)
+      // Rollback Auth jika insert gagal
       await supabaseAdmin.auth.admin.deleteUser(authId);
       return NextResponse.json({ error: 'Gagal membuat profil resto' }, { status: 500 });
     }
 
-    // Gunakan ID Resto sebagai Order ID Midtrans agar mudah dilacak nanti
     const orderId = `ASKARA-${newResto.id}`;
 
     // 4. REQUEST TOKEN MIDTRANS (Menggunakan harga asli dari DB)
-    const midtransAuth = Buffer.from(process.env.MIDTRANS_SERVER_KEY + ':').toString('base64');
+    // FIX EDGE RUNTIME: Gunakan btoa() pengganti Buffer.from()
+    const midtransAuth = btoa(process.env.MIDTRANS_SERVER_KEY + ':');
+    
     const midtransPayload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: plan.price // Harga mutlak dari database
+        gross_amount: plan.price 
       },
       customer_details: {
         first_name: customerName,
