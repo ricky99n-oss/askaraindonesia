@@ -2,12 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inisialisasi Supabase Client
-// Pastikan variabel environment ini sudah ada di file .env.local website Bos
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 const IconCheck = () => (
   <svg className="w-5 h-5 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
 );
@@ -17,6 +11,19 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // FIX BUILD ERROR: Inisialisasi Supabase di dalam useEffect
+    // Kode ini hanya akan berjalan di browser pengguna, bukan di mesin server saat proses build.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Kredensial Supabase belum diatur di Environment Variables.');
+      setIsLoading(false);
+      return;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     async function fetchPackages() {
       try {
         const { data, error } = await supabase
@@ -28,14 +35,12 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
         if (error) throw error;
 
         if (data) {
-          // Format data dari Supabase ke format yang dibutuhkan UI
           const formattedPlans = data.map((item: any) => ({
-            id: item.id, // Gunakan UUID dari database
+            id: item.id, 
             name: item.name,
             price: item.price,
             limit: item.limit_tx,
             desc: item.description || '',
-            // Rumus otomatis: Limit dibagi 30 hari
             est: item.limit_tx >= 10000 ? '300+ transaksi/hari' : `±${Math.round(item.limit_tx / 30)} transaksi/hari`,
             recommended: item.is_recommended
           }));
@@ -59,7 +64,6 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">Semua paket mendapatkan fitur lengkap tanpa dikunci. Perbedaan hanya pada kuota struk transaksi per bulan.</p>
         </div>
         
-        {/* State Loading */}
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
