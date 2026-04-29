@@ -2,29 +2,29 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+// Inisialisasi aman dari Build Error
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Kita pastikan Supabase hanya berjalan jika URL dan Key tersedia
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
 const IconCheck = () => (
   <svg className="w-5 h-5 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
 );
 
-export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenCheckout: (plan: any) => void, onOpenBeta: () => void }) {
+export default function PricingSection({ onOpenCheckout, onOpenBeta, isBetaFull }: { onOpenCheckout: (plan: any) => void, onOpenBeta: () => void, isBetaFull: boolean }) {
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // FIX BUILD ERROR: Inisialisasi Supabase di dalam useEffect
-    // Kode ini hanya akan berjalan di browser pengguna, bukan di mesin server saat proses build.
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Kredensial Supabase belum diatur di Environment Variables.');
-      setIsLoading(false);
-      return;
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     async function fetchPackages() {
+      if (!supabase) {
+        console.error('Kredensial Supabase tidak ditemukan. Cek file .env.local');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('packages')
@@ -34,9 +34,9 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
 
         if (error) throw error;
 
-        if (data) {
+        if (data && data.length > 0) {
           const formattedPlans = data.map((item: any) => ({
-            id: item.id, 
+            id: item.id,
             name: item.name,
             price: item.price,
             limit: item.limit_tx,
@@ -69,8 +69,8 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
           </div>
         ) : plans.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            Paket belum tersedia saat ini.
+          <div className="text-center py-20 text-red-500 font-bold bg-red-50 rounded-xl border border-red-200 p-8 max-w-2xl mx-auto">
+            Paket belum tersedia. Pastikan .env.local sudah berisi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY dengan benar!
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8 items-center">
@@ -101,34 +101,18 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta }: { onOpenC
           </div>
         )}
 
-        <div className="mt-20 max-w-4xl mx-auto bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">Butuh Tambahan Kuota? (Add-On)</h3>
-          <p className="text-sm text-gray-500 text-center mb-8">Add-on ini dapat Anda beli kapan saja langsung dari dalam menu Dashboard Aplikasi jika kuota bulanan Anda habis.</p>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-              <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Tambah Kuota Struk</h4>
-              <ul className="space-y-3 text-sm text-gray-700">
-                <li className="flex justify-between border-b border-blue-100 pb-2"><span>+ 1.000 Struk</span><span className="font-bold">Rp 49.000</span></li>
-                <li className="flex justify-between border-b border-blue-100 pb-2"><span>+ 3.000 Struk</span><span className="font-bold">Rp 129.000</span></li>
-                <li className="flex justify-between"><span>+ 5.000 Struk</span><span className="font-bold">Rp 199.000</span></li>
-              </ul>
-            </div>
-            <div className="bg-orange-50/50 p-6 rounded-2xl border border-orange-100">
-              <h4 className="font-bold text-orange-800 mb-4 flex items-center gap-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Perpanjang Masa Aktif</h4>
-              <ul className="space-y-3 text-sm text-gray-700">
-                <li className="flex justify-between border-b border-orange-100 pb-2"><span>+ 7 Hari</span><span className="font-bold">Rp 39.000</span></li>
-                <li className="flex justify-between border-b border-orange-100 pb-2"><span>+ 15 Hari</span><span className="font-bold">Rp 69.000</span></li>
-                <li className="flex justify-between"><span>+ 30 Hari</span><span className="font-bold">Rp 129.000</span></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
         <div className="mt-12 bg-orange-50 border border-orange-200 rounded-2xl p-6 text-center max-w-2xl mx-auto">
           <p className="text-askara-orange font-black text-xl uppercase tracking-wide mb-2">GRATIS 1 BULAN PERTAMA!</p>
           <p className="text-gray-700 text-sm mb-4">Jadilah bagian dari 3 Beta Tester pertama kami. Kuota terbatas.</p>
-          <button onClick={onOpenBeta} className="bg-askara-orange hover:bg-[#e67e00] text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-105">Klaim Kuota Beta Tester</button>
+          
+          {/* TOMBOL BETA DINAMIS BERDASARKAN KUOTA */}
+          <button 
+            onClick={onOpenBeta} 
+            disabled={isBetaFull}
+            className={`px-8 py-3 rounded-lg font-bold shadow-lg transition-transform ${isBetaFull ? 'bg-gray-400 text-gray-100 cursor-not-allowed' : 'bg-askara-orange hover:bg-[#e67e00] text-white hover:scale-105'}`}
+          >
+            {isBetaFull ? 'TUTUP: Kuota Beta Sudah Habis' : 'Klaim Kuota Beta Tester'}
+          </button>
         </div>
       </div>
     </section>

@@ -15,6 +15,7 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
+    // 1. VALIDASI SIGNATURE MIDTRANS DENGAN WEB CRYPTO API
     const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`;
     
     const encoder = new TextEncoder();
@@ -24,11 +25,13 @@ export async function POST(req: Request) {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     if (data.signature_key !== hashHex) {
+      console.warn('HACK ATTEMPT: Signature Key tidak cocok!');
       return NextResponse.json({ error: 'Signature tidak valid' }, { status: 403 });
     }
 
+    // 2. CEK STATUS TRANSAKSI JIKA LUNAS
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
-      const orderId = data.order_id as String;
+      const orderId = data.order_id as string;
 
       // =========================================================================
       // SKENARIO 1: PEMBELIAN ADD-ON / TOPUP DARI DALAM APLIKASI
@@ -36,9 +39,8 @@ export async function POST(req: Request) {
       if (orderId.startsWith('ASKARA-TOPUP-')) {
         const tipe = data.custom_field1; // 'kuota', 'hari', atau 'paket'
         const restoId = data.custom_field2;
-        const value = parseInt(data.custom_field3); // nilai tambahan (contoh: 1000 struk atau 30 hari)
+        const value = parseInt(data.custom_field3);
 
-        // Ambil data resto saat ini
         const { data: currentResto, error: fetchError } = await supabase
             .from('restaurants')
             .select('transaction_limit, expired_at')
@@ -50,64 +52,60 @@ export async function POST(req: Request) {
         let updatePayload: any = {};
 
         if (tipe === 'kuota') {
-          // TAMBAH KUOTA STRUK
           updatePayload.transaction_limit = currentResto.transaction_limit + value;
         } 
         else if (tipe === 'hari') {
-          // TAMBAH MASA AKTIF
           const currentExpiry = new Date(currentResto.expired_at);
           currentExpiry.setDate(currentExpiry.getDate() + value);
           updatePayload.expired_at = currentExpiry.toISOString();
         } 
         else if (tipe === 'paket') {
-          // UPGRADE PAKET (Reset limit ke kuota paket baru, tambah masa aktif 30 hari)
           const newExpiry = new Date();
           newExpiry.setMonth(newExpiry.getMonth() + 1);
-          
-          updatePayload.transaction_limit = value; // contoh value: 5000 / 10000
+          updatePayload.transaction_limit = value;
           updatePayload.expired_at = newExpiry.toISOString();
         }
 
-        // Eksekusi Update ke Supabase
         const { error: updateError } = await supabase
             .from('restaurants')
             .update(updatePayload)
             .eq('id', restoId);
 
         if (updateError) throw updateError;
-        console.log(`TopUp Sukses untuk Resto ID: ${restoId}`);
+        console.log(`✅ TopUp Sukses untuk Resto ID: ${restoId}`);
       } 
       
       // =========================================================================
-      // SKENARIO 2: PENDAFTARAN PELANGGAN BARU VIA WEBSITE
+      // SKENARIO 2: PENDAFTARAN PELANGGAN BARU VIA WEBSITE (SUPABASE AUTH)
       // =========================================================================
-      else if (orderId.startsWith('ASKARA-SUB-')) {
-        const ownerName = data.custom_field1;
-        const customerEmail = data.custom_field2;
-        const secretData = JSON.parse(data.custom_field3);
-        const { rn, ru, rp, ou, op, out, l } = secretData; 
+      else if (orderId.startsWith('ASKARA-')) {
+        // ID Resto didapat dengan membuang awalan 'ASKARA-'
+        const restoId = orderId.replace('ASKARA-', '');
 
-        const expiredAt = new Date();
-        expiredAt.setMonth(expiredAt.getMonth() + 1);
+        // Hitung Masa Aktif 30 Hari
+        const expiredDate = new Date();
+        expiredDate.setDate(expiredDate.getDate() + 30);
 
-        const { data: ownerData, error: ownerError } = await supabase
-          .from('owners')
-          .insert({ owner_name: ownerName, owner_username: ou, owner_password: op, email: customerEmail })
-          .select().single();
-
-        if (ownerError) throw ownerError;
-
-        const { error: restoError } = await supabase
+        // Update status is_active ke true agar akun bisa digunakan untuk Login
+        const { data: updatedResto, error: updateError } = await supabase
           .from('restaurants')
-          .insert({
-            owner_id: ownerData.id, name: rn, username: ru, password: rp, 
-            subscription_plan: 'Premium', transaction_limit: l || 5000, 
-            expired_at: expiredAt.toISOString()
-          });
+          .update({ 
+            is_active: true, 
+            expired_at: expiredDate.toISOString(),
+            current_month_transactions: 0 
+          })
+          .eq('id', restoId)
+          .select('name, email, transaction_limit')
+          .single();
 
-        if (restoError) throw restoError;
+        if (updateError) throw updateError;
 
-        await sendEmailCredentials(customerEmail, rn, ru, rp, ou, op, out, l || 5000);
+        console.log(`✅ Pendaftaran Baru Resto ${restoId} berhasil diaktifkan!`);
+
+        // Kirim Email Kredensial & Tautan Download
+        if (updatedResto && updatedResto.email) {
+          await sendWelcomeEmail(updatedResto.email, updatedResto.name, updatedResto.transaction_limit);
+        }
       }
     }
 
@@ -119,22 +117,10 @@ export async function POST(req: Request) {
 }
 
 // ============================================================================
-// FUNGSI KIRIM EMAIL DENGAN RESEND API (TETAP SAMA SEPERTI SEBELUMNYA)
+// FUNGSI KIRIM EMAIL (DISESUAIKAN UNTUK SUPABASE AUTH & KEAMANAN PASSWORD)
 // ============================================================================
-async function sendEmailCredentials(email: string, restoName: string, ru: string, rp: string, ou: string, op: string, outlet: number, limit: number) {
+async function sendWelcomeEmail(email: string, restoName: string, limit: number) {
   try {
-    let ownerHtmlBlock = '';
-    if (outlet > 1) {
-      ownerHtmlBlock = `
-        <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #ffd180;">
-          <h3 style="color: #FF8C00; margin-top: 0; font-size: 15px;">Dashboard Owner (Akses Web)</h3>
-          <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk memantau semua outlet Anda dari Website.</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #d84315;">${ou}</span></p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #d84315;">${op}</span></p>
-        </div>
-      `;
-    }
-
     await resend.emails.send({
       from: 'Askara POS <admin@askaraindonesia.my.id>', 
       to: email, 
@@ -154,17 +140,15 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
             <p style="font-size: 12px; color: #888; margin-top: 8px;">Hanya untuk perangkat Android / Tablet POS</p>
           </div>
 
-          <p>Berikut adalah kredensial untuk mengakses sistem kami:</p>
+          <p>Sistem kami telah mengaktifkan akun Anda. Karena kami menggunakan enkripsi keamanan tingkat tinggi, password Anda dirahasiakan oleh sistem.</p>
           
           <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #e1bee7;">
-            <h3 style="color: #6a1b9a; margin-top: 0; font-size: 15px;">Aplikasi Kasir (Outlet)</h3>
-            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun ini untuk login utama di aplikasi.</p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Username:</strong> <span style="color: #4A00E0; font-weight:bold;">${ru}</span></p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #4A00E0; font-weight:bold;">${rp}</span></p>
+            <h3 style="color: #6a1b9a; margin-top: 0; font-size: 15px;">Aplikasi Kasir (Login Utama)</h3>
+            <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan email yang Anda daftarkan untuk login ke aplikasi.</p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Email:</strong> <span style="color: #4A00E0; font-weight:bold;">${email}</span></p>
+            <p style="margin: 5px 0; font-size: 14px;"><strong>Password:</strong> <span style="color: #4A00E0; font-weight:bold;">(Gunakan Password yang Anda buat di Website)</span></p>
           </div>
           
-          ${ownerHtmlBlock}
-
           <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; border: 1px solid #90caf9;">
             <h3 style="color: #0277bd; margin-top: 0; font-size: 15px;">Akun Karyawan / Manager (Dalam App)</h3>
             <p style="margin: 5px 0; font-size: 14px; color: #555;">Gunakan akun default ini untuk mengakses menu Manager di dalam Aplikasi Kasir (Password dapat diubah nanti):</p>
@@ -181,8 +165,8 @@ async function sendEmailCredentials(email: string, restoName: string, ru: string
         </div>
       `
     });
-    console.log(`Email sukses dikirim ke: ${email}`);
+    console.log(`✅ Email Kredensial sukses dikirim ke: ${email}`);
   } catch (error) {
-    console.error('Gagal mengirim email kredensial:', error);
+    console.error('❌ Gagal mengirim email kredensial:', error);
   }
 }

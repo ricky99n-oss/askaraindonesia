@@ -6,13 +6,18 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import { createClient } from '@supabase/supabase-js';
 
 // IMPORT KOMPONEN MODULAR
 import BetaTesterModal from './components/BetaTesterModal';
 import CheckoutModal from './components/CheckoutModal';
 import PricingSection from './components/PricingSection';
 
-const HeroSection = ({ onOpenBeta }: any) => (
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
   <section className="text-white py-16 md:py-32 px-6 bg-linear-to-br from-[#4A00E0] via-[#6a11cb] to-[#8E2DE2] overflow-hidden">
     <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center text-left">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="z-10">
@@ -21,8 +26,13 @@ const HeroSection = ({ onOpenBeta }: any) => (
         <p className="text-base md:text-xl text-purple-100 max-w-md mb-8">Solusi sistem kasir pintar paling stabil. Dirancang agar pemilik restoran bisa memantau bisnis dengan tenang dari mana saja.</p>
         
         <div className="flex flex-col sm:flex-row justify-start gap-4 flex-wrap">
-          <button onClick={onOpenBeta} className="bg-askara-orange hover:bg-[#e67e00] text-white px-8 py-3.5 rounded-xl font-bold shadow-xl shadow-orange-500/20 hover:scale-105 transition-all text-center">
-            Klaim Gratis 1 Bulan
+          {/* TOMBOL BETA DI HERO SECTION */}
+          <button 
+            onClick={onOpenBeta} 
+            disabled={isBetaFull}
+            className={`px-8 py-3.5 rounded-xl font-bold shadow-xl transition-all text-center ${isBetaFull ? 'bg-gray-400/50 text-gray-300 cursor-not-allowed' : 'bg-askara-orange hover:bg-[#e67e00] text-white shadow-orange-500/20 hover:scale-105'}`}
+          >
+            {isBetaFull ? 'Kuota Beta Habis' : 'Klaim Gratis 1 Bulan'}
           </button>
           
           <a href="/download" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
@@ -47,8 +57,12 @@ export default function AskaraSmartPOS() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{id: string, name: string, price: number, limit: number} | null>(null);
+  
+  // STATE BARU UNTUK CEK KUOTA BETA
+  const [isBetaFull, setIsBetaFull] = useState(false);
 
   useEffect(() => {
+    // 1. Script Midtrans
     const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js"; 
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ""; 
     const script = document.createElement('script');
@@ -56,6 +70,27 @@ export default function AskaraSmartPOS() {
     script.setAttribute('data-client-key', clientKey);
     script.async = true;
     document.body.appendChild(script);
+
+    // 2. Cek Kuota Beta Tester
+    async function checkBetaQuota() {
+      if (!supabase) return;
+      try {
+        const { count, error } = await supabase
+          .from('beta_testers')
+          .select('*', { count: 'exact', head: true });
+          
+        if (!error && count !== null) {
+          // JIKA SUDAH 3 ORANG ATAU LEBIH, KUNCI FORM BETA
+          if (count >= 3) {
+            setIsBetaFull(true);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal cek kuota beta", err);
+      }
+    }
+    checkBetaQuota();
+
     return () => { document.body.removeChild(script); }
   }, []);
 
@@ -73,18 +108,13 @@ export default function AskaraSmartPOS() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // KUNCI KEAMANAN: Jangan pernah kirim 'price' atau 'limit' dari sini!
-          // Biarkan file /api/transaction.ts di backend yang menarik harga aslinya dari Supabase
+          // KUNCI KEAMANAN: Payload sudah dibersihkan. 
+          // Hanya mengirim ID Plan dan data penting untuk Supabase Auth
           planId: selectedPlan.id, 
-          planName: selectedPlan.name,
           customerName: formData.namaPemilik,
           customerEmail: formData.email,
           restoName: formData.namaResto,
-          outlet: formData.outlet,
-          restoUsername: formData.restoUsername,
-          restoPassword: formData.restoPassword,
-          ownerUsername: formData.outlet > 1 ? formData.ownerUsername : formData.restoUsername,
-          ownerPassword: formData.outlet > 1 ? formData.ownerPassword : formData.restoPassword,
+          restoPassword: formData.restoPassword
         })
       });
       const data = await response.json();
@@ -130,7 +160,8 @@ export default function AskaraSmartPOS() {
         </div>
       </header>
 
-      <HeroSection onOpenBeta={() => setIsBetaOpen(true)} />
+      {/* Passing isBetaFull ke HeroSection */}
+      <HeroSection onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
       
       <section className="py-20 md:py-32 px-6 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 md:gap-20 items-center">
@@ -144,7 +175,8 @@ export default function AskaraSmartPOS() {
         </div>
       </section>
 
-      <PricingSection onOpenCheckout={handleOpenCheckout} onOpenBeta={() => setIsBetaOpen(true)} />
+      {/* Passing isBetaFull ke PricingSection */}
+      <PricingSection onOpenCheckout={handleOpenCheckout} onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
 
       <footer className="bg-[#0f172a] text-white pt-20 pb-10 px-6">
         <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
@@ -152,7 +184,10 @@ export default function AskaraSmartPOS() {
         </div>
       </footer>
 
-      <BetaTesterModal isOpen={isBetaOpen} onClose={() => setIsBetaOpen(false)} />
+      {/* Jika isBetaFull true, cegah modal terbuka meskipun ada yg nakal by-pass UI */}
+      {!isBetaFull && (
+        <BetaTesterModal isOpen={isBetaOpen} onClose={() => setIsBetaOpen(false)} />
+      )}
       <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} onSubmit={handleCheckout} isLoading={isCheckoutLoading} selectedPlan={selectedPlan} />
     </main>
   );
