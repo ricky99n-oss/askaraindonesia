@@ -2,21 +2,24 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// 1. TAMBAHKAN INI AGAR CLOUDFLARE TIDAK ERROR (Wajib untuk API di Cloudflare Pages)
 export const runtime = 'edge';
-
-// KUNCI MASTER: Hanya boleh dipanggil di backend (server)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(req: Request) {
   try {
+    // 1. CEK KEAMANAN ENV VARS (Dipindah ke dalam fungsi agar tidak crash massal)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Kunci Database belum terpasang di Cloudflare!' }, { status: 500 });
+    }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
     const body = await req.json();
     const { planId, customerName, customerEmail, restoName, restoPassword } = body;
 
-    // 1. CEK HARGA ASLI KE DATABASE (SECURITY PATCH)
+    // 2. CEK HARGA ASLI KE DATABASE
     const { data: plan, error: planError } = await supabaseAdmin
       .from('packages')
       .select('*')
@@ -24,10 +27,10 @@ export async function POST(req: Request) {
       .single();
 
     if (planError || !plan) {
-      return NextResponse.json({ error: 'Paket tidak valid' }, { status: 400 });
+      return NextResponse.json({ error: 'Paket tidak ditemukan di Database' }, { status: 400 });
     }
 
-    // 2. BUAT AKUN DI SUPABASE AUTH
+    // 3. BUAT AKUN DI SUPABASE AUTH
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: customerEmail,
       password: restoPassword, 
@@ -35,12 +38,12 @@ export async function POST(req: Request) {
     });
 
     if (authError) {
-      return NextResponse.json({ error: 'Email ini sudah terdaftar. Gunakan email lain.' }, { status: 400 });
+      return NextResponse.json({ error: `Gagal daftar: ${authError.message}` }, { status: 400 });
     }
 
     const authId = authData.user.id;
 
-    // 3. SIMPAN KE TABEL RESTO (STATUS: BELUM AKTIF)
+    // 4. SIMPAN KE TABEL RESTO
     const { data: newResto, error: restoError } = await supabaseAdmin.from('restaurants').insert({
       auth_id: authId,
       email: customerEmail,
@@ -49,21 +52,31 @@ export async function POST(req: Request) {
       name: restoName,
       subscription_plan: plan.name,
       transaction_limit: plan.limit_tx,
-      is_active: false // PENTING: Jangan aktifkan dulu sebelum dibayar!
+      is_active: false
     }).select('id').single();
 
     if (restoError || !newResto) {
       // Rollback Auth jika insert gagal
       await supabaseAdmin.auth.admin.deleteUser(authId);
-      return NextResponse.json({ error: 'Gagal membuat profil resto' }, { status: 500 });
+      return NextResponse.json({ error: `Gagal simpan profil: ${restoError.message}` }, { status: 500 });
     }
 
     const orderId = `ASKARA-${newResto.id}`;
 
-    // 4. REQUEST TOKEN MIDTRANS (Menggunakan harga asli dari DB)
-    // FIX EDGE RUNTIME: Gunakan btoa() pengganti Buffer.from()
-    const midtransAuth = btoa(process.env.MIDTRANS_SERVER_KEY + ':');
+    // 5. REQUEST TOKEN MIDTRANS
+    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    if (!serverKey) {
+      return NextResponse.json({ error: 'Kunci Midtrans belum disetting!' }, { status: 500 });
+    }
+
+    const midtransAuth = btoa(serverKey + ':');
     
+    // FIX SAKTI: Otomatis deteksi apakah kunci ini Sandbox atau Live
+    const isSandbox = serverKey.startsWith('SB-');
+    const midtransUrl = isSandbox 
+      ? 'https://app.sandbox.midtrans.com/snap/v1/transactions' 
+      : 'https://app.midtrans.com/snap/v1/transactions';
+
     const midtransPayload = {
       transaction_details: {
         order_id: orderId,
@@ -81,26 +94,27 @@ export async function POST(req: Request) {
       }]
     };
 
-    const midtransRes = await fetch(
-      process.env.NODE_ENV === 'production' 
-        ? 'https://app.midtrans.com/snap/v1/transactions' 
-        : 'https://app.sandbox.midtrans.com/snap/v1/transactions', 
-      {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${midtransAuth}`
-        },
-        body: JSON.stringify(midtransPayload)
-      }
-    );
+    const midtransRes = await fetch(midtransUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${midtransAuth}`
+      },
+      body: JSON.stringify(midtransPayload)
+    });
 
     const midtransData = await midtransRes.json();
+
+    // Jika Midtrans menolak (misal error API), kembalikan error spesifik ke layar!
+    if (!midtransRes.ok) {
+      return NextResponse.json({ error: `Midtrans Error: ${midtransData.error_messages?.[0] || 'Transaksi ditolak'}` }, { status: 500 });
+    }
+
     return NextResponse.json({ token: midtransData.token });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Transaction API Error:', error);
-    return NextResponse.json({ error: 'Terjadi Kesalahan Sistem' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Terjadi Kesalahan Sistem Internal' }, { status: 500 });
   }
 }
