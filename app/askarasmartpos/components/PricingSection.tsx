@@ -102,8 +102,8 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta, isBetaFull 
         )}
 
         <div className="mt-12 bg-orange-50 border border-orange-200 rounded-2xl p-6 text-center max-w-2xl mx-auto">
-          <p className="text-askara-orange font-black text-xl uppercase tracking-wide mb-2">GRATIS 1 BULAN PERTAMA!</p>
-          <p className="text-gray-700 text-sm mb-4">Jadilah bagian dari 3 Beta Tester pertama kami. Kuota terbatas.</p>
+          <p className="text-askara-orange font-black text-xl uppercase tracking-wide mb-2">GRATIS 3 BULAN !</p>
+          <p className="text-gray-700 text-sm mb-4">Jadilah bagian dari Beta Tester pertama kami. Kuota terbatas.</p>
           
           {/* TOMBOL BETA DINAMIS BERDASARKAN KUOTA */}
           <button 
@@ -111,7 +111,7 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta, isBetaFull 
             disabled={isBetaFull}
             className={`px-8 py-3 rounded-lg font-bold shadow-lg transition-transform ${isBetaFull ? 'bg-gray-400 text-gray-100 cursor-not-allowed' : 'bg-askara-orange hover:bg-[#e67e00] text-white hover:scale-105'}`}
           >
-            {isBetaFull ? 'TUTUP: Kuota Beta Sudah Habis' : 'Klaim Kuota Beta Tester'}
+            {isBetaFull ? 'TUTUP: Kuota Beta Sudah Habis' : 'Jadilah Beta Tester FREE 3 Bulan'}
           </button>
         </div>
       </div>
