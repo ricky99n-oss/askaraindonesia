@@ -78,15 +78,18 @@ export async function POST(req: Request) {
       // =========================================================================
       // SKENARIO 2: PENDAFTARAN PELANGGAN BARU VIA WEBSITE (SUPABASE AUTH)
       // =========================================================================
-      else if (orderId.startsWith('ASKARA-')) {
-        // ID Resto didapat dengan membuang awalan 'ASKARA-'
-        const restoId = orderId.replace('ASKARA-', '');
+      // FIX SAKTI: Sinkronisasi dengan format orderId baru ('ASK-1234abcd-1714000000')
+      else if (orderId.startsWith('ASK-')) {
+        
+        // Memecah order_id untuk mengambil 8 karakter ID resto di bagian tengah
+        const orderParts = orderId.split('-');
+        const shortRestoId = orderParts[1]; // Menangkap '1234abcd'
 
         // Hitung Masa Aktif 30 Hari
         const expiredDate = new Date();
         expiredDate.setDate(expiredDate.getDate() + 30);
 
-        // Update status is_active ke true agar akun bisa digunakan untuk Login
+        // FIX SAKTI: Gunakan .ilike karena kita hanya mencocokkan 8 karakter depan UUID
         const { data: updatedResto, error: updateError } = await supabase
           .from('restaurants')
           .update({ 
@@ -94,13 +97,13 @@ export async function POST(req: Request) {
             expired_at: expiredDate.toISOString(),
             current_month_transactions: 0 
           })
-          .eq('id', restoId)
+          .ilike('id', `${shortRestoId}%`) // <--- INI KUNCI UTAMANYA!
           .select('name, email, transaction_limit')
           .single();
 
         if (updateError) throw updateError;
 
-        console.log(`✅ Pendaftaran Baru Resto ${restoId} berhasil diaktifkan!`);
+        console.log(`✅ Pendaftaran Baru Resto (Short ID: ${shortRestoId}) berhasil diaktifkan!`);
 
         // Kirim Email Kredensial & Tautan Download
         if (updatedResto && updatedResto.email) {
@@ -117,7 +120,7 @@ export async function POST(req: Request) {
 }
 
 // ============================================================================
-// FUNGSI KIRIM EMAIL (DISESUAIKAN UNTUK SUPABASE AUTH & KEAMANAN PASSWORD)
+// FUNGSI KIRIM EMAIL (TIDAK ADA PERUBAHAN, SUDAH SEMPURNA)
 // ============================================================================
 async function sendWelcomeEmail(email: string, restoName: string, limit: number) {
   try {

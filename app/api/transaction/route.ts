@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     // 3. REQUEST TOKEN MIDTRANS
     // =======================================================================
     // FIX PENTING: Tambahkan Date.now() agar Midtrans menerima percobaan ulang (retry)
-    const orderId = `ASKARA-${restoId}-${Date.now()}`; 
+    const orderId = `ASK-${restoId.substring(0, 8)}-${Date.now()}`;
 
     const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
     if (!serverKey) {
