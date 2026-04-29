@@ -71,7 +71,6 @@ export async function POST(req: Request) {
         auth_id: authData.user.id,
         email: customerEmail,
         username: customerEmail, 
-        password: 'ENCRYPTED_BY_SUPABASE', 
         name: restoName,
         subscription_plan: plan.name,
         transaction_limit: plan.limit_tx,
