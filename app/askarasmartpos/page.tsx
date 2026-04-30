@@ -26,7 +26,6 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
         <p className="text-base md:text-xl text-purple-100 max-w-md mb-8">Solusi sistem kasir pintar paling stabil. Dirancang agar pemilik restoran bisa memantau bisnis dengan tenang dari mana saja.</p>
         
         <div className="flex flex-col sm:flex-row justify-start gap-4 flex-wrap">
-          {/* TOMBOL BETA DI HERO SECTION */}
           <button 
             onClick={onOpenBeta} 
             disabled={isBetaFull}
@@ -57,8 +56,6 @@ export default function AskaraSmartPOS() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{id: string, name: string, price: number, limit: number} | null>(null);
-  
-  // STATE BARU UNTUK CEK KUOTA BETA
   const [isBetaFull, setIsBetaFull] = useState(false);
 
   useEffect(() => {
@@ -80,7 +77,6 @@ export default function AskaraSmartPOS() {
           .select('*', { count: 'exact', head: true });
           
         if (!error && count !== null) {
-          // JIKA SUDAH 3 ORANG ATAU LEBIH, KUNCI FORM BETA
           if (count >= 3) {
             setIsBetaFull(true);
           }
@@ -108,8 +104,6 @@ export default function AskaraSmartPOS() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // KUNCI KEAMANAN: Payload sudah dibersihkan. 
-          // Hanya mengirim ID Plan dan data penting untuk Supabase Auth
           planId: selectedPlan.id, 
           customerName: formData.namaPemilik,
           customerEmail: formData.email,
@@ -123,7 +117,8 @@ export default function AskaraSmartPOS() {
         setIsCheckoutOpen(false);
         (window as any).snap.pay(data.token, {
           onSuccess: function(result: any) {
-            alert("✅ Pembayaran Berhasil!\n\nKredensial dan instruksi login telah dikirimkan ke email Anda.");
+            // 🔥 INI DIA KODE UNTUK PINDAH KE HALAMAN SUKSES 🔥
+            window.location.href = `/success?transaction_status=${result.transaction_status}&order_id=${result.order_id}`;
           },
           onPending: function(result: any) {
             alert("⏳ Menunggu pembayaran diselesaikan.");
@@ -160,7 +155,6 @@ export default function AskaraSmartPOS() {
         </div>
       </header>
 
-      {/* Passing isBetaFull ke HeroSection */}
       <HeroSection onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
       
       <section className="py-20 md:py-32 px-6 bg-white border-b border-gray-100">
@@ -175,7 +169,6 @@ export default function AskaraSmartPOS() {
         </div>
       </section>
 
-      {/* Passing isBetaFull ke PricingSection */}
       <PricingSection onOpenCheckout={handleOpenCheckout} onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
 
       <footer className="bg-[#0f172a] text-white pt-20 pb-10 px-6">
@@ -184,7 +177,6 @@ export default function AskaraSmartPOS() {
         </div>
       </footer>
 
-      {/* Jika isBetaFull true, cegah modal terbuka meskipun ada yg nakal by-pass UI */}
       {!isBetaFull && (
         <BetaTesterModal isOpen={isBetaOpen} onClose={() => setIsBetaOpen(false)} />
       )}

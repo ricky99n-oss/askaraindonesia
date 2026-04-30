@@ -8,10 +8,9 @@ export default function CheckoutModal({ isOpen, onClose, onSubmit, isLoading, se
     email: '',
     namaResto: '',
     outlet: 1,
-    restoPassword: '', // Ini akan jadi password Supabase Auth
+    restoPassword: '', 
   });
 
-  // STATE BARU: Untuk kontrol visibility password
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +73,6 @@ export default function CheckoutModal({ isOpen, onClose, onSubmit, isLoading, se
                 <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none" placeholder="Cth: budi@gmail.com" />
               </div>
 
-              {/* INPUT PASSWORD DENGAN ICON MATA */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Buat Password App (Min. 6 Karakter)</label>
                 <div className="relative">
