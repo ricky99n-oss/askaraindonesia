@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     // =======================================================================
-    // 2. CEK APAKAH EMAIL SUDAH PERNAH MENCOBA MENDAFTAR SEBELUMNYA
+    // 2. CEK APAKAH EMAIL SUDAH PERNAH MENDAFTAR SEBELUMNYA
     // =======================================================================
     const { data: existingResto } = await supabaseAdmin
       .from('restaurants')
@@ -38,11 +38,11 @@ export async function POST(req: Request) {
       .eq('email', customerEmail)
       .maybeSingle();
 
+    // KITA GUNAKAN VARIABEL INI SEBAGAI PENYELAMAT
     let restoId;
 
     if (existingResto) {
       // JIKA SUDAH ADA: Jangan buat user baru! 
-      // Update password (jika pelanggan mengetik password baru) dan update paket.
       restoId = existingResto.id;
       
       await supabaseAdmin.auth.admin.updateUserById(existingResto.auth_id, {
@@ -87,7 +87,6 @@ export async function POST(req: Request) {
     // =======================================================================
     // 3. REQUEST TOKEN MIDTRANS
     // =======================================================================
-    // FIX PENTING: Tambahkan Date.now() agar Midtrans menerima percobaan ulang (retry)
     const orderId = `ASK-${restoId.substring(0, 8)}-${Date.now()}`;
 
     const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
@@ -101,22 +100,24 @@ export async function POST(req: Request) {
       ? 'https://app.sandbox.midtrans.com/snap/v1/transactions' 
       : 'https://app.midtrans.com/snap/v1/transactions';
 
-    const midtransPayload = {
-      transaction_details: {
-        order_id: orderId,
-        gross_amount: plan.price 
-      },
-      customer_details: {
-        first_name: customerName,
-        email: customerEmail
-      },
-      item_details: [{
-        id: plan.id,
-        price: plan.price,
-        quantity: 1,
-        name: `Langganan: ${plan.name} Askara POS`
-      }]
-    };
+      const midtransPayload = {
+        transaction_details: {
+          order_id: orderId,
+          gross_amount: plan.price 
+        },
+        customer_details: {
+          first_name: customerName,
+          email: customerEmail
+        },
+        item_details: [{
+          id: plan.id,
+          price: plan.price,
+          quantity: 1,
+          name: `Langganan: ${plan.name} Askara POS`
+        }],
+        // 👇 PERBAIKAN SAKTI: Kita gunakan restoId yang pasti selalu ada nilainya
+        custom_field1: restoId 
+      };
 
     const midtransRes = await fetch(midtransUrl, {
       method: 'POST',
