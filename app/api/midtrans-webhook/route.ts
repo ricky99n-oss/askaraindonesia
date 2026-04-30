@@ -113,9 +113,14 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ status: 'success' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Webhook Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    // KITA PAKSA ERROR-NYA MUNCUL DI MIDTRANS
+    return NextResponse.json({ 
+      status: 'gagal',
+      pesan_error_asli: error.message || 'Error tidak diketahui',
+      detail: error.toString()
+    }, { status: 500 });
   }
 }
 
