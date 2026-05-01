@@ -126,8 +126,12 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
 
   return (
     <div className="h-[600px] lg:h-full w-full rounded-2xl overflow-hidden border border-gray-200 shadow-inner z-0 relative">
-      <MapContainer center={centerUbud} zoom={16} className="h-full w-full">
-        <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+<MapContainer center={centerUbud} zoom={16} maxZoom={24} className="h-full w-full">
+        <TileLayer 
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" 
+          maxZoom={24} 
+          maxNativeZoom={19} 
+        />
         <FeatureGroup ref={featureGroupRef}></FeatureGroup>
         <GeomanInit onDrawCreated={handleDrawCreated} onLayerEdited={handleLayerEdited} onLayerDeleted={handleLayerDeleted} />
       </MapContainer>
