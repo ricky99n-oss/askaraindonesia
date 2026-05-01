@@ -31,7 +31,7 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
             disabled={isBetaFull}
             className={`px-8 py-3.5 rounded-xl font-bold shadow-xl transition-all text-center ${isBetaFull ? 'bg-gray-400/50 text-gray-300 cursor-not-allowed' : 'bg-askara-orange hover:bg-[#e67e00] text-white shadow-orange-500/20 hover:scale-105'}`}
           >
-            {isBetaFull ? 'Kuota Beta Habis' : 'Klaim Gratis 3 Bulan Jadi Beta Tester'}
+            {isBetaFull ? 'Kuota Beta Habis' : 'Klaim Gratis 2 Bulan Jadi Beta Tester'}
           </button>
           
           <a href="/download" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
