@@ -70,7 +70,7 @@ export default function PricingSection({ onOpenCheckout, onOpenBeta, isBetaFull 
           </div>
         ) : plans.length === 0 ? (
           <div className="text-center py-20 text-red-500 font-bold bg-red-50 rounded-xl border border-red-200 p-8 max-w-2xl mx-auto">
-            Paket belum tersedia. Pastikan .env.local sudah berisi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY dengan benar!
+            Paket belum tersedia. Tunggu kejuatan Selanjutnya.
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8 items-center">
