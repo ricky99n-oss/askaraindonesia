@@ -54,12 +54,12 @@ export default function AdminDashboard() {
   // ================= TRIGGER DARI PETA =================
   const triggerNewNodeForm = (lat: string, lng: string) => {
     setActiveTab('NODES');
-    setNodeForm({ id: '', name: '', zone: 'Jl. Sri Wedari', device_type: 'CAMERA_STD', latitude: lat, longitude: lng });
+    setNodeForm({ id: '', name: '', zone: 'Pilih Jalan', device_type: 'CAMERA_STD', latitude: lat, longitude: lng });
   };
 
   const triggerNewRouteForm = (coords: any[]) => {
     setActiveTab('ROUTES');
-    setRouteForm({ id: '', cable_type: 'FIBER_OPTIC', path_coordinates: coords });
+    setRouteForm({ id: '', cable_type: 'FIBER_OPTIC', zone: 'Pilih Jalan', path_coordinates: coords });
   };
 
   // ================= FUNGSI SIMPAN KE DB =================
@@ -72,16 +72,18 @@ export default function AdminDashboard() {
       // Mode Tambah Baru
       await supabase.from('cctv_nodes').insert([{ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type, latitude: parseFloat(nodeForm.latitude), longitude: parseFloat(nodeForm.longitude) }]);
     }
-    setNodeForm(null); // Tutup form
-    fetchData(); // Refresh Data
+    setNodeForm(null); 
+    fetchData(); 
   };
 
   const saveRoute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (routeForm.id) {
-      await supabase.from('cctv_routes').update({ cable_type: routeForm.cable_type }).eq('id', routeForm.id);
+      // Mode Edit (Menyimpan jenis kabel DAN zona)
+      await supabase.from('cctv_routes').update({ cable_type: routeForm.cable_type, zone: routeForm.zone }).eq('id', routeForm.id);
     } else {
-      await supabase.from('cctv_routes').insert([{ cable_type: routeForm.cable_type, path_coordinates: routeForm.path_coordinates }]);
+      // Mode Tambah Baru (Menyimpan jenis kabel DAN zona)
+      await supabase.from('cctv_routes').insert([{ cable_type: routeForm.cable_type, zone: routeForm.zone, path_coordinates: routeForm.path_coordinates }]);
     }
     setRouteForm(null);
     fetchData();
@@ -131,7 +133,7 @@ export default function AdminDashboard() {
                 {nodeForm.id ? '✏️ Edit Label Alat' : '➕ Tambah Titik Baru'}
               </h3>
               <input type="text" value={nodeForm.name} onChange={e=>setNodeForm({...nodeForm, name: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Nama Kamera / Alat" required />
-              <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area" required />
+              <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area (Contoh: Jl. Sri Wedari)" required />
               <select value={nodeForm.device_type} onChange={e=>setNodeForm({...nodeForm, device_type: e.target.value})} className="w-full p-2.5 text-sm mb-4 rounded-xl border focus:ring-2 focus:ring-emerald-500">
                 <option value="CAMERA_STD">Kamera Standard</option><option value="CAMERA_AUDIO">Kamera Audio</option><option value="NVR">Server / NVR</option><option value="PANEL">Panel Distribusi</option>
               </select>
@@ -146,8 +148,12 @@ export default function AdminDashboard() {
           {routeForm && activeTab === 'ROUTES' && (
              <form onSubmit={saveRoute} className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shrink-0 shadow-sm">
                <h3 className="font-extrabold text-emerald-900 text-sm mb-3 border-b border-emerald-200 pb-2">
-                 {routeForm.id ? '✏️ Edit Jenis Jalur' : '➕ Tambah Jalur Baru'}
+                 {routeForm.id ? '✏️ Edit Detail Jalur' : '➕ Tambah Jalur Baru'}
                </h3>
+               
+               {/* INPUT ZONA / NAMA JALAN */}
+               <input type="text" value={routeForm.zone || ''} onChange={e=>setRouteForm({...routeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area (Sama dengan titik alat)" required />
+               
                <select value={routeForm.cable_type} onChange={e=>setRouteForm({...routeForm, cable_type: e.target.value})} className="w-full p-2.5 text-sm mb-4 rounded-xl border focus:ring-2 focus:ring-emerald-500">
                  <option value="FIBER_OPTIC">Fiber Optic</option><option value="LAN_UTP">LAN UTP</option><option value="POWER_CABLE">Kabel Listrik Utama</option>
                </select>
@@ -176,8 +182,11 @@ export default function AdminDashboard() {
                   <button onClick={() => setNodeForm(n)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition">Edit Info</button>
                 </div>
               )) : routes.map(r => (
-                <div key={r.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center">
-                  <p className="font-bold text-sm text-gray-800">{r.cable_type.replace('_', ' ')}</p>
+                <div key={r.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
+                  <div>
+                    <p className="font-bold text-sm text-gray-800">{r.cable_type.replace('_', ' ')}</p>
+                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">{r.zone || 'Belum ada zona'}</p>
+                  </div>
                   <button onClick={() => setRouteForm(r)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition">Edit Info</button>
                 </div>
               ))}

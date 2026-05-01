@@ -57,9 +57,14 @@ export default function InteractiveMap() {
   });
 
   const filteredRoutes = routes.filter((route) => {
+    // 1. Filter berdasarkan Zona/Jalan (Sama seperti filter nodes)
+    if (selectedZone !== 'Semua Lokasi' && route.zone !== selectedZone) return false;
+    
+    // 2. Filter berdasarkan Tipe Kabel
     if (!filters.showFO && route.cable_type === 'FIBER_OPTIC') return false;
     if (!filters.showLAN && route.cable_type === 'LAN_UTP') return false;
     if (!filters.showPower && route.cable_type === 'POWER_CABLE') return false;
+    
     return true;
   });
 
