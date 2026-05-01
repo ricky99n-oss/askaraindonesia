@@ -1,3 +1,4 @@
+'use client';
 import dynamic from 'next/dynamic';
 
 // Dynamic import krusial agar Leaflet tidak crash di SSR Next.js
