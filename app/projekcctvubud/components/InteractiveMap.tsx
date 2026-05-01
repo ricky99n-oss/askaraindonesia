@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, ZoomControl, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { supabase } from '@/lib/supabaseClient'; // Sesuaikan path jika masih error (misal: '../../../../lib/supabaseClient')
+import { supabase } from '@/lib/supabaseClient'; 
 
 // ================= SETUP IKON =================
 const iconConfig = { iconSize: [25, 41] as [number, number], iconAnchor: [12, 41] as [number, number], popupAnchor: [1, -34] as [number, number], shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png', shadowSize: [41, 41] as [number, number] };
@@ -14,8 +14,6 @@ const panelIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubuserconten
 const getIcon = (type: string) => { if (type === 'NVR') return nvrIcon; if (type === 'PANEL') return panelIcon; if (type === 'CAMERA_AUDIO') return audioIcon; return cctvIcon; };
 // ===============================================
 
-// ================= KOMPONEN HELPER (KLIK MAP) =================
-// Fungsi ini akan mencetak koordinat ke tab Console di browser setiap kali peta diklik
 function MapClickHandler() {
   useMapEvents({
     click: (e) => {
@@ -26,7 +24,6 @@ function MapClickHandler() {
   });
   return null;
 }
-// ==============================================================
 
 export default function InteractiveMap() {
   const [nodes, setNodes] = useState<any[]>([]);
@@ -46,6 +43,11 @@ export default function InteractiveMap() {
     if (routesData) setRoutes(routesData);
   };
 
+  // ================= EXTRACT ZONA DINAMIS =================
+  // Mengambil semua 'zone' dari database, lalu menghapus nama yang duplikat
+  const uniqueZones = Array.from(new Set(nodes.map(node => node.zone).filter(Boolean)));
+  // ========================================================
+
   const filteredNodes = nodes.filter((node) => {
     if (selectedZone !== 'Semua Lokasi' && node.zone !== selectedZone) return false;
     if (!filters.showCCTV && node.device_type.includes('CAMERA')) return false;
@@ -64,9 +66,8 @@ export default function InteractiveMap() {
   const handleFilterChange = (key: keyof typeof filters) => { setFilters({ ...filters, [key]: !filters[key] }); };
 
   return (
-    <div className="relative w-full h-full"> {/* <-- h-full agar 100% mengisi parent page.tsx */}
+    <div className="relative w-full h-full"> 
       
-      {/* ================= FLOATING TITLE (Kiri Atas) ================= */}
       <div className="absolute top-4 left-4 z-[1000] bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl shadow-lg border border-gray-200 hidden sm:block">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-emerald-700 rounded-full flex items-center justify-center">
@@ -79,11 +80,9 @@ export default function InteractiveMap() {
         </div>
       </div>
 
-      {/* ================= FLOATING PANEL FILTER (Kanan Atas) ================= */}
       <div className={`absolute top-4 right-4 z-[1000] bg-white rounded-2xl shadow-2xl transition-all duration-300 flex flex-col border border-gray-100
         ${isFilterOpen ? 'w-[calc(100vw-2rem)] sm:w-80 max-h-[calc(100vh-2rem)] opacity-100' : 'w-12 h-12 opacity-90 overflow-hidden'}
       `}>
-        {/* Header Panel Toggle */}
         <div 
           className="bg-emerald-800 text-white p-3.5 flex justify-between items-center cursor-pointer hover:bg-emerald-700 transition-colors rounded-t-2xl"
           onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -98,15 +97,17 @@ export default function InteractiveMap() {
           )}
         </div>
 
-        {/* Isi Panel */}
         <div className={`p-5 overflow-y-auto custom-scrollbar ${!isFilterOpen && 'hidden'}`}>
           <div className="mb-6">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Pilih Area</label>
             <select className="w-full p-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow" value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)}>
               <option value="Semua Lokasi">Semua Lokasi</option>
-              <option value="Jl. Sri Wedari">Jl. Sri Wedari</option>
-              <option value="Jl. Raya Ubud">Jl. Raya Ubud</option>
-              <option value="Jl. Sandat">Jl. Sandat</option>
+              
+              {/* === RENDER ZONA DINAMIS === */}
+              {uniqueZones.map((zone: any) => (
+                <option key={zone} value={zone}>{zone}</option>
+              ))}
+              
             </select>
           </div>
 
@@ -148,11 +149,9 @@ export default function InteractiveMap() {
         </div>
       </div>
 
-{/* ================= PETA FULL SCREEN ================= */}
-<MapContainer center={centerUbud} zoom={16} className="h-full w-full z-0">
+      <MapContainer center={centerUbud} zoom={16} className="h-full w-full z-0">
         <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
         
-        {/* === Panggil Fungsi Klik di Sini === */}
         <MapClickHandler />
 
         {filteredRoutes.map((route) => {
