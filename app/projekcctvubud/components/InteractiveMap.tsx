@@ -34,9 +34,9 @@ export default function InteractiveMap() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   
+  // === STATE BARU UNTUK PRESET ===
+  const [selectedPreset, setSelectedPreset] = useState('');
   const [selectedZone, setSelectedZone] = useState('Semua Lokasi');
-  
-  // HAPUS showPanel dari filter state
   const [filters, setFilters] = useState({ showCCTV: true, showNVR: true, showFO: true, showLAN: true, showPower: true });
   const centerUbud: [number, number] = [-8.5050, 115.2630];
 
@@ -44,15 +44,31 @@ export default function InteractiveMap() {
 
   const fetchMapData = async () => {
     const { data: nodesData } = await supabase.from('cctv_nodes').select('*');
-    if (nodesData) setNodes(nodesData);
     const { data: routesData } = await supabase.from('cctv_routes').select('*');
+    
+    if (nodesData) setNodes(nodesData);
     if (routesData) setRoutes(routesData);
+
+    // Otomatis pilih preset pertama yang ditemukan saat halaman dimuat
+    if (nodesData && nodesData.length > 0) {
+       const firstPreset = nodesData[0].preset_group || 'Opsi IPCAM';
+       setSelectedPreset(firstPreset);
+    }
   };
 
-  const uniqueZones = Array.from(new Set(nodes.map(node => node.zone).filter(Boolean)));
+  // Ekstrak daftar Preset yang tersedia
+  const uniquePresets = Array.from(new Set([
+    ...nodes.map(n => n.preset_group || 'Opsi IPCAM'), 
+    ...routes.map(r => r.preset_group || 'Opsi IPCAM')
+  ]));
+  
+  // Ekstrak zona/jalan HANYA dari preset yang sedang dipilih
+  const currentNodesInPreset = nodes.filter(n => (n.preset_group || 'Opsi IPCAM') === selectedPreset);
+  const uniqueZones = Array.from(new Set(currentNodesInPreset.map(node => node.zone).filter(Boolean)));
 
   // ================= LOGIKA FILTER =================
   const filteredNodes = nodes.filter((node) => {
+    if ((node.preset_group || 'Opsi IPCAM') !== selectedPreset) return false; // Filter berdasarkan Preset
     if (node.device_type === 'PANEL') return false; // Sembunyikan panel distribusi dari publik
     if (selectedZone !== 'Semua Lokasi' && node.zone !== selectedZone) return false;
     if (!filters.showCCTV && node.device_type.includes('CAMERA')) return false;
@@ -61,6 +77,7 @@ export default function InteractiveMap() {
   });
 
   const filteredRoutes = routes.filter((route) => {
+    if ((route.preset_group || 'Opsi IPCAM') !== selectedPreset) return false; // Filter berdasarkan Preset
     if (selectedZone !== 'Semua Lokasi' && route.zone !== selectedZone) return false;
     if (!filters.showFO && route.cable_type === 'FIBER_OPTIC') return false;
     if (!filters.showLAN && route.cable_type === 'LAN_UTP') return false;
@@ -96,9 +113,11 @@ export default function InteractiveMap() {
           </div>
         </div>
 
-        {/* Summary Box Baru */}
+        {/* Summary Box */}
         <div className="bg-white/95 backdrop-blur-md px-5 py-4 rounded-2xl shadow-lg border border-gray-200">
-          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-200 pb-2">Ringkasan Perangkat</h3>
+          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-200 pb-2">
+            Ringkasan {selectedPreset || 'Perangkat'}
+          </h3>
           
           <div className="flex flex-col gap-2.5 text-sm font-medium text-gray-700">
             <div className="flex justify-between items-center">
@@ -148,8 +167,26 @@ export default function InteractiveMap() {
         </div>
 
         <div className={`p-5 overflow-y-auto custom-scrollbar ${!isFilterOpen && 'hidden'}`}>
+          
+          {/* === DROPDOWN PRESET BARU === */}
+          <div className="mb-6 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+            <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mb-2 block">Pilih Opsi Rancangan</label>
+            <select 
+              className="w-full p-2.5 border border-emerald-300 rounded-lg text-sm font-bold bg-white focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm" 
+              value={selectedPreset} 
+              onChange={(e) => { 
+                setSelectedPreset(e.target.value); 
+                setSelectedZone('Semua Lokasi'); // Reset zona saat ganti preset
+              }}
+            >
+              {uniquePresets.map((preset: any) => (
+                <option key={preset} value={preset}>{preset}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="mb-6">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Pilih Area</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Pilih Area / Jalan</label>
             <select className="w-full p-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow" value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)}>
               <option value="Semua Lokasi">Semua Lokasi</option>
               {uniqueZones.map((zone: any) => (
@@ -165,7 +202,6 @@ export default function InteractiveMap() {
                 <input type="checkbox" checked={filters.showNVR} onChange={() => handleFilterChange('showNVR')} className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
                 <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-sm border border-red-600"></div> Server / NVR</span>
               </label>
-              {/* Checkbox Panel Distribusi Dihapus */}
               <label className="flex items-center gap-3 cursor-pointer text-sm font-medium text-gray-700 hover:text-emerald-700">
                 <input type="checkbox" checked={filters.showCCTV} onChange={() => handleFilterChange('showCCTV')} className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
                 <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-sm border border-blue-600"></div> Titik CCTV</span>
