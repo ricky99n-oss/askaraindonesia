@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, ZoomControl, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '@/lib/supabaseClient'; 
@@ -55,16 +55,31 @@ const getIcon = (type: string) => {
 };
 // ==========================================================
 
-function MapClickHandler() {
+// === HANDLER KLIK PETA (MENDUKUNG MODE MENGUKUR) ===
+function MapClickHandler({ isMeasuring, onMapClick }: { isMeasuring: boolean, onMapClick: (latlng: L.LatLng) => void }) {
+  const map = useMap();
+  
+  // Mengubah bentuk kursor mouse saat mode mengukur aktif
+  useEffect(() => {
+    if (isMeasuring) {
+      map.getContainer().style.cursor = 'crosshair';
+    } else {
+      map.getContainer().style.cursor = ''; 
+    }
+  }, [isMeasuring, map]);
+
   useMapEvents({
     click: (e) => {
-      const lat = e.latlng.lat.toFixed(6);
-      const lng = e.latlng.lng.toFixed(6);
-      console.log(`[${lat}, ${lng}],`);
+      if (isMeasuring) {
+        onMapClick(e.latlng);
+      } else {
+        console.log(`[${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}],`);
+      }
     }
   });
   return null;
 }
+// ===================================================
 
 export default function InteractiveMap() {
   const [nodes, setNodes] = useState<any[]>([]);
@@ -75,6 +90,10 @@ export default function InteractiveMap() {
   const [selectedZone, setSelectedZone] = useState('Semua Lokasi');
   const [filters, setFilters] = useState({ showCCTV: true, showNVR: true, showPanel: true, showFO: true, showLAN: true, showPower: true });
   const centerUbud: [number, number] = [-8.5050, 115.2630];
+
+  // === STATE UNTUK FITUR PENGUKUR JARAK ===
+  const [isMeasuring, setIsMeasuring] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
 
   useEffect(() => { fetchMapData(); }, []);
 
@@ -91,6 +110,10 @@ export default function InteractiveMap() {
     }
   };
 
+  const handleMeasureClick = (latlng: L.LatLng) => {
+    setMeasurePoints(prev => [...prev, [latlng.lat, latlng.lng]]);
+  };
+
   const uniquePresets = Array.from(new Set([
     ...nodes.map(n => n.preset_group || 'Opsi IPCAM'), 
     ...routes.map(r => r.preset_group || 'Opsi IPCAM')
@@ -102,7 +125,6 @@ export default function InteractiveMap() {
   const filteredNodes = nodes.filter((node) => {
     if ((node.preset_group || 'Opsi IPCAM') !== selectedPreset) return false;
     if (selectedZone !== 'Semua Lokasi' && node.zone !== selectedZone) return false;
-    
     const isCamera = node.device_type.includes('CAMERA') || node.device_type.includes('WIRELESS');
     if (!filters.showCCTV && isCamera) return false;
     if (!filters.showNVR && node.device_type === 'NVR') return false;
@@ -121,20 +143,49 @@ export default function InteractiveMap() {
 
   const handleFilterChange = (key: keyof typeof filters) => { setFilters({ ...filters, [key]: !filters[key] }); };
 
-  // ================= KALKULASI RINGKASAN & TOTAL JARAK =================
   const totalCCTV = filteredNodes.filter(n => n.device_type.includes('CAMERA') || n.device_type.includes('WIRELESS')).length;
   const totalNVR = filteredNodes.filter(n => n.device_type === 'NVR').length;
   const totalPanel = filteredNodes.filter(n => n.device_type === 'PANEL').length;
 
-  // Hitung total panjang masing-masing kabel di dalam preset yang aktif
   const totalFODistance = filteredRoutes.filter(r => r.cable_type === 'FIBER_OPTIC').reduce((acc, curr) => acc + calculateDistance(curr.path_coordinates), 0);
   const totalLANDistance = filteredRoutes.filter(r => r.cable_type === 'LAN_UTP').reduce((acc, curr) => acc + calculateDistance(curr.path_coordinates), 0);
   const totalPowerDistance = filteredRoutes.filter(r => r.cable_type === 'POWER_CABLE').reduce((acc, curr) => acc + calculateDistance(curr.path_coordinates), 0);
-  // ======================================================================
 
   return (
     <div className="relative w-full h-full"> 
       
+      {/* ================= PANEL BAWAH TENGAH (PENGUKUR JARAK) ================= */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-3">
+        {isMeasuring && measurePoints.length > 0 && (
+          <div className="bg-white/95 backdrop-blur-md shadow-2xl border border-orange-200 px-5 py-2.5 rounded-full flex items-center gap-4 animate-fade-in">
+            <span className="text-sm font-bold text-gray-700">
+              Jarak: <span className="text-orange-600 font-extrabold text-base">{formatDistance(calculateDistance(measurePoints))}</span>
+            </span>
+            <div className="w-px h-5 bg-gray-300"></div>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setMeasurePoints([]); }} 
+              className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-200 hover:text-gray-900 transition"
+            >
+              Reset
+            </button>
+          </div>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMeasuring(!isMeasuring);
+            if (isMeasuring) setMeasurePoints([]); 
+          }}
+          className={`shadow-2xl px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${
+            isMeasuring 
+            ? 'bg-red-600 text-white hover:bg-red-700 ring-4 ring-red-200' 
+            : 'bg-white text-gray-800 border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+          }`}
+        >
+          {isMeasuring ? '❌ Tutup Penggaris' : '📏 Ukur Jarak Manual'}
+        </button>
+      </div>
+
       {/* PANEL KIRI (TITLE & SUMMARY) */}
       <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-4 w-72 hidden sm:flex">
         
@@ -174,7 +225,6 @@ export default function InteractiveMap() {
             
             <div className="border-t border-dashed border-gray-200 my-1"></div>
             
-            {/* TAMPILAN TOTAL JARAK KABEL */}
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-2"><div className="w-4 h-1.5 bg-blue-500 rounded-full shadow-sm"></div> Jalur FO</span>
               <span className="font-bold text-gray-900 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100">{formatDistance(totalFODistance)}</span>
@@ -279,14 +329,32 @@ export default function InteractiveMap() {
       <MapContainer center={centerUbud} zoom={16} maxZoom={24} className="h-full w-full z-0">
         <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" maxZoom={24} maxNativeZoom={19} />
         
-        <MapClickHandler />
+        {/* Event Handler Peta */}
+        <MapClickHandler isMeasuring={isMeasuring} onMapClick={handleMeasureClick} />
+
+        {/* LAYER GARIS PENGUKUR MANUAL */}
+        {isMeasuring && measurePoints.length > 0 && (
+          <>
+            <Polyline positions={measurePoints} color="#ea580c" weight={4} dashArray="8, 10" opacity={0.8} />
+            {measurePoints.map((pos, idx) => (
+              <Marker
+                key={`measure-${idx}`}
+                position={pos}
+                icon={L.divIcon({
+                  className: 'bg-transparent',
+                  html: `<div style="width: 14px; height: 14px; background: white; border: 4px solid #ea580c; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                  iconSize: [14, 14], iconAnchor: [7, 7]
+                })}
+              />
+            ))}
+          </>
+        )}
 
         {filteredRoutes.map((route) => {
           let color = '#3b82f6'; let isDash = '';
           if (route.cable_type === 'LAN_UTP') { color = '#22c55e'; isDash = '5, 10'; }
           if (route.cable_type === 'POWER_CABLE') { color = '#ef4444'; }
 
-          // MENAMPILKAN JARAK DI POPUP PETA PUBLIK
           const distance = formatDistance(calculateDistance(route.path_coordinates));
 
           return (
