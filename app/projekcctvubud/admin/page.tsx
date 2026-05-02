@@ -70,6 +70,25 @@ export default function AdminDashboard() {
     setRouteForm(null);
   };
 
+  // ================= FITUR DUPLIKAT PRESET =================
+  const handleDuplicatePreset = async () => {
+    const newPreset = prompt(`Salin semua alat dari "${activePreset}" menjadi Opsi Baru bernama:`);
+    if (!newPreset || newPreset.trim() === '') return;
+    
+    const newName = newPreset.trim();
+    // Copy nodes dan routes, tapi buang ID agar dianggap data baru oleh database
+    const nodesToCopy = displayNodes.map(({ id, created_at, ...rest }) => ({ ...rest, preset_group: newName }));
+    const routesToCopy = displayRoutes.map(({ id, created_at, ...rest }) => ({ ...rest, preset_group: newName }));
+
+    if (nodesToCopy.length > 0) await supabase.from('cctv_nodes').insert(nodesToCopy);
+    if (routesToCopy.length > 0) await supabase.from('cctv_routes').insert(routesToCopy);
+
+    setActivePreset(newName);
+    fetchData();
+    alert(`Berhasil diduplikat! Anda sekarang mengedit: ${newName}`);
+  };
+  // ==========================================================
+
   const displayNodes = nodes.filter(n => (n.preset_group || 'Opsi IPCAM') === activePreset);
   const displayRoutes = routes.filter(r => (r.preset_group || 'Opsi IPCAM') === activePreset);
 
@@ -127,8 +146,14 @@ export default function AdminDashboard() {
           
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-300 shrink-0 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-            <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2 block">Pilihan Preset / Opsi Aktif</label>
-            <select value={activePreset} onChange={handlePresetChange} className="w-full p-2.5 border border-gray-200 rounded-xl text-sm font-bold bg-emerald-50 text-emerald-900 focus:ring-2 focus:ring-emerald-500 outline-none">
+            
+            {/* INI KOTAK TOMBOL DUPLIKAT DAN JUDUL YANG BARU */}
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block">Opsi Rancangan Aktif</label>
+              <button onClick={handleDuplicatePreset} className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded-md hover:bg-blue-100 transition cursor-pointer">📋 Duplikat</button>
+            </div>
+            
+            <select value={activePreset} onChange={handlePresetChange} className="w-full p-2.5 border border-emerald-400 rounded-xl text-sm font-bold bg-emerald-50 text-emerald-900 focus:ring-2 focus:ring-emerald-500 outline-none">
               {uniquePresets.map((preset: any) => (
                 <option key={preset} value={preset}>{preset}</option>
               ))}
@@ -148,7 +173,6 @@ export default function AdminDashboard() {
               <input type="text" value={nodeForm.name} onChange={e=>setNodeForm({...nodeForm, name: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Nama Kamera / Alat" required />
               <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area" required />
               
-              {/* ================= MODIFIKASI FORM DEVICE TYPE ================= */}
               <select 
                 value={['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) ? nodeForm.device_type : 'CUSTOM'} 
                 onChange={e => {
@@ -164,7 +188,6 @@ export default function AdminDashboard() {
                 <option value="CUSTOM">➕ Ketik Sendiri (Custom)...</option>
               </select>
 
-              {/* Input Teks Tambahan Jika Memilih Custom */}
               {!['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) && (
                 <input 
                   type="text" 
@@ -172,11 +195,9 @@ export default function AdminDashboard() {
                   onChange={e => setNodeForm({...nodeForm, device_type: e.target.value.toUpperCase().replace(/\s+/g, '_')})} 
                   className="w-full p-2.5 text-sm mb-4 rounded-xl border-2 border-emerald-400 bg-emerald-100 text-emerald-900 font-bold focus:ring-2 focus:ring-emerald-500" 
                   placeholder="Ketik kategori (Contoh: WIRELESS_CAM)" 
-                  required 
-                  autoFocus
+                  required autoFocus
                 />
               )}
-              {/* ============================================================= */}
 
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 rounded-xl transition">Simpan</button>
@@ -199,7 +220,6 @@ export default function AdminDashboard() {
              </form>
           )}
 
-          {/* List Data */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col">
             <div className="p-4 border-b bg-gray-50 shrink-0 flex justify-between items-center">
                <div>
@@ -212,15 +232,20 @@ export default function AdminDashboard() {
                 <div key={n.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
                   <div>
                     <p className="font-bold text-sm text-gray-800">{n.name}</p>
-                    {/* Mengembalikan tanda _ menjadi spasi agar mudah dibaca di daftar */}
                     <p className="text-[10px] text-gray-500 font-medium mt-0.5">{n.device_type.replace(/_/g, ' ')} • {n.zone}</p>
                   </div>
-                  <button onClick={() => setNodeForm(n)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit Info</button>
+                  <div className="flex gap-1">
+                    <button onClick={() => setNodeForm(n)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit</button>
+                    <button onClick={async () => { if(confirm('Hapus alat ini?')) { await supabase.from('cctv_nodes').delete().eq('id', n.id); fetchData(); } }} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100">X</button>
+                  </div>
                 </div>
               )) : displayRoutes.map(r => (
                 <div key={r.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
                   <div><p className="font-bold text-sm text-gray-800">{r.cable_type.replace('_', ' ')}</p><p className="text-[10px] text-gray-500 font-medium mt-0.5">{r.zone || 'Belum ada zona'}</p></div>
-                  <button onClick={() => setRouteForm(r)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit Info</button>
+                  <div className="flex gap-1">
+                    <button onClick={() => setRouteForm(r)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit</button>
+                    <button onClick={async () => { if(confirm('Hapus jalur ini?')) { await supabase.from('cctv_routes').delete().eq('id', r.id); fetchData(); } }} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100">X</button>
+                  </div>
                 </div>
               ))}
               
