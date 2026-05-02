@@ -8,24 +8,34 @@ import '@geoman-io/leaflet-geoman-free';
 import { supabase } from '@/lib/supabaseClient';
 
 // ================= SETUP IKON & WARNA =================
-const iconConfig = { iconSize: [25, 41] as [number, number], iconAnchor: [12, 41] as [number, number], popupAnchor: [1, -34] as [number, number], shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png', shadowSize: [41, 41] as [number, number] };
-const cctvIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png' });
-const audioIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png' });
-const nvrIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png' });
-const panelIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png' });
+const createCustomIcon = (svgPath: string, bgColor: string) => {
+  return L.divIcon({
+    html: `<div style="background-color: ${bgColor}; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg></div>`,
+    className: 'custom-leaflet-icon', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32]
+  });
+};
+
+const cctvSvg = `<path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>`;
+const nvrSvg = `<rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line>`;
+const panelSvg = `<rect x="4" y="2" width="16" height="20" rx="2"></rect><circle cx="12" cy="14" r="2"></circle><path d="M12 6v2"></path>`;
+const wirelessSvg = `<path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line>`;
 
 const getIcon = (type: string) => { 
-  if (type === 'NVR') return nvrIcon; 
-  if (type === 'PANEL') return panelIcon; 
-  if (type === 'CAMERA_AUDIO') return audioIcon; 
-  return cctvIcon; 
+  if (type === 'NVR') return createCustomIcon(nvrSvg, '#dc2626');
+  if (type === 'PANEL') return createCustomIcon(panelSvg, '#059669'); 
+  if (type.includes('WIRELESS')) return createCustomIcon(wirelessSvg, '#8b5cf6');
+  if (type === 'CAMERA_AUDIO') return createCustomIcon(cctvSvg, '#ea580c');
+  return createCustomIcon(cctvSvg, '#2563eb');
 };
+
+// Deklarasi ikon default untuk dipakai saat klik tambah marker baru di peta
+const defaultMarkerIcon = getIcon('CAMERA_STD');
 
 // ================= INISIALISASI PETA GLOBAL =================
 const GeomanInit = ({ onDrawCreated, onLayerDeleted }: any) => {
   const map = useMap();
   useEffect(() => {
-    map.pm.setGlobalOptions({ markerStyle: { icon: cctvIcon } }); 
+    map.pm.setGlobalOptions({ markerStyle: { icon: defaultMarkerIcon } }); 
     map.pm.addControls({
       position: 'topleft', drawMarker: true, drawPolyline: true, drawPolygon: false, drawCircle: false, drawCircleMarker: false, drawRectangle: false, drawText: false, editMode: true, dragMode: true, cutPolygon: false, removalMode: true,
     });
@@ -54,7 +64,7 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
     // 1. RENDER TITIK PIN
     nodes.forEach((node: any) => {
       const marker = L.marker([node.latitude, node.longitude], { icon: getIcon(node.device_type) });
-      marker.bindPopup(`<b>${node.name}</b><br/>${node.device_type}`); 
+      marker.bindPopup(`<b>${node.name}</b><br/>${node.device_type.replace(/_/g, ' ')}`); 
       marker.pm.enable();
       (marker as any).dbId = node.id; 
       (marker as any).dbType = 'NODE';
