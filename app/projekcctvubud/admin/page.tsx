@@ -22,7 +22,6 @@ export default function AdminDashboard() {
   const [nodeForm, setNodeForm] = useState<any>(null);
   const [routeForm, setRouteForm] = useState<any>(null);
 
-  // === STATE PRESET BARU ===
   const [activePreset, setActivePreset] = useState('Opsi IPCAM');
 
   useEffect(() => {
@@ -52,11 +51,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // === EKSTRAK DAFTAR PRESET ===
   const uniquePresets = Array.from(new Set([
     ...nodes.map(n => n.preset_group || 'Opsi IPCAM'),
     ...routes.map(r => r.preset_group || 'Opsi IPCAM'),
-    activePreset // Pastikan preset yang sedang aktif (meski kosong) tetap ada di list
+    activePreset 
   ]));
 
   const handlePresetChange = (e: any) => {
@@ -72,7 +70,6 @@ export default function AdminDashboard() {
     setRouteForm(null);
   };
 
-  // === FILTER DATA BERDASARKAN PRESET ===
   const displayNodes = nodes.filter(n => (n.preset_group || 'Opsi IPCAM') === activePreset);
   const displayRoutes = routes.filter(r => (r.preset_group || 'Opsi IPCAM') === activePreset);
 
@@ -91,7 +88,6 @@ export default function AdminDashboard() {
     if (nodeForm.id) {
       await supabase.from('cctv_nodes').update({ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type }).eq('id', nodeForm.id);
     } else {
-      // Simpan dengan preset_group yang sedang aktif
       await supabase.from('cctv_nodes').insert([{ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type, latitude: parseFloat(nodeForm.latitude), longitude: parseFloat(nodeForm.longitude), preset_group: activePreset }]);
     }
     setNodeForm(null); fetchData(); 
@@ -102,14 +98,13 @@ export default function AdminDashboard() {
     if (routeForm.id) {
       await supabase.from('cctv_routes').update({ cable_type: routeForm.cable_type, zone: routeForm.zone }).eq('id', routeForm.id);
     } else {
-      // Simpan dengan preset_group yang sedang aktif
       await supabase.from('cctv_routes').insert([{ cable_type: routeForm.cable_type, zone: routeForm.zone, path_coordinates: routeForm.path_coordinates, preset_group: activePreset }]);
     }
     setRouteForm(null); fetchData();
   };
 
   if (!isMounted) return null;
-  if (!isLoggedIn) { /* Form Login Tetap Sama */
+  if (!isLoggedIn) { 
      return (
        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4"><div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md"><h1 className="text-2xl font-extrabold text-emerald-800 text-center mb-8">Login Admin CCTV</h1>{loginError && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{loginError}</div>}<form onSubmit={handleLogin} className="flex flex-col gap-5"><input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="p-3 border rounded-xl" placeholder="Username" required /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="p-3 border rounded-xl" placeholder="Password" required /><button type="submit" className="bg-emerald-700 text-white font-bold py-3.5 rounded-xl">MASUK</button></form></div></div>
      );
@@ -130,7 +125,6 @@ export default function AdminDashboard() {
         {/* PANEL KIRI */}
         <div className="lg:col-span-4 flex flex-col gap-4 h-[80vh]">
           
-          {/* ================= BARIS PRESET BARU ================= */}
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-300 shrink-0 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
             <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2 block">Pilihan Preset / Opsi Aktif</label>
@@ -151,14 +145,42 @@ export default function AdminDashboard() {
           {nodeForm && activeTab === 'NODES' && (
             <form onSubmit={saveNode} className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shrink-0 shadow-sm">
               <h3 className="font-extrabold text-emerald-900 text-sm mb-3 border-b border-emerald-200 pb-2">{nodeForm.id ? '✏️ Edit Label Alat' : '➕ Tambah Titik Baru'}</h3>
-              <input type="text" value={nodeForm.name} onChange={e=>setNodeForm({...nodeForm, name: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border" placeholder="Nama Kamera / Alat" required />
-              <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border" placeholder="Jalan/Area" required />
-              <select value={nodeForm.device_type} onChange={e=>setNodeForm({...nodeForm, device_type: e.target.value})} className="w-full p-2.5 text-sm mb-4 rounded-xl border">
-                <option value="CAMERA_STD">Kamera Standard</option><option value="CAMERA_AUDIO">Kamera Audio</option><option value="NVR">Server / NVR</option><option value="PANEL">Panel Distribusi</option>
+              <input type="text" value={nodeForm.name} onChange={e=>setNodeForm({...nodeForm, name: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Nama Kamera / Alat" required />
+              <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area" required />
+              
+              {/* ================= MODIFIKASI FORM DEVICE TYPE ================= */}
+              <select 
+                value={['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) ? nodeForm.device_type : 'CUSTOM'} 
+                onChange={e => {
+                  if(e.target.value === 'CUSTOM') setNodeForm({...nodeForm, device_type: 'WIRELESS_CAM'});
+                  else setNodeForm({...nodeForm, device_type: e.target.value});
+                }} 
+                className={`w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500 ${['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) ? 'mb-4' : 'mb-2'}`}
+              >
+                <option value="CAMERA_STD">Kamera Standard</option>
+                <option value="CAMERA_AUDIO">Kamera Audio</option>
+                <option value="NVR">Server / NVR</option>
+                <option value="PANEL">Panel Distribusi</option>
+                <option value="CUSTOM">➕ Ketik Sendiri (Custom)...</option>
               </select>
+
+              {/* Input Teks Tambahan Jika Memilih Custom */}
+              {!['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) && (
+                <input 
+                  type="text" 
+                  value={nodeForm.device_type} 
+                  onChange={e => setNodeForm({...nodeForm, device_type: e.target.value.toUpperCase().replace(/\s+/g, '_')})} 
+                  className="w-full p-2.5 text-sm mb-4 rounded-xl border-2 border-emerald-400 bg-emerald-100 text-emerald-900 font-bold focus:ring-2 focus:ring-emerald-500" 
+                  placeholder="Ketik kategori (Contoh: WIRELESS_CAM)" 
+                  required 
+                  autoFocus
+                />
+              )}
+              {/* ============================================================= */}
+
               <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 rounded-xl">Simpan</button>
-                <button type="button" onClick={()=>setNodeForm(null)} className="px-4 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl">Batal</button>
+                <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 rounded-xl transition">Simpan</button>
+                <button type="button" onClick={()=>setNodeForm(null)} className="px-4 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-300">Batal</button>
               </div>
             </form>
           )}
@@ -177,7 +199,7 @@ export default function AdminDashboard() {
              </form>
           )}
 
-          {/* List Data - Menggunakan displayNodes/displayRoutes */}
+          {/* List Data */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col">
             <div className="p-4 border-b bg-gray-50 shrink-0 flex justify-between items-center">
                <div>
@@ -188,7 +210,11 @@ export default function AdminDashboard() {
             <div className="overflow-y-auto p-2 custom-scrollbar flex-1">
               {activeTab === 'NODES' ? displayNodes.map(n => (
                 <div key={n.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
-                  <div><p className="font-bold text-sm text-gray-800">{n.name}</p><p className="text-[10px] text-gray-500 font-medium mt-0.5">{n.device_type} • {n.zone}</p></div>
+                  <div>
+                    <p className="font-bold text-sm text-gray-800">{n.name}</p>
+                    {/* Mengembalikan tanda _ menjadi spasi agar mudah dibaca di daftar */}
+                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">{n.device_type.replace(/_/g, ' ')} • {n.zone}</p>
+                  </div>
                   <button onClick={() => setNodeForm(n)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit Info</button>
                 </div>
               )) : displayRoutes.map(r => (
