@@ -3,6 +3,29 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabaseClient'; 
 
+// === FUNGSI PENGHITUNG JARAK (HAVERSINE FORMULA) ===
+const calculateDistance = (coords: any[]) => {
+  if (!coords || coords.length < 2) return 0;
+  let total = 0;
+  const R = 6371e3; // Radius bumi dalam meter
+  for (let i = 0; i < coords.length - 1; i++) {
+    const lat1 = coords[i][0] * Math.PI / 180;
+    const lat2 = coords[i+1][0] * Math.PI / 180;
+    const deltaLat = (coords[i+1][0] - coords[i][0]) * Math.PI / 180;
+    const deltaLon = (coords[i+1][1] - coords[i][1]) * Math.PI / 180;
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    total += R * c;
+  }
+  return total;
+};
+
+const formatDistance = (meters: number) => {
+  if (meters >= 1000) return (meters / 1000).toFixed(2) + ' km';
+  return Math.round(meters) + ' m';
+};
+// ===================================================
+
 const AdminMapEditor = dynamic<{ activeTab: string, nodes: any[], routes: any[], onDataChanged: () => void, onAddNewNode: (lat: string, lng: string) => void, onAddNewRoute: (coords: any[]) => void }>(
   () => import('../components/AdminMapEditor'),
   { ssr: false, loading: () => <div className="h-[600px] w-full bg-gray-100 animate-pulse rounded-2xl flex items-center justify-center font-bold text-gray-400">Memuat Visual Editor...</div> }
@@ -70,13 +93,11 @@ export default function AdminDashboard() {
     setRouteForm(null);
   };
 
-  // ================= FITUR DUPLIKAT PRESET =================
   const handleDuplicatePreset = async () => {
     const newPreset = prompt(`Salin semua alat dari "${activePreset}" menjadi Opsi Baru bernama:`);
     if (!newPreset || newPreset.trim() === '') return;
     
     const newName = newPreset.trim();
-    // Copy nodes dan routes, tapi buang ID agar dianggap data baru oleh database
     const nodesToCopy = displayNodes.map(({ id, created_at, ...rest }) => ({ ...rest, preset_group: newName }));
     const routesToCopy = displayRoutes.map(({ id, created_at, ...rest }) => ({ ...rest, preset_group: newName }));
 
@@ -87,7 +108,6 @@ export default function AdminDashboard() {
     fetchData();
     alert(`Berhasil diduplikat! Anda sekarang mengedit: ${newName}`);
   };
-  // ==========================================================
 
   const displayNodes = nodes.filter(n => (n.preset_group || 'Opsi IPCAM') === activePreset);
   const displayRoutes = routes.filter(r => (r.preset_group || 'Opsi IPCAM') === activePreset);
@@ -141,18 +161,13 @@ export default function AdminDashboard() {
 
       <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* PANEL KIRI */}
         <div className="lg:col-span-4 flex flex-col gap-4 h-[80vh]">
-          
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-300 shrink-0 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-            
-            {/* INI KOTAK TOMBOL DUPLIKAT DAN JUDUL YANG BARU */}
             <div className="flex justify-between items-center mb-2">
               <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block">Opsi Rancangan Aktif</label>
               <button onClick={handleDuplicatePreset} className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded-md hover:bg-blue-100 transition cursor-pointer">📋 Duplikat</button>
             </div>
-            
             <select value={activePreset} onChange={handlePresetChange} className="w-full p-2.5 border border-emerald-400 rounded-xl text-sm font-bold bg-emerald-50 text-emerald-900 focus:ring-2 focus:ring-emerald-500 outline-none">
               {uniquePresets.map((preset: any) => (
                 <option key={preset} value={preset}>{preset}</option>
@@ -241,7 +256,13 @@ export default function AdminDashboard() {
                 </div>
               )) : displayRoutes.map(r => (
                 <div key={r.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
-                  <div><p className="font-bold text-sm text-gray-800">{r.cable_type.replace('_', ' ')}</p><p className="text-[10px] text-gray-500 font-medium mt-0.5">{r.zone || 'Belum ada zona'}</p></div>
+                  <div>
+                    <p className="font-bold text-sm text-gray-800">{r.cable_type.replace('_', ' ')}</p>
+                    {/* MENAMPILKAN JARAK PADA LIST KABEL */}
+                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                      {r.zone || 'Belum ada zona'} • <span className="text-emerald-600 font-bold">{formatDistance(calculateDistance(r.path_coordinates))}</span>
+                    </p>
+                  </div>
                   <div className="flex gap-1">
                     <button onClick={() => setRouteForm(r)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit</button>
                     <button onClick={async () => { if(confirm('Hapus jalur ini?')) { await supabase.from('cctv_routes').delete().eq('id', r.id); fetchData(); } }} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100">X</button>

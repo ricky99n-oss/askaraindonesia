@@ -7,6 +7,29 @@ import L from 'leaflet';
 import '@geoman-io/leaflet-geoman-free';
 import { supabase } from '@/lib/supabaseClient';
 
+// === FUNGSI PENGHITUNG JARAK ===
+const calculateDistance = (coords: any[]) => {
+  if (!coords || coords.length < 2) return 0;
+  let total = 0;
+  const R = 6371e3; // Radius bumi meter
+  for (let i = 0; i < coords.length - 1; i++) {
+    const lat1 = coords[i][0] * Math.PI / 180;
+    const lat2 = coords[i+1][0] * Math.PI / 180;
+    const deltaLat = (coords[i+1][0] - coords[i][0]) * Math.PI / 180;
+    const deltaLon = (coords[i+1][1] - coords[i][1]) * Math.PI / 180;
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    total += R * c;
+  }
+  return total;
+};
+
+const formatDistance = (meters: number) => {
+  if (meters >= 1000) return (meters / 1000).toFixed(2) + ' km';
+  return Math.round(meters) + ' m';
+};
+// ===============================
+
 // ================= SETUP IKON & WARNA =================
 const createCustomIcon = (svgPath: string, bgColor: string) => {
   return L.divIcon({
@@ -28,7 +51,6 @@ const getIcon = (type: string) => {
   return createCustomIcon(cctvSvg, '#2563eb');
 };
 
-// Deklarasi ikon default untuk dipakai saat klik tambah marker baru di peta
 const defaultMarkerIcon = getIcon('CAMERA_STD');
 
 // ================= INISIALISASI PETA GLOBAL =================
@@ -40,7 +62,6 @@ const GeomanInit = ({ onDrawCreated, onLayerDeleted }: any) => {
       position: 'topleft', drawMarker: true, drawPolyline: true, drawPolygon: false, drawCircle: false, drawCircleMarker: false, drawRectangle: false, drawText: false, editMode: true, dragMode: true, cutPolygon: false, removalMode: true,
     });
 
-    // Peta hanya memantau DUA event global: Buat Baru & Hapus
     map.on('pm:create', (e) => onDrawCreated(e));
     map.on('pm:remove', (e) => onLayerDeleted(e));
 
@@ -61,7 +82,6 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
     if (!featureGroupRef.current) return;
     featureGroupRef.current.clearLayers(); 
 
-    // 1. RENDER TITIK PIN
     nodes.forEach((node: any) => {
       const marker = L.marker([node.latitude, node.longitude], { icon: getIcon(node.device_type) });
       marker.bindPopup(`<b>${node.name}</b><br/>${node.device_type.replace(/_/g, ' ')}`); 
@@ -69,7 +89,6 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
       (marker as any).dbId = node.id; 
       (marker as any).dbType = 'NODE';
 
-      // ✅ SOLUSI DRAG & DROP PIN: Deteksi event "pm:dragend" secara spesifik di tiap pin
       marker.on('pm:dragend', async (e: any) => {
         const latLng = e.target.getLatLng();
         await supabase.from('cctv_nodes').update({ 
@@ -77,13 +96,12 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
             longitude: parseFloat(latLng.lng.toFixed(6)) 
         }).eq('id', node.id);
         
-        onDataChanged(); // Beritahu list di kiri agar me-refresh koordinat
+        onDataChanged();
       });
 
       featureGroupRef.current?.addLayer(marker);
     });
 
-    // 2. RENDER JALUR KABEL
     routes.forEach((route: any) => {
       let color = '#3b82f6'; 
       let dashArray = '';
@@ -91,12 +109,15 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
       if (route.cable_type === 'POWER_CABLE') { color = '#ef4444'; } 
 
       const polyline = L.polyline(route.path_coordinates, { color, weight: 5, dashArray });
-      polyline.bindPopup(`<b>${route.cable_type.replace('_', ' ')}</b>`);
+      
+      // MENAMBAHKAN INFO JARAK DI POPUP ADMIN
+      const distance = formatDistance(calculateDistance(route.path_coordinates));
+      polyline.bindPopup(`<b>${route.cable_type.replace('_', ' ')}</b><br/><span style="color: green; font-weight: bold;">Panjang: ${distance}</span>`);
+      
       polyline.pm.enable();
       (polyline as any).dbId = route.id;
       (polyline as any).dbType = 'ROUTE';
 
-      // ✅ SOLUSI EDIT GARIS: Deteksi event "edit vertex" dan "drag garis"
       const saveRouteChanges = async (e: any) => {
         const latLngs = e.target.getLatLngs();
         const flatLatLngs = Array.isArray(latLngs[0]) ? latLngs[0] : latLngs; 
@@ -114,10 +135,8 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
 
   }, [nodes, routes]); 
 
-  // ================= HANDLER EVENT MAP =================
   const handleDrawCreated = (e: any) => {
-    e.layer.remove(); // Hapus ghost pin karena nanti akan di-render ulang oleh useEffect dari Supabase
-
+    e.layer.remove(); 
     if (e.shape === 'Marker') {
       const latLng = e.layer.getLatLng();
       onAddNewNode(latLng.lat.toFixed(6), latLng.lng.toFixed(6));

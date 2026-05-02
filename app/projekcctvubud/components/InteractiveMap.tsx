@@ -5,18 +5,55 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '@/lib/supabaseClient'; 
 
-// ================= SETUP IKON =================
-const iconConfig = { iconSize: [25, 41] as [number, number], iconAnchor: [12, 41] as [number, number], popupAnchor: [1, -34] as [number, number], shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png', shadowSize: [41, 41] as [number, number] };
-const cctvIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png' });
-const audioIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png' });
-const nvrIcon = L.icon({ ...iconConfig, iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png' });
+// === FUNGSI PENGHITUNG JARAK (HAVERSINE FORMULA) ===
+const calculateDistance = (coords: any[]) => {
+  if (!coords || coords.length < 2) return 0;
+  let total = 0;
+  const R = 6371e3; // Radius bumi dalam meter
+  for (let i = 0; i < coords.length - 1; i++) {
+    const lat1 = coords[i][0] * Math.PI / 180;
+    const lat2 = coords[i+1][0] * Math.PI / 180;
+    const deltaLat = (coords[i+1][0] - coords[i][0]) * Math.PI / 180;
+    const deltaLon = (coords[i+1][1] - coords[i][1]) * Math.PI / 180;
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    total += R * c;
+  }
+  return total;
+};
+
+const formatDistance = (meters: number) => {
+  if (meters >= 1000) return (meters / 1000).toFixed(2) + ' km';
+  return Math.round(meters) + ' m';
+};
+// ===================================================
+
+// ================= SETUP CUSTOM SVG ICONS =================
+const createCustomIcon = (svgPath: string, bgColor: string) => {
+  return L.divIcon({
+    html: `<div style="background-color: ${bgColor}; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white;">
+             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg>
+           </div>`,
+    className: 'custom-leaflet-icon',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -34]
+  });
+};
+
+const cctvSvg = `<path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>`;
+const nvrSvg = `<rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line>`;
+const panelSvg = `<rect x="4" y="2" width="16" height="20" rx="2"></rect><circle cx="12" cy="14" r="2"></circle><path d="M12 6v2"></path>`;
+const wirelessSvg = `<path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line>`;
 
 const getIcon = (type: string) => { 
-  if (type === 'NVR') return nvrIcon; 
-  if (type === 'CAMERA_AUDIO') return audioIcon; 
-  return cctvIcon; 
+  if (type === 'NVR') return createCustomIcon(nvrSvg, '#dc2626'); 
+  if (type === 'PANEL') return createCustomIcon(panelSvg, '#059669'); 
+  if (type.includes('WIRELESS')) return createCustomIcon(wirelessSvg, '#8b5cf6'); 
+  if (type === 'CAMERA_AUDIO') return createCustomIcon(cctvSvg, '#ea580c'); 
+  return createCustomIcon(cctvSvg, '#2563eb'); 
 };
-// ===============================================
+// ==========================================================
 
 function MapClickHandler() {
   useMapEvents({
@@ -34,10 +71,9 @@ export default function InteractiveMap() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   
-  // === STATE BARU UNTUK PRESET ===
   const [selectedPreset, setSelectedPreset] = useState('');
   const [selectedZone, setSelectedZone] = useState('Semua Lokasi');
-  const [filters, setFilters] = useState({ showCCTV: true, showNVR: true, showFO: true, showLAN: true, showPower: true });
+  const [filters, setFilters] = useState({ showCCTV: true, showNVR: true, showPanel: true, showFO: true, showLAN: true, showPower: true });
   const centerUbud: [number, number] = [-8.5050, 115.2630];
 
   useEffect(() => { fetchMapData(); }, []);
@@ -49,35 +85,33 @@ export default function InteractiveMap() {
     if (nodesData) setNodes(nodesData);
     if (routesData) setRoutes(routesData);
 
-    // Otomatis pilih preset pertama yang ditemukan saat halaman dimuat
     if (nodesData && nodesData.length > 0) {
        const firstPreset = nodesData[0].preset_group || 'Opsi IPCAM';
        setSelectedPreset(firstPreset);
     }
   };
 
-  // Ekstrak daftar Preset yang tersedia
   const uniquePresets = Array.from(new Set([
     ...nodes.map(n => n.preset_group || 'Opsi IPCAM'), 
     ...routes.map(r => r.preset_group || 'Opsi IPCAM')
   ]));
   
-  // Ekstrak zona/jalan HANYA dari preset yang sedang dipilih
   const currentNodesInPreset = nodes.filter(n => (n.preset_group || 'Opsi IPCAM') === selectedPreset);
   const uniqueZones = Array.from(new Set(currentNodesInPreset.map(node => node.zone).filter(Boolean)));
 
-  // ================= LOGIKA FILTER =================
   const filteredNodes = nodes.filter((node) => {
-    if ((node.preset_group || 'Opsi IPCAM') !== selectedPreset) return false; // Filter berdasarkan Preset
-    if (node.device_type === 'PANEL') return false; // Sembunyikan panel distribusi dari publik
+    if ((node.preset_group || 'Opsi IPCAM') !== selectedPreset) return false;
     if (selectedZone !== 'Semua Lokasi' && node.zone !== selectedZone) return false;
-    if (!filters.showCCTV && node.device_type.includes('CAMERA')) return false;
+    
+    const isCamera = node.device_type.includes('CAMERA') || node.device_type.includes('WIRELESS');
+    if (!filters.showCCTV && isCamera) return false;
     if (!filters.showNVR && node.device_type === 'NVR') return false;
+    if (!filters.showPanel && node.device_type === 'PANEL') return false;
     return true;
   });
 
   const filteredRoutes = routes.filter((route) => {
-    if ((route.preset_group || 'Opsi IPCAM') !== selectedPreset) return false; // Filter berdasarkan Preset
+    if ((route.preset_group || 'Opsi IPCAM') !== selectedPreset) return false;
     if (selectedZone !== 'Semua Lokasi' && route.zone !== selectedZone) return false;
     if (!filters.showFO && route.cable_type === 'FIBER_OPTIC') return false;
     if (!filters.showLAN && route.cable_type === 'LAN_UTP') return false;
@@ -87,20 +121,23 @@ export default function InteractiveMap() {
 
   const handleFilterChange = (key: keyof typeof filters) => { setFilters({ ...filters, [key]: !filters[key] }); };
 
-  // ================= KALKULASI RINGKASAN =================
-  const totalCCTV = filteredNodes.filter(n => n.device_type.includes('CAMERA')).length;
+  // ================= KALKULASI RINGKASAN & TOTAL JARAK =================
+  const totalCCTV = filteredNodes.filter(n => n.device_type.includes('CAMERA') || n.device_type.includes('WIRELESS')).length;
   const totalNVR = filteredNodes.filter(n => n.device_type === 'NVR').length;
-  const totalFO = filteredRoutes.filter(r => r.cable_type === 'FIBER_OPTIC').length;
-  const totalLAN = filteredRoutes.filter(r => r.cable_type === 'LAN_UTP').length;
-  const totalPower = filteredRoutes.filter(r => r.cable_type === 'POWER_CABLE').length;
+  const totalPanel = filteredNodes.filter(n => n.device_type === 'PANEL').length;
+
+  // Hitung total panjang masing-masing kabel di dalam preset yang aktif
+  const totalFODistance = filteredRoutes.filter(r => r.cable_type === 'FIBER_OPTIC').reduce((acc, curr) => acc + calculateDistance(curr.path_coordinates), 0);
+  const totalLANDistance = filteredRoutes.filter(r => r.cable_type === 'LAN_UTP').reduce((acc, curr) => acc + calculateDistance(curr.path_coordinates), 0);
+  const totalPowerDistance = filteredRoutes.filter(r => r.cable_type === 'POWER_CABLE').reduce((acc, curr) => acc + calculateDistance(curr.path_coordinates), 0);
+  // ======================================================================
 
   return (
     <div className="relative w-full h-full"> 
       
-      {/* ================= PANEL KIRI (TITLE & SUMMARY) ================= */}
+      {/* PANEL KIRI (TITLE & SUMMARY) */}
       <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-4 w-72 hidden sm:flex">
         
-        {/* Title Box */}
         <div className="bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl shadow-lg border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-emerald-700 rounded-full flex items-center justify-center shrink-0">
@@ -113,7 +150,6 @@ export default function InteractiveMap() {
           </div>
         </div>
 
-        {/* Summary Box */}
         <div className="bg-white/95 backdrop-blur-md px-5 py-4 rounded-2xl shadow-lg border border-gray-200">
           <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-200 pb-2">
             Ringkasan {selectedPreset || 'Perangkat'}
@@ -129,26 +165,34 @@ export default function InteractiveMap() {
               <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">{totalNVR}</span>
             </div>
             
+            {totalPanel > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm border border-emerald-600"></div> Box Panel</span>
+                <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">{totalPanel}</span>
+              </div>
+            )}
+            
             <div className="border-t border-dashed border-gray-200 my-1"></div>
             
+            {/* TAMPILAN TOTAL JARAK KABEL */}
             <div className="flex justify-between items-center">
-              <span className="flex items-center gap-2"><div className="w-4 h-1.5 bg-blue-500 rounded-full shadow-sm"></div> Jalur Fiber Optic</span>
-              <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">{totalFO}</span>
+              <span className="flex items-center gap-2"><div className="w-4 h-1.5 bg-blue-500 rounded-full shadow-sm"></div> Jalur FO</span>
+              <span className="font-bold text-gray-900 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100">{formatDistance(totalFODistance)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-2"><div className="w-4 h-1.5 border-t-[3px] border-dashed border-green-500 mt-1"></div> Jalur LAN UTP</span>
-              <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">{totalLAN}</span>
+              <span className="font-bold text-gray-900 bg-green-50 text-green-700 px-2 py-0.5 rounded-md border border-green-100">{formatDistance(totalLANDistance)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="flex items-center gap-2"><div className="w-4 h-1.5 bg-red-500 rounded-full shadow-sm"></div> Jalur Listrik Utama</span>
-              <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">{totalPower}</span>
+              <span className="flex items-center gap-2"><div className="w-4 h-1.5 bg-red-500 rounded-full shadow-sm"></div> Listrik Utama</span>
+              <span className="font-bold text-gray-900 bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-100">{formatDistance(totalPowerDistance)}</span>
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* ================= PANEL KANAN (FILTER PENGATURAN) ================= */}
+      {/* PANEL KANAN (FILTER PENGATURAN) */}
       <div className={`absolute top-4 right-4 z-[1000] bg-white rounded-2xl shadow-2xl transition-all duration-300 flex flex-col border border-gray-100
         ${isFilterOpen ? 'w-[calc(100vw-2rem)] sm:w-80 max-h-[calc(100vh-2rem)] opacity-100' : 'w-12 h-12 opacity-90 overflow-hidden'}
       `}>
@@ -167,8 +211,6 @@ export default function InteractiveMap() {
         </div>
 
         <div className={`p-5 overflow-y-auto custom-scrollbar ${!isFilterOpen && 'hidden'}`}>
-          
-          {/* === DROPDOWN PRESET BARU === */}
           <div className="mb-6 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
             <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mb-2 block">Pilih Opsi Rancangan</label>
             <select 
@@ -176,7 +218,7 @@ export default function InteractiveMap() {
               value={selectedPreset} 
               onChange={(e) => { 
                 setSelectedPreset(e.target.value); 
-                setSelectedZone('Semua Lokasi'); // Reset zona saat ganti preset
+                setSelectedZone('Semua Lokasi'); 
               }}
             >
               {uniquePresets.map((preset: any) => (
@@ -203,8 +245,12 @@ export default function InteractiveMap() {
                 <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-sm border border-red-600"></div> Server / NVR</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer text-sm font-medium text-gray-700 hover:text-emerald-700">
+                <input type="checkbox" checked={filters.showPanel} onChange={() => handleFilterChange('showPanel')} className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
+                <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm border border-emerald-600"></div> Panel Distribusi</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer text-sm font-medium text-gray-700 hover:text-emerald-700">
                 <input type="checkbox" checked={filters.showCCTV} onChange={() => handleFilterChange('showCCTV')} className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
-                <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-sm border border-blue-600"></div> Titik CCTV</span>
+                <span className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-sm border border-blue-600"></div> Titik Kamera</span>
               </label>
             </div>
           </div>
@@ -229,7 +275,7 @@ export default function InteractiveMap() {
         </div>
       </div>
 
-      {/* ================= MAP LAYER ================= */}
+      {/* MAP LAYER */}
       <MapContainer center={centerUbud} zoom={16} maxZoom={24} className="h-full w-full z-0">
         <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" maxZoom={24} maxNativeZoom={19} />
         
@@ -240,9 +286,15 @@ export default function InteractiveMap() {
           if (route.cable_type === 'LAN_UTP') { color = '#22c55e'; isDash = '5, 10'; }
           if (route.cable_type === 'POWER_CABLE') { color = '#ef4444'; }
 
+          // MENAMPILKAN JARAK DI POPUP PETA PUBLIK
+          const distance = formatDistance(calculateDistance(route.path_coordinates));
+
           return (
             <Polyline key={route.id} positions={route.path_coordinates} color={color} weight={5} dashArray={isDash} opacity={0.8}>
-              <Popup><div className="font-bold">Jalur {route.cable_type.replace('_', ' ')}</div></Popup>
+              <Popup>
+                <div className="font-bold text-gray-900 mb-1">Jalur {route.cable_type.replace('_', ' ')}</div>
+                <div className="text-xs bg-gray-100 px-2 py-1 inline-block rounded font-bold text-emerald-700">Panjang: {distance}</div>
+              </Popup>
             </Polyline>
           );
         })}
@@ -250,12 +302,12 @@ export default function InteractiveMap() {
         {filteredNodes.map((node) => (
           <Marker key={node.id} position={[node.latitude, node.longitude]} icon={getIcon(node.device_type)}>
             <Popup>
-              <div className="p-1">
-                <h3 className="font-bold text-gray-800 mb-1">{node.name}</h3>
-                <p className="text-xs text-gray-500">Lokasi: {node.zone}</p>
-                <div className="mt-2 text-[10px] uppercase font-bold tracking-wider bg-gray-100 rounded px-2 py-1 inline-block border border-gray-200">
-                  {node.device_type.replace('_', ' ')}
+              <div className="p-2 text-center">
+                <div className="bg-emerald-100 text-emerald-800 text-[10px] uppercase font-extrabold tracking-wider rounded px-2 py-1 mb-2 inline-block border border-emerald-200">
+                  {node.device_type.replace(/_/g, ' ')}
                 </div>
+                <h3 className="font-extrabold text-gray-900 text-sm mb-1">{node.name}</h3>
+                <p className="text-xs text-gray-500 font-medium">📍 {node.zone}</p>
               </div>
             </Popup>
           </Marker>
