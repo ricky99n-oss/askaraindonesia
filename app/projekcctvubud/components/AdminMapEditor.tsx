@@ -84,7 +84,11 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
 
     nodes.forEach((node: any) => {
       const marker = L.marker([node.latitude, node.longitude], { icon: getIcon(node.device_type) });
-      marker.bindPopup(`<b>${node.name}</b><br/>${node.device_type.replace(/_/g, ' ')}`); 
+      
+      // === FITUR BARU: Menampilkan Notes di Popup Peta Admin ===
+      const noteHtml = node.notes ? `<div style="background:#fffbeb; color:#b45309; padding:5px; border-radius:4px; font-size:10px; margin-top:5px; border:1px solid #fde68a;">📝 ${node.notes}</div>` : '';
+      marker.bindPopup(`<b>${node.name}</b><br/>${node.device_type.replace(/_/g, ' ')}${noteHtml}`); 
+      
       marker.pm.enable();
       (marker as any).dbId = node.id; 
       (marker as any).dbType = 'NODE';
@@ -110,7 +114,6 @@ export default function AdminMapEditor({ nodes, routes, onDataChanged, onAddNewN
 
       const polyline = L.polyline(route.path_coordinates, { color, weight: 5, dashArray });
       
-      // MENAMBAHKAN INFO JARAK DI POPUP ADMIN
       const distance = formatDistance(calculateDistance(route.path_coordinates));
       polyline.bindPopup(`<b>${route.cable_type.replace('_', ' ')}</b><br/><span style="color: green; font-weight: bold;">Panjang: ${distance}</span>`);
       

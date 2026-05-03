@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -53,13 +53,17 @@ const getIcon = (type: string) => {
   if (type === 'CAMERA_AUDIO') return createCustomIcon(cctvSvg, '#ea580c'); 
   return createCustomIcon(cctvSvg, '#2563eb'); 
 };
+
+// Ikon Titik GPS Teknisi
+const liveGpsIcon = L.divIcon({
+  html: `<div style="width: 18px; height: 18px; background-color: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.4);"></div>`,
+  className: 'live-gps-icon', iconSize: [18, 18], iconAnchor: [9, 9]
+});
 // ==========================================================
 
 // === HANDLER KLIK PETA (MENDUKUNG MODE MENGUKUR) ===
 function MapClickHandler({ isMeasuring, onMapClick }: { isMeasuring: boolean, onMapClick: (latlng: L.LatLng) => void }) {
   const map = useMap();
-  
-  // Mengubah bentuk kursor mouse saat mode mengukur aktif
   useEffect(() => {
     if (isMeasuring) {
       map.getContainer().style.cursor = 'crosshair';
@@ -91,9 +95,18 @@ export default function InteractiveMap() {
   const [filters, setFilters] = useState({ showCCTV: true, showNVR: true, showPanel: true, showFO: true, showLAN: true, showPower: true });
   const centerUbud: [number, number] = [-8.5050, 115.2630];
 
-  // === STATE UNTUK FITUR PENGUKUR JARAK ===
+  // State untuk Fitur Pengukur Jarak
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
+
+  // State Mode Teknisi
+  const [isTechnicianMode, setIsTechnicianMode] = useState(false);
+  const [userGpsLocation, setUserGpsLocation] = useState<[number, number] | null>(null);
+  const watchIdRef = useRef<number | null>(null);
+
+  // State Editor Info via Popup (Untuk Teknisi)
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({ name: '', notes: '' });
 
   useEffect(() => { fetchMapData(); }, []);
 
@@ -112,6 +125,53 @@ export default function InteractiveMap() {
 
   const handleMeasureClick = (latlng: L.LatLng) => {
     setMeasurePoints(prev => [...prev, [latlng.lat, latlng.lng]]);
+  };
+
+  // --- LOGIKA MENGAKTIFKAN MODE TEKNISI (DENGAN PASSWORD) ---
+  const toggleTechnicianMode = () => {
+    if (isTechnicianMode) {
+      setIsTechnicianMode(false);
+      setUserGpsLocation(null);
+      setEditingNodeId(null);
+      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+      return;
+    }
+
+    const pass = prompt('Masukkan Password Teknisi:');
+    if (pass === 'admin2026') { 
+      setIsTechnicianMode(true);
+      alert('Mode Teknisi Aktif! Semua PIN sekarang bisa digeser (Drag & Drop) dan info bisa di-edit. GPS Anda sedang dilacak...');
+      
+      // Menyalakan Live GPS
+      if (navigator.geolocation) {
+        const id = navigator.geolocation.watchPosition(
+          (pos) => setUserGpsLocation([pos.coords.latitude, pos.coords.longitude]),
+          (err) => { alert('Gagal membaca GPS HP. Pastikan GPS/Lokasi HP nyala dan browser diizinkan akses lokasi.'); console.error(err); },
+          { enableHighAccuracy: true, maximumAge: 0 }
+        );
+        watchIdRef.current = id;
+      }
+    } else if (pass !== null) {
+      alert('Password salah!');
+    }
+  };
+
+  // --- LOGIKA SAAT TEKNISI SELESAI MENGGESER PIN ---
+  const handleMarkerDragEnd = async (nodeId: string, event: any) => {
+    const marker = event.target;
+    const newPos = marker.getLatLng();
+    const newLat = parseFloat(newPos.lat.toFixed(6));
+    const newLng = parseFloat(newPos.lng.toFixed(6));
+
+    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, latitude: newLat, longitude: newLng } : n));
+    await supabase.from('cctv_nodes').update({ latitude: newLat, longitude: newLng }).eq('id', nodeId);
+  };
+
+  // --- LOGIKA SIMPAN EDIT NAMA & NOTE ---
+  const handleSaveNodeEdit = async (nodeId: string) => {
+    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, name: editFormData.name, notes: editFormData.notes } : n));
+    await supabase.from('cctv_nodes').update({ name: editFormData.name, notes: editFormData.notes }).eq('id', nodeId);
+    setEditingNodeId(null);
   };
 
   const uniquePresets = Array.from(new Set([
@@ -154,10 +214,10 @@ export default function InteractiveMap() {
   return (
     <div className="relative w-full h-full"> 
       
-      {/* ================= PANEL BAWAH TENGAH (PENGUKUR JARAK) ================= */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-3">
+      {/* ================= PANEL BAWAH TENGAH (PENGUKUR JARAK & MODE TEKNISI) ================= */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex flex-col md:flex-row items-center gap-3">
         {isMeasuring && measurePoints.length > 0 && (
-          <div className="bg-white/95 backdrop-blur-md shadow-2xl border border-orange-200 px-5 py-2.5 rounded-full flex items-center gap-4 animate-fade-in">
+          <div className="bg-white/95 backdrop-blur-md shadow-2xl border border-orange-200 px-5 py-2.5 rounded-full flex items-center gap-4 animate-fade-in mb-2 md:mb-0">
             <span className="text-sm font-bold text-gray-700">
               Jarak: <span className="text-orange-600 font-extrabold text-base">{formatDistance(calculateDistance(measurePoints))}</span>
             </span>
@@ -170,20 +230,33 @@ export default function InteractiveMap() {
             </button>
           </div>
         )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMeasuring(!isMeasuring);
-            if (isMeasuring) setMeasurePoints([]); 
-          }}
-          className={`shadow-2xl px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${
-            isMeasuring 
-            ? 'bg-red-600 text-white hover:bg-red-700 ring-4 ring-red-200' 
-            : 'bg-white text-gray-800 border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-          }`}
-        >
-          {isMeasuring ? '❌ Tutup Penggaris' : '📏 Ukur Jarak Manual'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMeasuring(!isMeasuring);
+              if (isMeasuring) setMeasurePoints([]); 
+            }}
+            className={`shadow-2xl px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${
+              isMeasuring 
+              ? 'bg-orange-600 text-white ring-4 ring-orange-200' 
+              : 'bg-white text-gray-800 border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+            }`}
+          >
+            {isMeasuring ? '❌ Tutup Penggaris' : '📏 Ukur Jarak'}
+          </button>
+          
+          <button 
+            onClick={toggleTechnicianMode} 
+            className={`shadow-2xl px-5 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${
+              isTechnicianMode 
+              ? 'bg-blue-600 text-white animate-pulse ring-4 ring-blue-200' 
+              : 'bg-white text-gray-800 border-2 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {isTechnicianMode ? '🔒 Akhiri Mode Teknisi' : '🛠️ Teknisi'}
+          </button>
+        </div>
       </div>
 
       {/* PANEL KIRI (TITLE & SUMMARY) */}
@@ -332,6 +405,13 @@ export default function InteractiveMap() {
         {/* Event Handler Peta */}
         <MapClickHandler isMeasuring={isMeasuring} onMapClick={handleMeasureClick} />
 
+        {/* RENDER TITIK LOKASI GPS HP TEKNISI */}
+        {isTechnicianMode && userGpsLocation && (
+          <Marker position={userGpsLocation} icon={liveGpsIcon}>
+            <Popup><b>Lokasi Anda (GPS Live)</b></Popup>
+          </Marker>
+        )}
+
         {/* LAYER GARIS PENGUKUR MANUAL */}
         {isMeasuring && measurePoints.length > 0 && (
           <>
@@ -368,14 +448,45 @@ export default function InteractiveMap() {
         })}
 
         {filteredNodes.map((node) => (
-          <Marker key={node.id} position={[node.latitude, node.longitude]} icon={getIcon(node.device_type)}>
-            <Popup>
-              <div className="p-2 text-center">
-                <div className="bg-emerald-100 text-emerald-800 text-[10px] uppercase font-extrabold tracking-wider rounded px-2 py-1 mb-2 inline-block border border-emerald-200">
-                  {node.device_type.replace(/_/g, ' ')}
-                </div>
-                <h3 className="font-extrabold text-gray-900 text-sm mb-1">{node.name}</h3>
-                <p className="text-xs text-gray-500 font-medium">📍 {node.zone}</p>
+          <Marker 
+            key={node.id} 
+            position={[node.latitude, node.longitude]} 
+            icon={getIcon(node.device_type)}
+            draggable={isTechnicianMode}
+            eventHandlers={{ dragend: (e) => handleMarkerDragEnd(node.id, e) }}
+          >
+            <Popup className="min-w-[200px]">
+              <div className="p-1 text-center">
+                {editingNodeId === node.id && isTechnicianMode ? (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <input type="text" value={editFormData.name} onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} className="w-full text-sm p-1.5 border border-emerald-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Nama Titik..." />
+                    <textarea value={editFormData.notes} onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})} className="w-full text-xs p-1.5 border border-emerald-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[60px]" placeholder="Catatan teknisi..." />
+                    <div className="flex gap-2">
+                      <button onClick={() => handleSaveNodeEdit(node.id)} className="flex-1 bg-emerald-600 text-white text-[10px] font-bold py-1.5 rounded">Simpan</button>
+                      <button onClick={() => setEditingNodeId(null)} className="flex-1 bg-gray-200 text-gray-700 text-[10px] font-bold py-1.5 rounded">Batal</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-emerald-100 text-emerald-800 text-[10px] uppercase font-extrabold tracking-wider rounded px-2 py-1 mb-2 inline-block border border-emerald-200">{node.device_type.replace(/_/g, ' ')}</div>
+                    <h3 className="font-extrabold text-gray-900 text-sm mb-1">{node.name}</h3>
+                    <p className="text-[10px] text-gray-500 font-medium mb-1">📍 {node.zone}</p>
+                    
+                    {/* Menampilkan Notes */}
+                    {node.notes && (
+                      <div className="text-[10px] text-left text-amber-800 bg-amber-50 border border-amber-200 rounded p-1.5 mt-1 leading-tight w-full max-w-[200px]">
+                        <span className="font-bold">📝 Note:</span> {node.notes}
+                      </div>
+                    )}
+
+                    {isTechnicianMode && (
+                      <div className="mt-2 flex flex-col gap-1">
+                        <button onClick={() => { setEditingNodeId(node.id); setEditFormData({ name: node.name, notes: node.notes || '' }); }} className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 rounded p-1 text-[10px] font-bold hover:bg-emerald-100">✏️ Edit Info & Note</button>
+                        <div className="text-[10px] text-blue-600 bg-blue-50 border border-blue-200 rounded p-1">🔄 Tahan & Geser PIN untuk pindah</div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </Popup>
           </Marker>

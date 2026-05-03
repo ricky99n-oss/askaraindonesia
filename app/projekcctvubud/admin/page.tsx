@@ -114,7 +114,8 @@ export default function AdminDashboard() {
 
   const triggerNewNodeForm = (lat: string, lng: string) => {
     setActiveTab('NODES');
-    setNodeForm({ id: '', name: '', zone: 'Pilih Jalan', device_type: 'CAMERA_STD', latitude: lat, longitude: lng });
+    // === Menambahkan fields "notes: ''" sebagai default ===
+    setNodeForm({ id: '', name: '', zone: 'Pilih Jalan', device_type: 'CAMERA_STD', notes: '', latitude: lat, longitude: lng });
   };
 
   const triggerNewRouteForm = (coords: any[]) => {
@@ -125,9 +126,10 @@ export default function AdminDashboard() {
   const saveNode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (nodeForm.id) {
-      await supabase.from('cctv_nodes').update({ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type }).eq('id', nodeForm.id);
+      // === Menyimpan fields "notes" yang sudah di-edit ===
+      await supabase.from('cctv_nodes').update({ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type, notes: nodeForm.notes }).eq('id', nodeForm.id);
     } else {
-      await supabase.from('cctv_nodes').insert([{ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type, latitude: parseFloat(nodeForm.latitude), longitude: parseFloat(nodeForm.longitude), preset_group: activePreset }]);
+      await supabase.from('cctv_nodes').insert([{ name: nodeForm.name, zone: nodeForm.zone, device_type: nodeForm.device_type, notes: nodeForm.notes, latitude: parseFloat(nodeForm.latitude), longitude: parseFloat(nodeForm.longitude), preset_group: activePreset }]);
     }
     setNodeForm(null); fetchData(); 
   };
@@ -183,10 +185,10 @@ export default function AdminDashboard() {
           </div>
 
           {nodeForm && activeTab === 'NODES' && (
-            <form onSubmit={saveNode} className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shrink-0 shadow-sm">
-              <h3 className="font-extrabold text-emerald-900 text-sm mb-3 border-b border-emerald-200 pb-2">{nodeForm.id ? '✏️ Edit Label Alat' : '➕ Tambah Titik Baru'}</h3>
-              <input type="text" value={nodeForm.name} onChange={e=>setNodeForm({...nodeForm, name: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Nama Kamera / Alat" required />
-              <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area" required />
+            <form onSubmit={saveNode} className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shrink-0 shadow-sm flex flex-col gap-3">
+              <h3 className="font-extrabold text-emerald-900 text-sm border-b border-emerald-200 pb-2">{nodeForm.id ? '✏️ Edit Label Alat' : '➕ Tambah Titik Baru'}</h3>
+              <input type="text" value={nodeForm.name} onChange={e=>setNodeForm({...nodeForm, name: e.target.value})} className="w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Nama Kamera / Alat" required />
+              <input type="text" value={nodeForm.zone} onChange={e=>setNodeForm({...nodeForm, zone: e.target.value})} className="w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area" required />
               
               <select 
                 value={['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) ? nodeForm.device_type : 'CUSTOM'} 
@@ -194,7 +196,7 @@ export default function AdminDashboard() {
                   if(e.target.value === 'CUSTOM') setNodeForm({...nodeForm, device_type: 'WIRELESS_CAM'});
                   else setNodeForm({...nodeForm, device_type: e.target.value});
                 }} 
-                className={`w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500 ${['CAMERA_STD', 'CAMERA_AUDIO', 'NVR', 'PANEL'].includes(nodeForm.device_type) ? 'mb-4' : 'mb-2'}`}
+                className="w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="CAMERA_STD">Kamera Standard</option>
                 <option value="CAMERA_AUDIO">Kamera Audio</option>
@@ -208,13 +210,21 @@ export default function AdminDashboard() {
                   type="text" 
                   value={nodeForm.device_type} 
                   onChange={e => setNodeForm({...nodeForm, device_type: e.target.value.toUpperCase().replace(/\s+/g, '_')})} 
-                  className="w-full p-2.5 text-sm mb-4 rounded-xl border-2 border-emerald-400 bg-emerald-100 text-emerald-900 font-bold focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full p-2.5 text-sm rounded-xl border-2 border-emerald-400 bg-emerald-100 text-emerald-900 font-bold focus:ring-2 focus:ring-emerald-500" 
                   placeholder="Ketik kategori (Contoh: WIRELESS_CAM)" 
                   required autoFocus
                 />
               )}
 
-              <div className="flex gap-2">
+              {/* === INPUT TEXTAREA UNTUK CATATAN (NOTES) === */}
+              <textarea 
+                value={nodeForm.notes || ''} 
+                onChange={e=>setNodeForm({...nodeForm, notes: e.target.value})} 
+                className="w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500 min-h-[80px]" 
+                placeholder="Catatan opsional (Misal: Di atap rumah warga)" 
+              />
+
+              <div className="flex gap-2 mt-2">
                 <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 rounded-xl transition">Simpan</button>
                 <button type="button" onClick={()=>setNodeForm(null)} className="px-4 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-300">Batal</button>
               </div>
@@ -222,13 +232,13 @@ export default function AdminDashboard() {
           )}
 
           {routeForm && activeTab === 'ROUTES' && (
-             <form onSubmit={saveRoute} className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shrink-0 shadow-sm">
-               <h3 className="font-extrabold text-emerald-900 text-sm mb-3 border-b border-emerald-200 pb-2">{routeForm.id ? '✏️ Edit Detail Jalur' : '➕ Tambah Jalur Baru'}</h3>
-               <input type="text" value={routeForm.zone || ''} onChange={e=>setRouteForm({...routeForm, zone: e.target.value})} className="w-full p-2.5 text-sm mb-3 rounded-xl border" placeholder="Jalan/Area" required />
-               <select value={routeForm.cable_type} onChange={e=>setRouteForm({...routeForm, cable_type: e.target.value})} className="w-full p-2.5 text-sm mb-4 rounded-xl border">
+             <form onSubmit={saveRoute} className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shrink-0 shadow-sm flex flex-col gap-3">
+               <h3 className="font-extrabold text-emerald-900 text-sm border-b border-emerald-200 pb-2">{routeForm.id ? '✏️ Edit Detail Jalur' : '➕ Tambah Jalur Baru'}</h3>
+               <input type="text" value={routeForm.zone || ''} onChange={e=>setRouteForm({...routeForm, zone: e.target.value})} className="w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500" placeholder="Jalan/Area" required />
+               <select value={routeForm.cable_type} onChange={e=>setRouteForm({...routeForm, cable_type: e.target.value})} className="w-full p-2.5 text-sm rounded-xl border focus:ring-2 focus:ring-emerald-500">
                  <option value="FIBER_OPTIC">Fiber Optic</option><option value="LAN_UTP">LAN UTP</option><option value="POWER_CABLE">Kabel Listrik Utama</option>
                </select>
-               <div className="flex gap-2">
+               <div className="flex gap-2 mt-2">
                  <button type="submit" className="flex-1 bg-emerald-600 text-white text-sm font-bold py-2.5 rounded-xl">Simpan</button>
                  <button type="button" onClick={()=>setRouteForm(null)} className="px-4 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl">Batal</button>
                </div>
@@ -244,26 +254,27 @@ export default function AdminDashboard() {
             </div>
             <div className="overflow-y-auto p-2 custom-scrollbar flex-1">
               {activeTab === 'NODES' ? displayNodes.map(n => (
-                <div key={n.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
-                  <div>
+                <div key={n.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-start group gap-2">
+                  <div className="flex-1">
                     <p className="font-bold text-sm text-gray-800">{n.name}</p>
                     <p className="text-[10px] text-gray-500 font-medium mt-0.5">{n.device_type.replace(/_/g, ' ')} • {n.zone}</p>
+                    {/* === MENAMPILKAN CATATAN (NOTES) DI LIST PANEL ADMIN === */}
+                    {n.notes && <p className="text-[10px] text-amber-700 bg-amber-50 p-1.5 mt-1 rounded leading-tight line-clamp-2">📝 {n.notes}</p>}
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => setNodeForm(n)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit</button>
-                    <button onClick={async () => { if(confirm('Hapus alat ini?')) { await supabase.from('cctv_nodes').delete().eq('id', n.id); fetchData(); } }} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100">X</button>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <button onClick={() => setNodeForm(n)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 w-full">Edit</button>
+                    <button onClick={async () => { if(confirm('Hapus alat ini?')) { await supabase.from('cctv_nodes').delete().eq('id', n.id); fetchData(); } }} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100 w-full">Hapus</button>
                   </div>
                 </div>
               )) : displayRoutes.map(r => (
                 <div key={r.id} className="p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
                   <div>
                     <p className="font-bold text-sm text-gray-800">{r.cable_type.replace('_', ' ')}</p>
-                    {/* MENAMPILKAN JARAK PADA LIST KABEL */}
                     <p className="text-[10px] text-gray-500 font-medium mt-0.5">
                       {r.zone || 'Belum ada zona'} • <span className="text-emerald-600 font-bold">{formatDistance(calculateDistance(r.path_coordinates))}</span>
                     </p>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 shrink-0">
                     <button onClick={() => setRouteForm(r)} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Edit</button>
                     <button onClick={async () => { if(confirm('Hapus jalur ini?')) { await supabase.from('cctv_routes').delete().eq('id', r.id); fetchData(); } }} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100">X</button>
                   </div>
