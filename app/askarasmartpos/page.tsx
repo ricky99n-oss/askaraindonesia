@@ -59,8 +59,10 @@ export default function AskaraSmartPOS() {
   const [isBetaFull, setIsBetaFull] = useState(false);
 
   useEffect(() => {
-    // 1. Script Midtrans
-    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js"; 
+    // ==========================================
+    // 🔥 SCRIPT MIDTRANS DIUBAH KE MODE LIVE 🔥
+    // ==========================================
+    const snapScript = "https://app.midtrans.com/snap/snap.js"; 
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ""; 
     const script = document.createElement('script');
     script.src = snapScript;
@@ -117,7 +119,6 @@ export default function AskaraSmartPOS() {
         setIsCheckoutOpen(false);
         (window as any).snap.pay(data.token, {
           onSuccess: function(result: any) {
-            // 🔥 INI DIA KODE UNTUK PINDAH KE HALAMAN SUKSES 🔥
             window.location.href = `/success?transaction_status=${result.transaction_status}&order_id=${result.order_id}`;
           },
           onPending: function(result: any) {
