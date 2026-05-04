@@ -17,6 +17,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+// ==========================================
+// 1. KOMPONEN HERO SECTION
+// ==========================================
 const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
   <section className="text-white py-16 md:py-32 px-6 bg-linear-to-br from-[#4A00E0] via-[#6a11cb] to-[#8E2DE2] overflow-hidden">
     <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center text-left">
@@ -34,7 +37,7 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
             {isBetaFull ? 'Kuota Beta Habis' : 'Klaim Gratis 2 Bulan Jadi Beta Tester'}
           </button>
           
-          <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/apk-releases/Askara%20Smart%20POS%202.0.apk" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
+          <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/apk-releases/Askara%20Smart%20POS%202.0.apk" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             Download App
           </a>
@@ -51,6 +54,71 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
   </section>
 );
 
+// ==========================================
+// 2. KOMPONEN FITUR UNGGULAN (YANG KEMBALI)
+// ==========================================
+const FeatureSection = () => {
+  const features = [
+    {
+      title: "Mode Offline (Anti-Badai)",
+      desc: "Internet putus? Kasir tetap bisa berjualan dan mencetak struk. Data otomatis sinkron ke server saat internet menyala.",
+      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>,
+      color: "from-blue-500 to-blue-600"
+    },
+    {
+      title: "Kitchen Display (KDS)",
+      desc: "Pesanan dari kasir otomatis masuk ke layar dapur secara real-time. Tidak perlu lagi teriak-teriak atau pakai kertas order.",
+      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>,
+      color: "from-orange-500 to-red-500"
+    },
+    {
+      title: "Multi-Cabang & Laporan",
+      desc: "Pantau omzet, stok, dan performa kasir di berbagai cabang berbeda hanya dari satu dashboard di HP Owner.",
+      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>,
+      color: "from-green-500 to-emerald-600"
+    },
+    {
+      title: "Manajemen Meja & Kiosk",
+      desc: "Dukung sistem Dine-in dengan nomor meja, atau mode Kiosk di mana pelanggan bisa memesan dan bayar mandiri (QRIS).",
+      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>,
+      color: "from-purple-500 to-indigo-600"
+    }
+  ];
+
+  return (
+    <section className="py-20 px-6 bg-gray-50 border-b border-gray-100">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Fitur Lengkap untuk Segala Jenis F&B</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">Dirancang khusus untuk Kafe, Resto, Foodcourt, hingga Kaki Lima. Semua yang Anda butuhkan ada di sini.</p>
+        </div>
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feat, index) => (
+            <motion.div 
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-shadow border border-gray-100"
+            >
+              <div className={`w-12 h-12 rounded-xl mb-6 flex items-center justify-center bg-linear-to-br ${feat.color} shadow-lg`}>
+                {feat.icon}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{feat.title}</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">{feat.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ==========================================
+// 3. KOMPONEN HALAMAN UTAMA
+// ==========================================
 export default function AskaraSmartPOS() {
   const [isBetaOpen, setIsBetaOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -59,9 +127,7 @@ export default function AskaraSmartPOS() {
   const [isBetaFull, setIsBetaFull] = useState(false);
 
   useEffect(() => {
-    // ==========================================
-    // 🔥 SCRIPT MIDTRANS DIUBAH KE MODE LIVE 🔥
-    // ==========================================
+    // 🔥 SCRIPT MIDTRANS MODE LIVE / PRODUCTION 🔥
     const snapScript = "https://app.midtrans.com/snap/snap.js"; 
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ""; 
     const script = document.createElement('script');
@@ -70,7 +136,7 @@ export default function AskaraSmartPOS() {
     script.async = true;
     document.body.appendChild(script);
 
-    // 2. Cek Kuota Beta Tester
+    // Cek Kuota Beta Tester
     async function checkBetaQuota() {
       if (!supabase) return;
       try {
@@ -147,7 +213,7 @@ export default function AskaraSmartPOS() {
           </Link>
           
           <div className="flex items-center gap-4">
-            <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/apk-releases/Askara%20Smart%20POS%202.0.apk" className="hidden md:flex items-center gap-2 text-sm font-bold text-purple-600 bg-purple-50 border border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors">
+            <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/apk-releases/Askara%20Smart%20POS%202.0.apk" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center gap-2 text-sm font-bold text-purple-600 bg-purple-50 border border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
               Download App
             </a>
@@ -156,8 +222,13 @@ export default function AskaraSmartPOS() {
         </div>
       </header>
 
+      {/* Hero Section */}
       <HeroSection onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
       
+      {/* Fitur Lengkap Section */}
+      <FeatureSection />
+      
+      {/* Multi-Cabang Section */}
       <section className="py-20 md:py-32 px-6 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 md:gap-20 items-center">
           <div className="order-2 md:order-1 text-left">
@@ -170,14 +241,17 @@ export default function AskaraSmartPOS() {
         </div>
       </section>
 
+      {/* Harga & Checkout */}
       <PricingSection onOpenCheckout={handleOpenCheckout} onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
 
+      {/* Footer */}
       <footer className="bg-[#0f172a] text-white pt-20 pb-10 px-6">
         <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           <p className="text-gray-500 text-xs tracking-wider uppercase font-medium">© {new Date().getFullYear()} PT Askara Indonesia Perkasa.</p>
         </div>
       </footer>
 
+      {/* Modals */}
       {!isBetaFull && (
         <BetaTesterModal isOpen={isBetaOpen} onClose={() => setIsBetaOpen(false)} />
       )}
