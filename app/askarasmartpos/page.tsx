@@ -131,7 +131,7 @@ export default function AskaraSmartPOS() {
         alert('Gagal mendapatkan token pembayaran: ' + (data.error || 'Server error'));
       }
     } catch (error) {
-      alert('Terjadi kesalahan sistem');
+      alert('Terjadi kesalahan pada sistem');
     } finally {
       setIsCheckoutLoading(false);
     }
