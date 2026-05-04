@@ -37,7 +37,7 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
             {isBetaFull ? 'Kuota Beta Habis' : 'Klaim Gratis 2 Bulan Jadi Beta Tester'}
           </button>
           
-          <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/apk-releases/Askara%20Smart%20POS%202.0.apk" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
+          <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/askara-apps/Askara_Smart_POS_v1.apk" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-purple-700/50 hover:bg-purple-600 border border-purple-400/50 text-white px-8 py-3.5 rounded-xl font-bold backdrop-blur-sm transition-all hover:scale-105">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             Download App
           </a>
@@ -55,60 +55,71 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
 );
 
 // ==========================================
-// 2. KOMPONEN FITUR UNGGULAN (YANG KEMBALI)
+// 2. KOMPONEN FITUR BERGAMBAR (ZIG-ZAG)
 // ==========================================
 const FeatureSection = () => {
   const features = [
     {
-      title: "Mode Offline (Anti-Badai)",
-      desc: "Internet putus? Kasir tetap bisa berjualan dan mencetak struk. Data otomatis sinkron ke server saat internet menyala.",
-      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>,
-      color: "from-blue-500 to-blue-600"
+      title: "Kasir Super Cepat & Mode Offline",
+      desc: "Internet putus? Tidak masalah! Aplikasi kasir tetap bisa digunakan untuk mencatat pesanan dan mencetak struk. Data akan otomatis disinkronisasi ke server saat internet kembali menyala tanpa ada data yang hilang.",
+      image: "/fitur-1.png",
+      reverse: false,
     },
     {
-      title: "Kitchen Display (KDS)",
-      desc: "Pesanan dari kasir otomatis masuk ke layar dapur secara real-time. Tidak perlu lagi teriak-teriak atau pakai kertas order.",
-      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>,
-      color: "from-orange-500 to-red-500"
+      title: "Kitchen Display System (KDS)",
+      desc: "Tinggalkan kertas pesanan yang mudah basah atau hilang. Pesanan dari kasir otomatis masuk ke layar tablet di dapur secara real-time, lengkap dengan timer memasak dan status hidangan.",
+      image: "/fitur-2.png",
+      reverse: true,
     },
     {
-      title: "Multi-Cabang & Laporan",
-      desc: "Pantau omzet, stok, dan performa kasir di berbagai cabang berbeda hanya dari satu dashboard di HP Owner.",
-      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>,
-      color: "from-green-500 to-emerald-600"
+      title: "Manajemen Meja & QRIS Kiosk",
+      desc: "Atur posisi meja pelanggan dengan mudah. Dilengkapi fitur Self-Order (Kiosk) di mana pelanggan bisa memesan dan membayar sendiri menggunakan QRIS langsung dari meja mereka.",
+      image: "/fitur-3.png",
+      reverse: false,
     },
     {
-      title: "Manajemen Meja & Kiosk",
-      desc: "Dukung sistem Dine-in dengan nomor meja, atau mode Kiosk di mana pelanggan bisa memesan dan bayar mandiri (QRIS).",
-      icon: <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>,
-      color: "from-purple-500 to-indigo-600"
+      title: "Laporan Multi-Cabang Terpusat",
+      desc: "Pantau omzet harian, stok bahan baku, dan performa shift kasir di seluruh cabang Anda secara real-time hanya dari satu aplikasi Dashboard di HP Anda.",
+      image: "/fitur-4.png",
+      reverse: true,
     }
   ];
 
   return (
-    <section className="py-20 px-6 bg-gray-50 border-b border-gray-100">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Fitur Lengkap untuk Segala Jenis F&B</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">Dirancang khusus untuk Kafe, Resto, Foodcourt, hingga Kaki Lima. Semua yang Anda butuhkan ada di sini.</p>
+    <section className="py-20 md:py-32 bg-gray-50 overflow-hidden border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16 md:mb-24">
+          <h2 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-[#4A00E0] to-[#8E2DE2] mb-4">Fitur Lengkap untuk Segala F&B</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto text-lg">Semua alat canggih yang Anda butuhkan untuk membesarkan bisnis kuliner ada di sini.</p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="space-y-20 md:space-y-32">
           {features.map((feat, index) => (
-            <motion.div 
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-shadow border border-gray-100"
-            >
-              <div className={`w-12 h-12 rounded-xl mb-6 flex items-center justify-center bg-linear-to-br ${feat.color} shadow-lg`}>
-                {feat.icon}
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{feat.title}</h3>
-              <p className="text-gray-600 leading-relaxed text-sm">{feat.desc}</p>
-            </motion.div>
+            <div key={index} className={`flex flex-col ${feat.reverse ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-10 md:gap-20`}>
+              <motion.div 
+                initial={{ opacity: 0, x: feat.reverse ? 50 : -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="w-full md:w-1/2"
+              >
+                {/* Pastikan file fitur-1.png, fitur-2.png ada di folder 'public' */}
+                <Image src={feat.image} alt={feat.title} width={800} height={600} className="w-full h-auto rounded-2xl shadow-xl object-cover hover:scale-105 transition-transform duration-500" />
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, x: feat.reverse ? -50 : 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="w-full md:w-1/2 text-left"
+              >
+                <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 text-purple-600 font-extrabold text-2xl shadow-sm">
+                  {index + 1}
+                </div>
+                <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">{feat.title}</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">{feat.desc}</p>
+              </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -213,7 +224,7 @@ export default function AskaraSmartPOS() {
           </Link>
           
           <div className="flex items-center gap-4">
-            <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/apk-releases/Askara%20Smart%20POS%202.0.apk" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center gap-2 text-sm font-bold text-purple-600 bg-purple-50 border border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors">
+            <a href="https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/askara-apps/Askara_Smart_POS_v1.apk" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center gap-2 text-sm font-bold text-purple-600 bg-purple-50 border border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
               Download App
             </a>
@@ -225,7 +236,7 @@ export default function AskaraSmartPOS() {
       {/* Hero Section */}
       <HeroSection onOpenBeta={() => setIsBetaOpen(true)} isBetaFull={isBetaFull} />
       
-      {/* Fitur Lengkap Section */}
+      {/* Fitur Lengkap Bergambar (fitur-1.png dst) */}
       <FeatureSection />
       
       {/* Multi-Cabang Section */}
@@ -236,6 +247,7 @@ export default function AskaraSmartPOS() {
             <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-4">Berapapun jumlah cabang restoran atau kafe Anda, kini Owner tidak perlu lagi datang satu per satu ke lokasi hanya untuk menanyakan omzet.</p>
           </div>
           <div className="order-1 md:order-2 w-full flex justify-center">
+            {/* Pastikan file showcase-multi.png ada di folder 'public' */}
             <Image src="/showcase-multi.png" alt="Laporan Multi-Cabang Askara" width={800} height={600} className="w-full h-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" />
           </div>
         </div>
