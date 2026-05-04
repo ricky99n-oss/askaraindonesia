@@ -55,32 +55,44 @@ const HeroSection = ({ onOpenBeta, isBetaFull }: any) => (
 );
 
 // ==========================================
-// 2. KOMPONEN FITUR BERGAMBAR (ZIG-ZAG)
+// 2. KOMPONEN FITUR BERGAMBAR (ZIG-ZAG - REVISI 6 FITUR)
 // ==========================================
 const FeatureSection = () => {
   const features = [
     {
       title: "Kasir Super Cepat & Mode Offline",
-      desc: "Internet putus? Tidak masalah! Aplikasi kasir tetap bisa digunakan untuk mencatat pesanan dan mencetak struk. Data akan otomatis disinkronisasi ke server saat internet kembali menyala tanpa ada data yang hilang.",
+      desc: "Internet putus? Tidak masalah! Aplikasi kasir tetap berjalan lancar untuk mencatat pesanan. Data akan otomatis disinkronisasi ke server saat koneksi internet kembali normal.",
       image: "/fitur-1.png",
       reverse: false,
     },
     {
-      title: "Kitchen Display System (KDS)",
-      desc: "Tinggalkan kertas pesanan yang mudah basah atau hilang. Pesanan dari kasir otomatis masuk ke layar tablet di dapur secara real-time, lengkap dengan timer memasak dan status hidangan.",
+      title: "Self-Order Kiosk & Menu Digital",
+      desc: "Manjakan pelanggan dengan kemudahan memesan sendiri melalui layar Kiosk. Mengurangi antrean di kasir, mempercepat pelayanan, dan membuat tampilan restoran lebih modern.",
       image: "/fitur-2.png",
       reverse: true,
     },
     {
-      title: "Manajemen Meja & QRIS Kiosk",
-      desc: "Atur posisi meja pelanggan dengan mudah. Dilengkapi fitur Self-Order (Kiosk) di mana pelanggan bisa memesan dan membayar sendiri menggunakan QRIS langsung dari meja mereka.",
+      title: "Sistem Rute Printer Cerdas",
+      desc: "Hubungkan banyak printer sekaligus via Bluetooth atau WiFi/LAN. Pisahkan cetakan otomatis: pesanan makanan langsung terkirim ke Printer Dapur, dan minuman ke Printer Bar.",
       image: "/fitur-3.png",
       reverse: false,
     },
     {
-      title: "Laporan Multi-Cabang Terpusat",
-      desc: "Pantau omzet harian, stok bahan baku, dan performa shift kasir di seluruh cabang Anda secara real-time hanya dari satu aplikasi Dashboard di HP Anda.",
+      title: "Customer Display System (CDS)",
+      desc: "Tampilkan rincian pesanan, total tagihan, dan kode QRIS di layar sekunder yang menghadap pelanggan. Anda juga bisa menampilkan banner promo (iklan) yang sedang berlangsung.",
       image: "/fitur-4.png",
+      reverse: true,
+    },
+    {
+      title: "Akses PIN Karyawan & Keamanan Shift",
+      desc: "Lindungi kasir dengan PIN unik per karyawan. Pantau riwayat modal awal, penarikan uang laci, dan laporan akhir shift untuk mencegah kecurangan atau selisih uang.",
+      image: "/fitur-5.png",
+      reverse: false,
+    },
+    {
+      title: "Kitchen Display System (KDS)",
+      desc: "Tinggalkan kertas pesanan yang mudah basah atau hilang. Orderan otomatis masuk ke layar tablet di dapur secara real-time, lengkap dengan status hidangan (Menunggu, Dimasak, Selesai).",
+      image: "/fitur-6.png",
       reverse: true,
     }
   ];
@@ -103,7 +115,6 @@ const FeatureSection = () => {
                 transition={{ duration: 0.6 }}
                 className="w-full md:w-1/2"
               >
-                {/* Pastikan file fitur-1.png, fitur-2.png ada di folder 'public' */}
                 <Image src={feat.image} alt={feat.title} width={800} height={600} className="w-full h-auto rounded-2xl shadow-xl object-cover hover:scale-105 transition-transform duration-500" />
               </motion.div>
               <motion.div 
