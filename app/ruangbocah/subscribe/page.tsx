@@ -1,17 +1,17 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react'; // PERBAIKAN 1: Import dari react
+import { useState, Suspense } from 'react';
 import Script from 'next/script';
 
-// PERBAIKAN 2: Memberitahu TypeScript bahwa window.snap itu ada
 declare global {
   interface Window {
     snap: any;
   }
 }
 
-export default function SubscribePage() {
+// 1. PISAHKAN KONTEN UTAMA KE DALAM KOMPONEN BARU
+function SubscribeContent() {
   const searchParams = useSearchParams();
   const uid = searchParams.get('uid');
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +81,6 @@ export default function SubscribePage() {
 
           <ul className="space-y-4 mb-8">
             <li className="flex items-center text-gray-700">
-              {/* PERBAIKAN 3: Menggunakan shrink-0 */}
               <span className="shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded-full mr-3">✓</span>
               Gratis 50 Koin (Bisa untuk 1x Konsultasi)
             </li>
@@ -117,5 +116,18 @@ export default function SubscribePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 2. BUNGKUS DENGAN SUSPENSE DI EXPORT UTAMA
+export default function SubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500 animate-pulse">Memuat halaman pembayaran...</p>
+      </div>
+    }>
+      <SubscribeContent />
+    </Suspense>
   );
 }
