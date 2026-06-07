@@ -75,7 +75,7 @@ function SubscribeContent() {
 
         <div className="p-8">
           <div className="text-center mb-8">
-            <span className="text-5xl font-extrabold text-gray-900">Rp 49.000</span>
+            <span className="text-5xl font-extrabold text-gray-900">Rp 4.900</span>
             <span className="text-gray-500 font-medium">/bulan</span>
           </div>
 

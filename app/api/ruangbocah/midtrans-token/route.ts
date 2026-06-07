@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -13,12 +15,12 @@ export async function POST(req: Request) {
     const midtransPayload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: 49000,
+        gross_amount: 4900,
       },
       item_details: [
         {
           id: 'RB-MONTHLY',
-          price: 49000,
+          price: 4900,
           quantity: 1,
           name: 'Ruang Bocah Premium (1 Bulan) + 50 Koin',
         }
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     };
 
     // Panggil API Midtrans (Ganti URL ke production jika sudah live)
-    const response = await fetch('https://app.sandbox.midtrans.com/snap/v1/transactions', {
+    const response = await fetch('https://app.midtrans.com/snap/v1/transactions', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
