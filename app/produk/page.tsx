@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { motion, Variants } from 'framer-motion'; // Tambahkan import Variants
+import { motion, Variants } from 'framer-motion';
 
 export default function ProdukPage() {
   const products = [
@@ -10,14 +10,34 @@ export default function ProdukPage() {
       id: "pos",
       title: "Askara Smart POS",
       status: "Available",
+      link: "/askarasmartpos",
       description: "Sistem kasir pintar (Point of Sales) Cloud dengan teknologi Offline-First. Dirancang khusus untuk kafe, resto, dan ritel agar tetap beroperasi, mencetak struk, dan sinkronisasi otomatis walau tanpa koneksi internet.",
       icon: "🏪",
-      gradient: "from-askara-dark to-askara-orange" // Gunakan variabel warna askara
+      gradient: "from-askara-dark to-askara-orange" 
+    },
+    {
+      id: "ea-ai",
+      title: "Askara AI Extreme",
+      status: "Available",
+      link: "/askara-ai-extreme",
+      description: "Robot Trading Otonom (EA) Pertama di MetaTrader 5 dengan integrasi Google Gemini AI. Cukup ketik strategi Anda menggunakan bahasa manusia, dan biarkan AI mengeksekusinya dengan presisi mesin.",
+      icon: "🤖",
+      gradient: "from-blue-600 to-cyan-400"
+    },
+    {
+      id: "ruang-bocah",
+      title: "Ruang Bocah",
+      status: "Release Soon",
+      link: "#",
+      description: "Aplikasi pemantauan tumbuh kembang anak. Membantu orang tua memantau, memahami, dan mendukung tumbuh kembang anak secara akurat, jelas, dengan pendampingan Dokter Spesialis Anak.",
+      icon: "👶🏻",
+      gradient: "from-gray-700 to-gray-900"
     },
     {
       id: "netmon",
       title: "Askara Network Monitoring",
       status: "Release Soon",
+      link: "#",
       description: "Sistem pemantauan infrastruktur jaringan real-time. Melacak lalu lintas data, mendeteksi anomali, dan memberikan peringatan dini untuk mencegah downtime pada jaringan bisnis Anda.",
       icon: "📡",
       gradient: "from-gray-700 to-gray-900"
@@ -26,6 +46,7 @@ export default function ProdukPage() {
       id: "hotel",
       title: "Askara Hotel Management System",
       status: "Release Soon",
+      link: "#",
       description: "Solusi perangkat lunak terintegrasi untuk manajemen reservasi, housekeeping, front-desk, hingga laporan keuangan hotel dalam satu dashboard interaktif yang mudah digunakan.",
       icon: "🏨",
       gradient: "from-gray-700 to-gray-900"
@@ -34,6 +55,7 @@ export default function ProdukPage() {
       id: "traveler",
       title: "Askara Travelers Connect",
       status: "Release Soon",
+      link: "#",
       description: "Platform interaktif yang menghubungkan tamu hotel atau villa dengan layanan internal, pemandu wisata lokal, dan rekomendasi destinasi langsung dari genggaman smartphone mereka.",
       icon: "🗺️",
       gradient: "from-gray-700 to-gray-900"
@@ -42,21 +64,13 @@ export default function ProdukPage() {
       id: "villa",
       title: "Askara Villa Management System",
       status: "Release Soon",
+      link: "#",
       description: "Sistem tata kelola eksklusif untuk bisnis villa. Dilengkapi dengan sinkronisasi kalender booking, manajemen properti, dan sistem automasi layanan tamu yang komprehensif.",
       icon: "🏡",
-      gradient: "from-gray-700 to-gray-900"
-    },
-    {
-      id: "kids",
-      title: "Askara Kids growth and development Monitoring",
-      status: "Release Soon",
-      description: "Askara Kids Growth and Development Monitoring membantu orang tua memantau, memahami, dan mendukung tumbuh kembang anak secara akurat, jelas, dengan pendampingan Dokter Spesialis Anak.",
-      icon: "👶🏻",
       gradient: "from-gray-700 to-gray-900"
     }
   ];
 
-  // Tambahkan tipe Variants di sini untuk menghilangkan Error TS
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
@@ -153,9 +167,9 @@ export default function ProdukPage() {
                   </p>
 
                   {isAvailable ? (
-                    <a href="/askarasmartpos" target="_blank" className="w-full bg-linear-to-r from-askara-dark to-purple-600 text-white font-bold py-3 px-4 rounded-xl text-center hover:shadow-lg transition">
+                    <Link href={product.link} className="block w-full bg-linear-to-r from-askara-dark to-purple-600 text-white font-bold py-3 px-4 rounded-xl text-center hover:shadow-lg transition">
                       Buka Aplikasi
-                    </a>
+                    </Link>
                   ) : (
                     <button disabled className="w-full bg-gray-100 text-gray-400 font-bold py-3 px-4 rounded-xl text-center border border-gray-200 cursor-not-allowed">
                       Dalam Pengembangan

@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 export default function AskaraDownloadPage() {
   // TODO: Ganti URL di bawah ini dengan URL Public dari Supabase Bucket "EA" Anda
-  const EA_FILE_URL = "https://[PROJECT_REF].supabase.co/storage/v1/object/public/EA/AskaraAIExtreme.zip";
-  const GUIDE_FILE_URL = "https://[PROJECT_REF].supabase.co/storage/v1/object/public/EA/Buku_Panduan_AskaraAI.pdf";
+  const EA_FILE_URL = "https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/EA/AskaraAIExtreme.ex5";
+  const GUIDE_FILE_URL = "https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/EA/Askara_AI_Extreme_EA_Panduan_Lengkap-2.pdf";
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans pt-24 pb-20 px-4 md:px-8 selection:bg-blue-500">
