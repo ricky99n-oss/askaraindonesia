@@ -1,88 +1,104 @@
-export const runtime = 'edge';
-
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient'; 
+import { createClient } from '@supabase/supabase-js';
+
+// WAJIB DITAMBAHKAN AGAR KOMPATIBEL DENGAN CLOUDFLARE PAGES
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const { name, username, email, phone } = await req.json();
-    
-    // Validasi basic
-    if (!name || !email || !username) {
-      return NextResponse.json({ error: 'Nama, Username, dan Email wajib diisi' }, { status: 400 });
+    // 1. Ambil data dari Frontend
+    const body = await req.json();
+    const { name, username, email, phone } = body;
+
+    if (!name || !username || !email || !phone) {
+      return NextResponse.json({ error: 'Data formulir tidak lengkap!' }, { status: 400 });
     }
 
-    const orderId = `EA-EXTREME-${Date.now()}`;
-    const price = 129000;
+    const orderId = `ASKARA-EA-${Date.now()}`;
+    const grossAmount = 129000;
 
-    // Parameter untuk Midtrans
-    const parameters = {
+    // 2. Siapkan Payload untuk Midtrans
+    const parameter = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: price
+        gross_amount: grossAmount
       },
+      item_details: [{
+        id: 'ASKARA-EA-LIFETIME',
+        price: grossAmount,
+        quantity: 1,
+        name: 'Askara AI Extreme - Lifetime License'
+      }],
       customer_details: {
         first_name: name,
         email: email,
-        phone: phone || ''
-      },
-      item_details: [{
-        id: 'ASKARA-EA-01',
-        price: price,
-        quantity: 1,
-        name: 'Askara AI Extreme EA (Lifetime)'
-      }],
-      custom_field1: username // Kita simpan username di custom field untuk dibaca webhook nanti
+        phone: phone
+      }
     };
 
-    // Konfigurasi Native Fetch untuk Midtrans (Edge Compatible)
-    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
-    const encodedKey = btoa(serverKey + ':'); // Base64 Encode untuk Basic Auth
+    // 3. PANGGIL MIDTRANS LANGSUNG TANPA LIBRARY (Native Fetch)
     const isProd = process.env.NODE_ENV === 'production';
     const midtransUrl = isProd 
-      ? 'https://app.midtrans.com/snap/v1/transactions' 
+      ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+      
+    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    
+    // Midtrans mewajibkan Server Key di-encode ke Base64 dengan tambahan titik dua (:)
+    const base64Key = btoa(`${serverKey}:`);
 
-    const midtransResponse = await fetch(midtransUrl, {
+    const midtransRes = await fetch(midtransUrl, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${encodedKey}`
+        'Authorization': `Basic ${base64Key}`
       },
-      body: JSON.stringify(parameters)
+      body: JSON.stringify(parameter)
     });
 
-    const transaction = await midtransResponse.json();
+    const midtransData = await midtransRes.json();
 
-    if (!midtransResponse.ok) {
-      console.error("Midtrans API Error:", transaction);
-      throw new Error(transaction.error_messages ? transaction.error_messages[0] : 'Gagal membuat transaksi Midtrans');
+    // Jika Midtrans menolak permintaan
+    if (!midtransRes.ok) {
+      console.error("MIDTRANS ERROR:", midtransData);
+      throw new Error(midtransData.error_messages?.[0] || 'Gagal membuat transaksi di Midtrans');
     }
 
-    // [OPSIONAL] Insert status 'pending' ke tabel transactions di Supabase
-    const { error: dbError } = await supabase
-      .from('transactions')
-      .insert([
-        { 
-          order_id: orderId, 
-          customer_name: name,
-          customer_email: email,
-          amount: price,
-          status: 'pending',
-          item_type: 'Askara AI Extreme'
-        }
-      ]);
+    // 4. Simpan Data Awal ke Supabase (Status: Pending)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 
-    if (dbError) {
-      console.error("Supabase Error:", dbError.message);
-      // Kita tetap kembalikan token agar user bisa bayar, error log hanya untuk admin
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      const { error: dbError } = await supabase
+        .from('ea_licenses')
+        .insert([{
+          order_id: orderId,
+          username: username,
+          email: email,
+          phone: phone,
+          is_active: false,
+          payment_status: 'pending'
+        }]);
+
+      if (dbError) {
+        console.error('SUPABASE INSERT ERROR:', dbError.message);
+        // Kita biarkan proses berlanjut meski log database gagal, agar popup tetap muncul
+      }
+    } else {
+      console.warn('SUPABASE KEYS MISSING: Data tidak disimpan ke database.');
     }
 
-    return NextResponse.json({ token: transaction.token, orderId });
+    // 5. Kembalikan Token ke Frontend
+    return NextResponse.json({ token: midtransData.token, orderId: orderId });
 
   } catch (error: any) {
-    console.error("Internal Server Error:", error.message);
-    return NextResponse.json({ error: 'Gagal memproses pembayaran' }, { status: 500 });
+    console.error('API /buy ERROR:', error.message);
+    return NextResponse.json(
+      { error: error.message || 'Gagal memproses pembayaran' }, 
+      { status: 500 }
+    );
   }
 }
