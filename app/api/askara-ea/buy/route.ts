@@ -7,7 +7,9 @@ export const runtime = 'edge';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, username, phone, amount } = body;
+    
+    // Hapus 'amount' dari sini karena frontend memang tidak mengirimkannya
+    const { name, email, username, phone } = body;
 
     // 1. AMBIL VARIABEL CLOUDFLARE DI DALAM FUNGSI
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
     // Inisialisasi Supabase menggunakan Service Role agar aman menembus RLS
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 2. VALIDASI USERNAME (Gunakan maybeSingle agar tidak error jika kosong)
+    // 2. VALIDASI USERNAME
     const { data: existingUser, error: checkError } = await supabase
       .from('ea_licenses')
       .select('id')
@@ -43,14 +45,13 @@ export async function POST(request: Request) {
 
     const order_id = `ASKARA-EA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3. BUAT TRANSAKSI MIDTRANS MENGGUNAKAN NATIVE FETCH (Aman untuk Edge)
-    // Encode Server Key menggunakan btoa untuk Basic Auth Header
+    // 3. BUAT TRANSAKSI MIDTRANS
     const authString = btoa(`${serverKey}:`);
 
     const midtransPayload = {
       transaction_details: {
         order_id: order_id,
-        gross_amount: amount,
+        gross_amount: 129000, // HARGA DI-HARDCODE DI SINI DEMI KEAMANAN
       },
       customer_details: {
         first_name: name,
@@ -77,7 +78,10 @@ export async function POST(request: Request) {
 
     if (!midtransResponse.ok) {
       console.error('Midtrans API Error:', midtransData);
-      return NextResponse.json({ error: 'Gagal membuat transaksi di Gateway Pembayaran' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Gagal membuat transaksi di Gateway Pembayaran', 
+        detail: midtransData 
+      }, { status: 500 });
     }
 
     // 4. KEMBALIKAN TOKEN KE FRONTEND
