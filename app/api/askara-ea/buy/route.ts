@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import Midtrans from 'midtrans-client';
-
+export const runtime = 'edge';
 const snap = new Midtrans.Snap({
   isProduction: false, // Sandbox mode
   serverKey: process.env.MIDTRANS_SERVER_KEY!,

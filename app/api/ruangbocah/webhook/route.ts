@@ -1,35 +1,45 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 
+// Wajib untuk Cloudflare Pages
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    // 1. Validasi Signature Key dari Midtrans
-    const hash = crypto.createHash('sha512').update(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`).digest('hex');
+    // 1. Ambil variabel environment di dalam fungsi (Praktik terbaik untuk Edge)
+    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    const APP_SUPABASE_URL = process.env.RUANG_BOCAH_SUPABASE_URL || '';
+    const APP_SUPABASE_KEY = process.env.RUANG_BOCAH_SUPABASE_SERVICE_KEY || '';
+
+    if (!serverKey || !APP_SUPABASE_URL || !APP_SUPABASE_KEY) {
+      console.error('Environment variables Ruang Bocah tidak lengkap');
+      return NextResponse.json({ error: 'Konfigurasi server tidak lengkap' }, { status: 500 });
+    }
+
+    // 2. Validasi Keamanan (Signature Midtrans menggunakan Web Crypto API)
+    const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${serverKey}`;
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(textToHash);
+    const hashBuffer = await crypto.subtle.digest('SHA-512', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    if (data.signature_key !== hash) {
+    if (data.signature_key !== hashHex) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
-    // 2. Cek apakah pembayaran berhasil
+    // 3. Cek apakah transaksi lunas (settlement / capture)
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
-      const uid = data.custom_field1; // ID User Flutter yang kita selipkan tadi
+      const uid = data.custom_field1; // ID User Flutter yang diselipkan
       
       if (uid) {
-        // 3. Menyeberang ke Supabase Aplikasi Ruang Bocah
-        const APP_SUPABASE_URL = process.env.RUANG_BOCAH_SUPABASE_URL!;
-        const APP_SUPABASE_KEY = process.env.RUANG_BOCAH_SUPABASE_SERVICE_KEY!;
-
         // Menghitung tanggal expired baru (30 hari dari sekarang)
         const validUntil = new Date();
         validUntil.setDate(validUntil.getDate() + 30);
 
-        // RPC Call ke Supabase App untuk update langganan & koin
-        // (Pastikan Anda membuat fungsi RPC 'perpanjang_langganan' di SQL Editor Supabase App)
-        await fetch(`${APP_SUPABASE_URL}/rest/v1/rpc/perpanjang_langganan`, {
+        // 4. RPC Call ke Supabase App untuk update langganan & koin
+        const rpcResponse = await fetch(`${APP_SUPABASE_URL}/rest/v1/rpc/perpanjang_langganan`, {
           method: 'POST',
           headers: {
             'apikey': APP_SUPABASE_KEY,
@@ -42,12 +52,24 @@ export async function POST(req: Request) {
             p_koin_bonus: 50
           })
         });
+
+        // 5. Validasi hasil dari Supabase
+        if (!rpcResponse.ok) {
+          const errorDetail = await rpcResponse.text();
+          console.error('❌ Gagal update ke Supabase Ruang Bocah:', errorDetail);
+          // Mengembalikan 500 agar Midtrans mencoba ulang webhook jika terjadi kegagalan jaringan internal
+          return NextResponse.json({ error: 'Gagal sinkronisasi database' }, { status: 500 });
+        }
+      } else {
+        console.warn('⚠️ Custom Field 1 (UID) kosong dari Midtrans, mengabaikan proses update Supabase.');
       }
     }
 
-    return NextResponse.json({ status: 'success' });
-  } catch (error) {
-    console.error('Webhook error:', error);
-    return NextResponse.json({ error: 'Webhook failed' }, { status: 500 });
+    // Berikan respons 200 OK agar Midtrans tahu webhook sukses diterima
+    return NextResponse.json({ status: 'success' }, { status: 200 });
+    
+  } catch (error: any) {
+    console.error('❌ Webhook error:', error.message);
+    return NextResponse.json({ error: 'Webhook failed', detail: error.message }, { status: 500 });
   }
 }
