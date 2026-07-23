@@ -27,8 +27,8 @@ export default function ProdukPage() {
     {
       id: "ruang-bocah",
       title: "Ruang Bocah",
-      status: "Release Soon",
-      link: "#",
+      status: "Available",
+      link: "/ruangbocah",
       description: "Aplikasi pemantauan tumbuh kembang anak. Membantu orang tua memantau, memahami, dan mendukung tumbuh kembang anak secara akurat, jelas, dengan pendampingan Dokter Spesialis Anak.",
       icon: "👶🏻",
       gradient: "from-gray-700 to-gray-900"

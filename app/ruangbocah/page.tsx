@@ -11,7 +11,7 @@ export default function RuangBocahLandingPage() {
       {/* HERO SECTION */}
       <section className="bg-purple-700 text-white pt-20 pb-24 px-6 relative overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center relative z-10">
-          <div className="md:w-1/2 text-center md:text-left mb-12 md:mb-0">
+          <div className="md:w-1/2 text-center md:text-left mb-16 md:mb-0">
             <div className="inline-block bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold mb-6 tracking-wider uppercase">
               PRODUK UNGGULAN ASKARA
             </div>
@@ -24,7 +24,7 @@ export default function RuangBocahLandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link 
                 href="/ruangbocah/subscribe" 
-                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl transition duration-300 shadow-lg"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl transition duration-300 shadow-lg text-center"
               >
                 Berlangganan Sekarang
               </Link>
@@ -33,16 +33,14 @@ export default function RuangBocahLandingPage() {
               </button>
             </div>
           </div>
-          <div className="md:w-1/2 w-full px-4">
-            {/* PLACEHOLDER: MOCKUP HERO */}
-            <div className="w-full aspect-[4/3] bg-purple-800/50 rounded-3xl border-2 border-dashed border-purple-400 flex items-center justify-center shadow-2xl relative">
-              <div className="absolute top-4 left-4 flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div className="w-3 h-3 rounded-full bg-green-400"></div>
-              </div>
-              <span className="text-purple-300 font-medium text-center px-4">
-                [Placeholder Gambar: Mockup Layar Utama Aplikasi Ruang Bocah]
+          <div className="md:w-1/2 w-full px-4 flex justify-center">
+            {/* PLACEHOLDER: MOCKUP HERO (SMARTPHONE) */}
+            <div className="w-full max-w-[300px] aspect-[9/16] bg-purple-800/80 rounded-[2.5rem] border-[8px] border-gray-900 flex items-center justify-center shadow-2xl relative overflow-hidden">
+              {/* Dynamic Island / Notch Placeholder */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-6 bg-gray-900 rounded-full z-20"></div>
+              
+              <span className="text-purple-300 font-medium text-center px-6 relative z-10 text-sm">
+                [Placeholder: Mockup Smartphone Layar Utama Ruang Bocah]
               </span>
             </div>
           </div>
@@ -60,11 +58,12 @@ export default function RuangBocahLandingPage() {
           <div className="space-y-24">
             {/* Fitur 1: Telemed */}
             <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/2 w-full order-2 md:order-1">
-                {/* PLACEHOLDER: TELEMED */}
-                <div className="w-full aspect-square md:aspect-[4/3] bg-gray-100 rounded-3xl border-2 border-dashed border-gray-300 flex items-center justify-center">
-                  <span className="text-gray-500 font-medium text-center px-4">
-                    [Placeholder Gambar: Layar Chat Dokter Sp.A dengan Bubble Notifikasi Merah]
+              <div className="md:w-1/2 w-full order-2 md:order-1 flex justify-center">
+                {/* PLACEHOLDER: TELEMED (SMARTPHONE) */}
+                <div className="w-full max-w-[280px] aspect-[9/16] bg-gray-50 rounded-[2.5rem] border-[8px] border-gray-800 flex items-center justify-center relative overflow-hidden shadow-xl">
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-gray-800 rounded-full z-20"></div>
+                  <span className="text-gray-400 font-medium text-center px-6 text-sm">
+                    [Placeholder: Layar Smartphone Chat Dokter Sp.A]
                   </span>
                 </div>
               </div>
@@ -112,11 +111,12 @@ export default function RuangBocahLandingPage() {
                   </li>
                 </ul>
               </div>
-              <div className="md:w-1/2 w-full">
-                {/* PLACEHOLDER: GROWTH */}
-                <div className="w-full aspect-square md:aspect-[4/3] bg-gray-100 rounded-3xl border-2 border-dashed border-gray-300 flex items-center justify-center">
-                  <span className="text-gray-500 font-medium text-center px-4">
-                    [Placeholder Gambar: Layar Grafik Pertumbuhan Anak & Pengingat Vaksin]
+              <div className="md:w-1/2 w-full flex justify-center">
+                {/* PLACEHOLDER: GROWTH (SMARTPHONE) */}
+                <div className="w-full max-w-[280px] aspect-[9/16] bg-gray-50 rounded-[2.5rem] border-[8px] border-gray-800 flex items-center justify-center relative overflow-hidden shadow-xl">
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-gray-800 rounded-full z-20"></div>
+                  <span className="text-gray-400 font-medium text-center px-6 text-sm">
+                    [Placeholder: Layar Smartphone Grafik Kurva Pertumbuhan]
                   </span>
                 </div>
               </div>
@@ -124,12 +124,13 @@ export default function RuangBocahLandingPage() {
 
             {/* Fitur 3: Aktivitas & Game */}
             <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/2 w-full order-2 md:order-1">
-                {/* PLACEHOLDER: GAMES */}
-                <div className="w-full aspect-square md:aspect-[4/3] bg-gray-100 rounded-3xl border-2 border-dashed border-gray-300 flex items-center justify-center relative overflow-hidden">
+              <div className="md:w-1/2 w-full order-2 md:order-1 flex justify-center">
+                {/* PLACEHOLDER: GAMES (SMARTPHONE) */}
+                <div className="w-full max-w-[280px] aspect-[9/16] bg-gray-50 rounded-[2.5rem] border-[8px] border-gray-800 flex items-center justify-center relative overflow-hidden shadow-xl">
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-gray-800 rounded-full z-20"></div>
                   <div className="absolute top-8 right-8 w-16 h-16 bg-yellow-200 rounded-full opacity-50 blur-xl"></div>
-                  <span className="text-gray-500 font-medium text-center px-4 relative z-10">
-                    [Placeholder Gambar: Pusat Bermain Edukatif & Lullaby]
+                  <span className="text-gray-400 font-medium text-center px-6 relative z-10 text-sm">
+                    [Placeholder: Layar Smartphone Pusat Bermain Edukatif]
                   </span>
                 </div>
               </div>

@@ -56,6 +56,8 @@ export async function POST(req: Request) {
 
         const { error: updateError } = await supabase.from('restaurants').update(updatePayload).eq('id', restoId);
         if (updateError) throw updateError;
+        
+        console.log(`✅ Topup POS untuk Resto ID ${restoId} berhasil diproses!`);
       } 
       
       // ==========================================
@@ -173,7 +175,10 @@ async function sendWelcomeEmail(email: string, restoName: string, limit: number)
         </div>
       `
     });
-  } catch (error) {}
+    console.log(`✉️ Email Welcome POS berhasil dikirim ke ${email}`);
+  } catch (error) {
+    console.error('❌ GAGAL MENGIRIM EMAIL POS RESEND:', error);
+  }
 }
 
 // ==========================================
@@ -216,5 +221,8 @@ async function sendEALicenseEmail(email: string, name: string, username: string,
         </div>
       `
     });
-  } catch (error) {}
+    console.log(`✉️ Email Lisensi EA berhasil dikirim ke ${email}`);
+  } catch (error) {
+    console.error('❌ GAGAL MENGIRIM EMAIL EA RESEND:', error);
+  }
 }
