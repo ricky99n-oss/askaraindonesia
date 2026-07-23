@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // ==========================================
+     // ==========================================
       // SKENARIO 3: PEMBELIAN EA (ASKARA AI EXTREME)
       // ==========================================
       else if (orderId.startsWith('ASKARA-EA-')) {
@@ -103,6 +103,9 @@ export async function POST(req: Request) {
         const buyerUsername = data.custom_field1 || 'Trader';
         const buyerEmail = data.custom_field2;
         const buyerName = data.custom_field3 || 'Member Askara';
+        
+        // 1. Tangkap data phone dari customer_details Midtrans
+        const buyerPhone = data.customer_details?.phone || '';
 
         // Mencegah duplicate insert
         const { data: existingLicense } = await supabase
@@ -122,7 +125,7 @@ export async function POST(req: Request) {
             newLicenseKey += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // Insert ke Database
+        // 2. Tambahkan buyerPhone ke dalam blok insert
         const { error: insertError } = await supabase
           .from('ea_licenses')
           .insert([{ 
@@ -130,14 +133,14 @@ export async function POST(req: Request) {
             name: buyerName,
             username: buyerUsername,
             email: buyerEmail,
+            phone: buyerPhone, // <--- TAMBAHAN KOLOM PHONE
             is_active: true, 
             payment_status: 'paid',
             license_key: newLicenseKey 
           }]);
 
         if (insertError) {
-           console.error('❌ Supabase Insert Error (Pasti karena kolom kurang!):', insertError.message);
-           // Kita return 200 agar Midtrans berhenti spamming, tapi error tercatat di log
+           console.error('❌ Supabase Insert Error:', insertError.message);
            return NextResponse.json({ status: 'error_db', detail: insertError.message }, { status: 200 });
         }
 
