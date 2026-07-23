@@ -5,16 +5,25 @@ import { Resend } from 'resend';
 
 export const runtime = 'edge';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
 export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`;
+    // 1. AMBIL VARIABEL CLOUDFLARE DI DALAM FUNGSI (Penting untuk Edge Runtime)
+    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const resendKey = process.env.RESEND_API_KEY || '';
+
+    if (!serverKey || !supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ 
+        error: 'Kunci Cloudflare Kosong', 
+        detail: 'Pastikan Server Key Midtrans dan Supabase Role terisi.' 
+      }, { status: 500 });
+    }
+
+    // 2. VALIDASI KEAMANAN (SIGNATURE MIDTRANS)
+    const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${serverKey}`;
     const encoder = new TextEncoder();
     const dataBuffer = encoder.encode(textToHash);
     const hashBuffer = await crypto.subtle.digest('SHA-512', dataBuffer);
@@ -22,11 +31,17 @@ export async function POST(req: Request) {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     if (data.signature_key !== hashHex) {
-      return NextResponse.json({ error: 'Signature tidak valid' }, { status: 403 });
+      return NextResponse.json({ 
+        error: 'Signature tidak valid', 
+        detail: 'Kunci Sandbox vs Production mungkin tertukar' 
+      }, { status: 403 });
     }
 
+    // 3. JIKA TRANSAKSI LUNAS
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
       const orderId = data.order_id as string;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const resend = new Resend(resendKey);
 
       // ==========================================
       // SKENARIO 1: TOPUP (ASKARA POS)
@@ -38,7 +53,10 @@ export async function POST(req: Request) {
 
         const { data: currentResto, error: fetchError } = await supabase
             .from('restaurants').select('transaction_limit, expired_at').eq('id', restoId).single();
-        if (fetchError) throw fetchError;
+            
+        if (fetchError) {
+            return NextResponse.json({ error: 'Gagal ambil data resto POS', detail: fetchError.message }, { status: 500 });
+        }
 
         let updatePayload: any = {};
         if (tipe === 'kuota') updatePayload.transaction_limit = currentResto.transaction_limit + value;
@@ -55,9 +73,9 @@ export async function POST(req: Request) {
         }
 
         const { error: updateError } = await supabase.from('restaurants').update(updatePayload).eq('id', restoId);
-        if (updateError) throw updateError;
-        
-        console.log(`✅ Topup POS untuk Resto ID ${restoId} berhasil diproses!`);
+        if (updateError) {
+             return NextResponse.json({ error: 'Gagal update data resto POS', detail: updateError.message }, { status: 500 });
+        }
       } 
       
       // ==========================================
@@ -67,7 +85,7 @@ export async function POST(req: Request) {
         const fullRestoId = data.custom_field1; 
 
         if (!fullRestoId) {
-           throw new Error('ID Resto tidak ditemukan!');
+           return NextResponse.json({ error: 'ID Resto (custom_field1) kosong dari Midtrans' }, { status: 400 });
         }
 
         const expiredDate = new Date();
@@ -84,11 +102,12 @@ export async function POST(req: Request) {
           .select('name, email, transaction_limit')
           .single();
 
-        if (updateError) throw updateError;
-        console.log(`✅ Pendaftaran Baru Resto berhasil diaktifkan!`);
+        if (updateError) {
+            return NextResponse.json({ error: 'Gagal aktivasi resto baru POS', detail: updateError.message }, { status: 500 });
+        }
 
-        if (updatedResto && updatedResto.email) {
-          await sendWelcomeEmail(updatedResto.email, updatedResto.name, updatedResto.transaction_limit);
+        if (updatedResto && updatedResto.email && resendKey) {
+          await sendWelcomeEmail(resend, updatedResto.email, updatedResto.name, updatedResto.transaction_limit);
         }
       }
 
@@ -97,19 +116,19 @@ export async function POST(req: Request) {
       // ==========================================
       else if (orderId.startsWith('ASKARA-EA-')) {
         
-        // 1. Ambil data titipan dari "Ransel" Midtrans (Custom Fields)
+        // Ambil data titipan dari Midtrans
         const buyerUsername = data.custom_field1 || 'Trader';
         const buyerEmail = data.custom_field2;
         const buyerName = data.custom_field3 || 'Member Askara';
 
-        // 2. Generate 12 Digit Random License Key (Kombinasi Huruf & Angka)
+        // Generate License 12 Digit
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let newLicenseKey = '';
         for (let i = 0; i < 12; i++) {
             newLicenseKey += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // 3. UPSERT KE SUPABASE (Otomatis Buat Baru jika belum ada)
+        // Upsert ke Supabase
         const { error: upsertError } = await supabase
           .from('ea_licenses')
           .upsert({ 
@@ -123,30 +142,26 @@ export async function POST(req: Request) {
           }, { onConflict: 'order_id' });
 
         if (upsertError) {
-           console.error('❌ Supabase Upsert Error:', upsertError.message);
-           throw upsertError;
+           return NextResponse.json({ error: 'Gagal Upsert ke Supabase', detail: upsertError.message }, { status: 500 });
         }
-        
-        console.log(`✅ Lisensi EA untuk ${buyerUsername} berhasil dibuat & disimpan!`);
 
-        // 4. Kirim Email Lisensi
-        if (buyerEmail) {
-          await sendEALicenseEmail(buyerEmail, buyerName, buyerUsername, newLicenseKey);
+        // Kirim Email
+        if (buyerEmail && resendKey) {
+          await sendEALicenseEmail(resend, buyerEmail, buyerName, buyerUsername, newLicenseKey);
         }
       }
     }
 
     return NextResponse.json({ status: 'success' });
   } catch (error: any) {
-    console.error('Webhook Error:', error);
-    return NextResponse.json({ status: 'gagal', pesan: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Fatal Webhook Error', detail: error.message }, { status: 500 });
   }
 }
 
 // ==========================================
 // FUNGSI EMAIL 1: ASKARA POS
 // ==========================================
-async function sendWelcomeEmail(email: string, restoName: string, limit: number) {
+async function sendWelcomeEmail(resend: Resend, email: string, restoName: string, limit: number) {
   try {
     await resend.emails.send({
       from: 'Askara POS <admin@askaraindonesia.my.id>', 
@@ -185,16 +200,15 @@ async function sendWelcomeEmail(email: string, restoName: string, limit: number)
         </div>
       `
     });
-    console.log(`✉️ Email Welcome POS berhasil dikirim ke ${email}`);
   } catch (error) {
-    console.error('❌ GAGAL MENGIRIM EMAIL POS RESEND:', error);
+    console.error('❌ GAGAL MENGIRIM EMAIL POS:', error);
   }
 }
 
 // ==========================================
 // FUNGSI EMAIL 2: ASKARA AI EXTREME (EA)
 // ==========================================
-async function sendEALicenseEmail(email: string, name: string, username: string, licenseKey: string) {
+async function sendEALicenseEmail(resend: Resend, email: string, name: string, username: string, licenseKey: string) {
   try {
     await resend.emails.send({
       from: 'Askara AI Extreme <admin@askaraindonesia.my.id>', 
@@ -231,8 +245,7 @@ async function sendEALicenseEmail(email: string, name: string, username: string,
         </div>
       `
     });
-    console.log(`✉️ Email Lisensi EA berhasil dikirim ke ${email}`);
   } catch (error) {
-    console.error('❌ GAGAL MENGIRIM EMAIL EA RESEND:', error);
+    console.error('❌ GAGAL MENGIRIM EMAIL EA:', error);
   }
 }
