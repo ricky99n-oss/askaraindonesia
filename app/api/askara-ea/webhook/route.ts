@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -19,19 +21,23 @@ export async function POST(req: Request) {
     if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
       
       const orderId = data.order_id;
-      // Dapatkan data username dll (Dalam skenario nyata, ambil dari metadata Midtrans atau DB sementara)
-      // Di sini kita asumsikan Anda menyimpan username di custom_field1 Midtrans
+      // Dapatkan data username dari custom_field1 yang dikirim saat checkout
       const username = data.custom_field1; 
-      const email = data.customer_details.email;
+      const email = data.customer_details ? data.customer_details.email : '';
+      const name = data.customer_details ? data.customer_details.first_name : 'Trader';
       
+      if (!username) {
+        throw new Error("Username tidak ditemukan di payload Midtrans");
+      }
+
       const newLicenseKey = generateLicenseKey();
 
-      // 1. Simpan ke Supabase `ea_licenses`
+      // 1. Simpan ke Supabase ea_licenses
       const { error: dbError } = await supabase
         .from('ea_licenses')
         .insert([{
           order_id: orderId,
-          name: data.customer_details.first_name,
+          name: name,
           username: username,
           email: email,
           license_key: newLicenseKey,
@@ -40,13 +46,13 @@ export async function POST(req: Request) {
 
       if (dbError) throw dbError;
 
-      // 2. Kirim Email ke User (Contoh logika menggunakan API luar, misal Resend atau SMTP)
-      // fetch('https://api.resend.com/emails', { ... }) 
-      console.log(`[EMAIL MOCK] Mengirim ke ${email}: Username: ${username}, Key: ${newLicenseKey}`);
+      // 2. [TODO] Kirim Email ke User di sini
+      console.log(`[SUKSES] Lisensi dibuat untuk ${email}: Username: ${username}, Key: ${newLicenseKey}`);
     }
 
     return NextResponse.json({ status: 'success' });
   } catch (error: any) {
+    console.error("Webhook Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

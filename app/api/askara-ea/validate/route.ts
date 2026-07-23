@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -25,14 +27,16 @@ export async function POST(req: Request) {
     // 2. Kunci Hardware ID (HWID Binding)
     if (license.hwid === null) {
       // Jika ini instalasi pertama, kunci HWID ini ke database
-      await supabase
+      const { error: updateError } = await supabase
         .from('ea_licenses')
         .update({ hwid: hwid })
         .eq('id', license.id);
         
+      if (updateError) throw updateError;
+        
       return NextResponse.json({ status: 'success', message: 'Lisensi berhasil diaktivasi pada perangkat ini.' });
     } else {
-      // 3. Jika sudah pernah diaktivasi, pastikan HWID-nya cocok!
+      // 3. Jika sudah pernah diaktivasi, pastikan HWID-nya cocok
       if (license.hwid !== hwid) {
         return NextResponse.json({ status: 'error', message: 'Lisensi ini sudah digunakan di perangkat lain (HWID Mismatch)!' }, { status: 403 });
       }
@@ -42,6 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ status: 'success', message: 'Lisensi Valid.' });
 
   } catch (error: any) {
+    console.error("Validate API Error:", error.message);
     return NextResponse.json({ status: 'error', message: 'Server Error' }, { status: 500 });
   }
 }
