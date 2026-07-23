@@ -163,7 +163,7 @@ export async function POST(req: Request) {
 // ==========================================
 async function sendWelcomeEmail(resend: Resend, email: string, restoName: string, limit: number) {
   try {
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'Askara POS <admin@askaraindonesia.my.id>', 
       to: email, 
       subject: `Akses Aplikasi Askara Smart POS - ${restoName}`,
@@ -200,8 +200,12 @@ async function sendWelcomeEmail(resend: Resend, email: string, restoName: string
         </div>
       `
     });
+
+    if (error) {
+      console.error('❌ GAGAL MENGIRIM EMAIL POS (Resend API Error):', error);
+    }
   } catch (error) {
-    console.error('❌ GAGAL MENGIRIM EMAIL POS:', error);
+    console.error('❌ GAGAL MENGIRIM EMAIL POS (Execution Error):', error);
   }
 }
 
@@ -210,7 +214,7 @@ async function sendWelcomeEmail(resend: Resend, email: string, restoName: string
 // ==========================================
 async function sendEALicenseEmail(resend: Resend, email: string, name: string, username: string, licenseKey: string) {
   try {
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'Askara AI Extreme <admin@askaraindonesia.my.id>', 
       to: email, 
       subject: `🚨 [RAHASIA] License Key Askara AI Extreme Anda`,
@@ -245,7 +249,11 @@ async function sendEALicenseEmail(resend: Resend, email: string, name: string, u
         </div>
       `
     });
+
+    if (error) {
+      console.error('❌ GAGAL MENGIRIM EMAIL EA (Resend API Error):', error);
+    }
   } catch (error) {
-    console.error('❌ GAGAL MENGIRIM EMAIL EA:', error);
+    console.error('❌ GAGAL MENGIRIM EMAIL EA (Execution Error):', error);
   }
 }

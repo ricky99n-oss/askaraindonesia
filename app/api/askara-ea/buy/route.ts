@@ -1,77 +1,54 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabaseClient';
+import Midtrans from 'midtrans-client';
 
-export const runtime = 'edge';
+const snap = new Midtrans.Snap({
+  isProduction: false, // Sandbox mode
+  serverKey: process.env.MIDTRANS_SERVER_KEY!,
+  clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY!
+});
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
-    const { name, username, email, phone } = body;
+    const body = await request.json();
+    const { name, email, username, phone, amount } = body;
 
-    if (!name || !username || !email || !phone) {
-      return NextResponse.json({ error: 'Data formulir tidak lengkap!' }, { status: 400 });
+    // 1. Validasi: Cek apakah username sudah ada di database
+    const { data: existingUser } = await supabase
+      .from('ea_licenses')
+      .select('id')
+      .eq('username', username)
+      .single();
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Username sudah digunakan. Silakan gunakan username lain.' },
+        { status: 400 }
+      );
     }
 
-    const orderId = `ASKARA-EA-${Date.now()}`;
-    const grossAmount = 129000;
+    const order_id = `EA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    // KITA TITIPKAN DATA PEMBELI KE CUSTOM FIELD MIDTRANS
-    const parameter = {
+    // 2. Buat Transaksi Midtrans
+    const parameters = {
       transaction_details: {
-        order_id: orderId,
-        gross_amount: grossAmount
+        order_id: order_id,
+        gross_amount: amount,
       },
-      item_details: [{
-        id: 'ASKARA-EA-LIFETIME',
-        price: grossAmount,
-        quantity: 1,
-        name: 'Askara AI Extreme - Lifetime License'
-      }],
       customer_details: {
         first_name: name,
         email: email,
-        phone: phone
+        phone: phone,
       },
-      custom_field1: username, // Titip Username
-      custom_field2: email,    // Titip Email
-      custom_field3: name      // Titip Nama
+      // Titipkan username di sini agar webhook tahu username yang dibeli
+      custom_field1: username, 
     };
 
-    // ==========================================
-    // PERBAIKAN: PAKSA KE MODE SANDBOX (TESTING)
-    // ==========================================
-    const isProd = false; // <-- Diubah menjadi false agar mengarah ke Sandbox
-    
-    const midtransUrl = isProd 
-      ? 'https://app.midtrans.com/snap/v1/transactions'
-      : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
-      
-    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
-    const base64Key = btoa(`${serverKey}:`);
+    const transaction = await snap.createTransaction(parameters);
 
-    const midtransRes = await fetch(midtransUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${base64Key}`
-      },
-      body: JSON.stringify(parameter)
-    });
-
-    const midtransData = await midtransRes.json();
-
-    if (!midtransRes.ok) {
-      throw new Error(midtransData.error_messages?.[0] || 'Gagal membuat transaksi di Midtrans');
-    }
-
-    // Kita lewati proses insert Supabase di sini, biarkan Webhook yang bekerja nanti!
-    return NextResponse.json({ token: midtransData.token, orderId: orderId });
-
-  } catch (error: any) {
-    console.error('API /buy ERROR:', error.message);
-    return NextResponse.json(
-      { error: error.message || 'Gagal memproses pembayaran' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ token: transaction.token, order_id });
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    return NextResponse.json({ error: 'Terjadi kesalahan internal server.' }, { status: 500 });
   }
 }

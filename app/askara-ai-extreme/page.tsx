@@ -38,6 +38,13 @@ export default function AskaraEA() {
 
       const data = await response.json();
 
+      // Tangani error validasi dari server (misal: Username sudah digunakan)
+      if (!response.ok) {
+        alert(data.error || "Terjadi kesalahan saat memproses data.");
+        setIsLoading(false);
+        return;
+      }
+
       if (data.token) {
         // Panggil popup Midtrans
         (window as any).snap.pay(data.token, {
@@ -88,7 +95,7 @@ export default function AskaraEA() {
         {/* GAMBAR 1: TAMPILAN DASHBOARD UTAMA */}
         <div className="relative w-full aspect-video max-w-4xl mx-auto bg-gray-800 rounded-2xl border border-gray-700 shadow-[0_0_40px_rgba(59,130,246,0.15)] overflow-hidden flex items-center justify-center group cursor-pointer">
           <img 
-            src="/images/dashboard.jpg" // Ganti path ini ke gambar asli Anda
+            src="/images/dashboard.jpg"
             alt="Askara AI Dashboard di MetaTrader 5" 
             className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.02] transition-all duration-500" 
           />
@@ -117,7 +124,7 @@ export default function AskaraEA() {
           {/* GAMBAR 2: TAMPILAN INPUT/PROMPT */}
           <div className="relative w-full aspect-square md:aspect-auto md:h-[500px] bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden flex items-center justify-center group cursor-pointer">
             <img 
-              src="/images/inputs.jpg" // Ganti path ini ke gambar asli Anda
+              src="/images/inputs.jpg"
               alt="Askara AI Menu Input & Prompt" 
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
             />
@@ -163,7 +170,7 @@ export default function AskaraEA() {
       <section className="px-6 py-12 bg-gray-900">
         <div className="max-w-5xl mx-auto relative w-full aspect-[21/9] bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden flex items-center justify-center group">
           <img 
-            src="/images/placeholder-telegram.jpg" // Ganti path ini ke gambar asli Anda
+            src="/images/placeholder-telegram.jpg"
             alt="Laporan Profit Telegram Askara AI" 
             className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
           />
