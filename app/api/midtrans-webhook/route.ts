@@ -116,10 +116,20 @@ export async function POST(req: Request) {
       // ==========================================
       else if (orderId.startsWith('ASKARA-EA-')) {
         
-        // Ambil data titipan dari Midtrans
         const buyerUsername = data.custom_field1 || 'Trader';
         const buyerEmail = data.custom_field2;
         const buyerName = data.custom_field3 || 'Member Askara';
+
+        // Mencegah duplicate insert jika webhook terpanggil 2 kali
+        const { data: existingLicense } = await supabase
+          .from('ea_licenses')
+          .select('id')
+          .eq('order_id', orderId)
+          .maybeSingle();
+
+        if (existingLicense) {
+           return NextResponse.json({ status: 'already_processed' }, { status: 200 });
+        }
 
         // Generate License 12 Digit
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -128,10 +138,10 @@ export async function POST(req: Request) {
             newLicenseKey += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // Upsert ke Supabase
-        const { error: upsertError } = await supabase
+        // Gunakan INSERT (bukan Upsert) agar aman dari constraint error
+        const { error: insertError } = await supabase
           .from('ea_licenses')
-          .upsert({ 
+          .insert([{ 
             order_id: orderId,
             name: buyerName,
             username: buyerUsername,
@@ -139,10 +149,11 @@ export async function POST(req: Request) {
             is_active: true, 
             payment_status: 'paid',
             license_key: newLicenseKey 
-          }, { onConflict: 'order_id' });
+          }]);
 
-        if (upsertError) {
-           return NextResponse.json({ error: 'Gagal Upsert ke Supabase', detail: upsertError.message }, { status: 500 });
+        if (insertError) {
+           console.error('Insert EA License Error:', insertError);
+           return NextResponse.json({ error: 'Gagal Simpan ke Database', detail: insertError.message }, { status: 500 });
         }
 
         // Kirim Email
