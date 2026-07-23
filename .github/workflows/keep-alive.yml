@@ -1,0 +1,19 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Berjalan setiap hari pada pukul 00:00 UTC
+    - cron: '0 0 * * *'
+  # Memungkinkan Anda menjalankan script ini secara manual dari tab Actions
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+          "${{ secrets.SUPABASE_URL }}/rest/v1/ea_licenses?select=id&limit=1"
