@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function AskaraEA() {
   const router = useRouter();
@@ -43,25 +44,25 @@ export default function AskaraEA() {
         (window as any).snap.pay(data.token, {
           onSuccess: function (result: any) {
             alert("Pembayaran Berhasil! Mengalihkan ke halaman unduhan...");
-            // Redirect ke halaman downloader yang berisi file dari Supabase Bucket
+            // Redirect ke halaman downloader
             router.push('/askara-ai-extreme/download');
           },
           onPending: function (result: any) {
-            alert("Menunggu pembayaran Anda...");
+            alert("Menunggu pembayaran Anda diselesaikan...");
           },
           onError: function (result: any) {
-            alert("Pembayaran Gagal. Silakan coba lagi.");
+            alert("Pembayaran Gagal atau Dibatalkan. Silakan coba lagi.");
           },
           onClose: function () {
             alert("Anda menutup halaman sebelum menyelesaikan pembayaran.");
           }
         });
       } else {
-        alert(data.error || "Gagal mendapatkan token pembayaran");
+        alert(data.error || "Gagal mendapatkan token pembayaran dari server.");
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan pada sistem.");
+      alert("Terjadi kesalahan pada sistem koneksi.");
     } finally {
       setIsLoading(false);
     }
@@ -70,8 +71,11 @@ export default function AskaraEA() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-blue-500">
       
-      {/* HERO SECTION */}
+      {/* HEADER SECTION */}
       <header className="pt-24 pb-16 px-6 text-center max-w-5xl mx-auto">
+        <Link href="/produk" className="inline-block mb-8 text-sm font-bold text-gray-500 hover:text-gray-300 transition flex items-center justify-center gap-2">
+          <span>&larr;</span> Kembali ke Katalog Produk
+        </Link>
         <div className="inline-block px-4 py-1.5 rounded-full bg-blue-900/50 border border-blue-500/30 text-blue-300 text-sm font-semibold mb-6">
           Sistem Trading Otonom Next-Gen
         </div>
@@ -82,9 +86,8 @@ export default function AskaraEA() {
           Ubah cara Anda bertrading. Integrasi langsung <span className="text-white font-semibold">Google Gemini AI</span> ke dalam MetaTrader 5. Berikan instruksi menggunakan bahasa manusia, dan biarkan AI mengeksekusi strategi Anda dengan presisi mesin.
         </p>
 
-        {/* PLACEHOLDER GAMBAR 1: TAMPILAN DASHBOARD UTAMA */}
+        {/* GAMBAR 1: TAMPILAN DASHBOARD UTAMA */}
         <div className="relative w-full aspect-video max-w-4xl mx-auto bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden flex items-center justify-center group">
-          {/* Ganti tag <img> di bawah ini dengan gambar asli Anda */}
           <img 
             src="/images/placeholder-dashboard.jpg" 
             alt="Askara AI Dashboard" 
@@ -96,7 +99,7 @@ export default function AskaraEA() {
         </div>
       </header>
 
-      {/* DEEP DIVE: CUSTOM PROMPT SECTION */}
+      {/* CUSTOM PROMPT SECTION */}
       <section className="px-6 py-20 bg-gray-900">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
           <div>
@@ -113,7 +116,7 @@ export default function AskaraEA() {
             </p>
           </div>
           
-          {/* PLACEHOLDER GAMBAR 2: TAMPILAN INPUT/PROMPT */}
+          {/* GAMBAR 2: TAMPILAN INPUT/PROMPT */}
           <div className="relative w-full aspect-square md:aspect-auto md:h-[500px] bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden flex items-center justify-center">
             <img 
               src="/images/placeholder-inputs.jpg" 
@@ -157,20 +160,6 @@ export default function AskaraEA() {
                 Terhubung langsung dengan Kalender Ekonomi MT5. EA mendeteksi berita berdampak tinggi (NFP, Suku Bunga) dan otomatis menunda trading untuk menghindari slippage fatal.
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PLACEHOLDER GAMBAR 3: NOTIFIKASI TELEGRAM / WIN STREAK */}
-      <section className="px-6 py-12 bg-gray-900">
-        <div className="max-w-5xl mx-auto relative w-full aspect-[21/9] bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden flex items-center justify-center">
-          <img 
-            src="/images/placeholder-telegram.jpg" 
-            alt="Askara AI Telegram" 
-            className="absolute inset-0 w-full h-full object-cover opacity-40" 
-          />
-          <div className="absolute z-10 text-center bg-black/60 px-6 py-3 rounded-lg backdrop-blur-sm border border-gray-600">
-            <p className="text-sm font-mono text-gray-300">Ganti dengan Gambar 3: Laporan Profit / Win Streak di Telegram Bot</p>
           </div>
         </div>
       </section>

@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.19.3",
-    "@supabase/supabase-js": "^2.105.1",
+    "@supabase/supabase-js": "^2.110.8",
     "framer-motion": "^12.38.0",
     "leaflet": "^1.9.4",
     "midtrans-client": "^1.4.3",
