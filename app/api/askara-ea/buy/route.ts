@@ -1,24 +1,38 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
-import Midtrans from 'midtrans-client';
+import { createClient } from '@supabase/supabase-js';
+
+// Wajib untuk Cloudflare Pages
 export const runtime = 'edge';
-const snap = new Midtrans.Snap({
-  isProduction: false, // Sandbox mode
-  serverKey: process.env.MIDTRANS_SERVER_KEY!,
-  clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY!
-});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { name, email, username, phone, amount } = body;
 
-    // 1. Validasi: Cek apakah username sudah ada di database
-    const { data: existingUser } = await supabase
+    // 1. AMBIL VARIABEL CLOUDFLARE DI DALAM FUNGSI
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+
+    if (!supabaseUrl || !supabaseKey || !serverKey) {
+      console.error('Kunci Environment Variables Kosong');
+      return NextResponse.json({ error: 'Konfigurasi server tidak lengkap' }, { status: 500 });
+    }
+
+    // Inisialisasi Supabase menggunakan Service Role agar aman menembus RLS
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // 2. VALIDASI USERNAME (Gunakan maybeSingle agar tidak error jika kosong)
+    const { data: existingUser, error: checkError } = await supabase
       .from('ea_licenses')
       .select('id')
       .eq('username', username)
-      .single();
+      .maybeSingle(); 
+
+    if (checkError) {
+      console.error('Database Check Error:', checkError);
+      return NextResponse.json({ error: 'Gagal memverifikasi database.' }, { status: 500 });
+    }
 
     if (existingUser) {
       return NextResponse.json(
@@ -27,10 +41,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const order_id = `EA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const order_id = `ASKARA-EA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    // 2. Buat Transaksi Midtrans
-    const parameters = {
+    // 3. BUAT TRANSAKSI MIDTRANS MENGGUNAKAN NATIVE FETCH (Aman untuk Edge)
+    // Encode Server Key menggunakan btoa untuk Basic Auth Header
+    const authString = btoa(`${serverKey}:`);
+
+    const midtransPayload = {
       transaction_details: {
         order_id: order_id,
         gross_amount: amount,
@@ -42,13 +59,32 @@ export async function POST(request: Request) {
       },
       // Titipkan username di sini agar webhook tahu username yang dibeli
       custom_field1: username, 
+      custom_field2: email,
+      custom_field3: name
     };
 
-    const transaction = await snap.createTransaction(parameters);
+    const midtransResponse = await fetch('https://app.sandbox.midtrans.com/snap/v1/transactions', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${authString}`
+      },
+      body: JSON.stringify(midtransPayload)
+    });
 
-    return NextResponse.json({ token: transaction.token, order_id });
-  } catch (error) {
-    console.error('Error creating transaction:', error);
-    return NextResponse.json({ error: 'Terjadi kesalahan internal server.' }, { status: 500 });
+    const midtransData = await midtransResponse.json();
+
+    if (!midtransResponse.ok) {
+      console.error('Midtrans API Error:', midtransData);
+      return NextResponse.json({ error: 'Gagal membuat transaksi di Gateway Pembayaran' }, { status: 500 });
+    }
+
+    // 4. KEMBALIKAN TOKEN KE FRONTEND
+    return NextResponse.json({ token: midtransData.token, order_id });
+
+  } catch (error: any) {
+    console.error('Fatal Error pada Askara EA Buy:', error.message);
+    return NextResponse.json({ error: 'Terjadi kesalahan internal server.', detail: error.message }, { status: 500 });
   }
 }
