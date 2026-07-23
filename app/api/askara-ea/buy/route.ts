@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     };
 
     // 3. PANGGIL MIDTRANS LANGSUNG TANPA LIBRARY (Native Fetch)
-    const isProd = process.env.NODE_ENV === 'production';
+    const isProd = false;
     const midtransUrl = isProd 
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
