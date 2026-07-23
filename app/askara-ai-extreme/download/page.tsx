@@ -1,10 +1,108 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 
 export default function AskaraDownloadPage() {
-  // TODO: Ganti URL di bawah ini dengan URL Public dari Supabase Bucket "EA" Anda
+  const [licenseKey, setLicenseKey] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [userData, setUserData] = useState<{ name: string; username: string } | null>(null);
+
+  // URL File dari Supabase Storage Anda
   const EA_FILE_URL = "https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/EA/AskaraAIExtreme.ex5";
   const GUIDE_FILE_URL = "https://powusazheadrnfbdqxpj.supabase.co/storage/v1/object/public/EA/Askara_AI_Extreme_EA_Panduan_Lengkap-2.pdf";
 
+  // Fungsi Verifikasi Lisensi ke Database
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch('/api/askara-ea/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ license_key: licenseKey.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUserData(data.user);
+        setIsVerified(true);
+      } else {
+        setErrorMsg(data.error || 'Lisensi tidak valid.');
+      }
+    } catch (error) {
+      setErrorMsg('Terjadi kesalahan koneksi ke server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // =========================================================
+  // TAMPILAN 1: LOCK SCREEN (Jika belum memasukkan License Key)
+  // =========================================================
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6 selection:bg-blue-500">
+        <div className="max-w-md w-full bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-2xl relative overflow-hidden">
+          {/* Efek Glow di background */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+          
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-900/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30 text-2xl">
+              🔒
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Portal Unduhan Terkunci</h1>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Jika Anda baru saja menyelesaikan pembayaran, silakan <strong className="text-white">cek Kotak Masuk / Spam Email Anda</strong> untuk mendapatkan 12 Digit License Key.
+            </p>
+          </div>
+
+          <form onSubmit={handleVerify} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Masukkan License Key</label>
+              <input 
+                required 
+                type="text" 
+                placeholder="Misal: A1B2C3D4E5F6"
+                className="w-full bg-gray-900/80 border border-gray-600 rounded-xl px-4 py-4 text-center font-mono text-lg tracking-widest text-blue-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all uppercase"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+              />
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+                {errorMsg}
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={isLoading || licenseKey.length < 5}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 active:scale-95"
+            >
+              {isLoading ? 'Memverifikasi Sistem...' : 'Buka Kunci Unduhan'}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <Link href="/askara-ai-extreme" className="text-sm text-gray-500 hover:text-gray-300 transition">
+              &larr; Kembali ke halaman produk
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // TAMPILAN 2: UNLOCKED (Halaman Utama Setelah Lisensi Valid)
+  // =========================================================
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans pt-24 pb-20 px-4 md:px-8 selection:bg-blue-500">
       <div className="max-w-5xl mx-auto">
@@ -17,10 +115,10 @@ export default function AskaraDownloadPage() {
             </svg>
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
-            Pembayaran Berhasil! 🎉
+            Akses Diberikan! 🎉
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Selamat datang di era baru algorithmic trading. Mesin <strong>Askara AI Extreme</strong> Anda sudah siap digunakan.
+            Selamat datang di era baru algorithmic trading. Mesin <strong>Askara AI Extreme</strong> untuk <span className="text-blue-400 font-semibold capitalize">{userData?.name}</span> (@{userData?.username}) sudah siap digunakan.
           </p>
         </div>
 
@@ -28,10 +126,9 @@ export default function AskaraDownloadPage() {
         <div className="bg-gradient-to-r from-blue-900/40 to-gray-800 border border-blue-500/50 rounded-2xl p-6 md:p-8 mb-12 shadow-lg flex flex-col md:flex-row gap-6 items-center">
           <div className="text-5xl drop-shadow-lg">🔐</div>
           <div>
-            <h3 className="text-xl font-bold text-blue-300 mb-2">Periksa Kotak Masuk Email Anda</h3>
+            <h3 className="text-xl font-bold text-blue-300 mb-2">Simpan License Key Anda</h3>
             <p className="text-gray-300 leading-relaxed">
-              Sistem kami telah mengirimkan <strong>License Key</strong> rahasia ke email Anda. 
-              Gunakan Username dan License Key tersebut pada menu input EA. 
+              Gunakan Username dan License Key yang Anda masukkan tadi pada menu input EA di MetaTrader 5. 
               <br/><span className="text-yellow-400 text-sm mt-2 inline-block">⚠️ Penting: 1 Lisensi akan terkunci secara otomatis (HWID Locked) pada VPS/PC pertama tempat EA dipasang.</span>
             </p>
           </div>
@@ -43,7 +140,7 @@ export default function AskaraDownloadPage() {
           <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center hover:border-blue-500 hover:bg-gray-800/80 transition-all duration-300 group">
             <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🤖</div>
             <h3 className="text-2xl font-bold mb-2">File EA & Sistem</h3>
-            <p className="text-sm text-gray-400 mb-8 h-10">File <code className="text-blue-300">.ex5</code> yang sudah dienkripsi dan siap dipasang di MT5 Anda.</p>
+            <p className="text-sm text-gray-400 mb-8 h-10">File <code className="text-blue-300 bg-blue-900/30 px-1 py-0.5 rounded">.ex5</code> yang sudah dienkripsi dan siap dipasang di MT5 Anda.</p>
             <a 
               href={EA_FILE_URL}
               target="_blank"
@@ -61,7 +158,7 @@ export default function AskaraDownloadPage() {
           <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center hover:border-green-500 hover:bg-gray-800/80 transition-all duration-300 group">
             <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">📖</div>
             <h3 className="text-2xl font-bold mb-2">Buku Panduan PDF</h3>
-            <p className="text-sm text-gray-400 mb-8 h-10">Dokumentasi offline yang bisa Anda simpan dan baca kapan saja.</p>
+            <p className="text-sm text-gray-400 mb-8 h-10">Dokumentasi lengkap cara instalasi dan penjelasan prompt.</p>
             <a 
               href={GUIDE_FILE_URL}
               target="_blank"
