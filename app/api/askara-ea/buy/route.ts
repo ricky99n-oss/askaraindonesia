@@ -36,7 +36,11 @@ export async function POST(req: Request) {
       custom_field3: name      // Titip Nama
     };
 
-    const isProd = process.env.NODE_ENV === 'production';
+    // ==========================================
+    // PERBAIKAN: PAKSA KE MODE SANDBOX (TESTING)
+    // ==========================================
+    const isProd = false; // <-- Diubah menjadi false agar mengarah ke Sandbox
+    
     const midtransUrl = isProd 
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
