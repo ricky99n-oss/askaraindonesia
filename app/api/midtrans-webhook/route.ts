@@ -97,31 +97,41 @@ export async function POST(req: Request) {
       // ==========================================
       else if (orderId.startsWith('ASKARA-EA-')) {
         
-        // Generate 12 Digit Random License Key (Kombinasi Huruf & Angka)
+        // 1. Ambil data titipan dari "Ransel" Midtrans (Custom Fields)
+        const buyerUsername = data.custom_field1 || 'Trader';
+        const buyerEmail = data.custom_field2;
+        const buyerName = data.custom_field3 || 'Member Askara';
+
+        // 2. Generate 12 Digit Random License Key (Kombinasi Huruf & Angka)
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let newLicenseKey = '';
         for (let i = 0; i < 12; i++) {
             newLicenseKey += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // Update database ea_licenses
-        const { data: updatedEA, error: updateError } = await supabase
+        // 3. UPSERT KE SUPABASE (Otomatis Buat Baru jika belum ada)
+        const { error: upsertError } = await supabase
           .from('ea_licenses')
-          .update({ 
+          .upsert({ 
+            order_id: orderId,
+            name: buyerName,
+            username: buyerUsername,
+            email: buyerEmail,
             is_active: true, 
             payment_status: 'paid',
-            license_key: newLicenseKey // Simpan key ke database
-          })
-          .eq('order_id', orderId) 
-          .select('name, email, username')
-          .single();
+            license_key: newLicenseKey 
+          }, { onConflict: 'order_id' });
 
-        if (updateError) throw updateError;
-        console.log(`✅ Lisensi EA untuk ${updatedEA.username} berhasil dibuat & diaktifkan!`);
+        if (upsertError) {
+           console.error('❌ Supabase Upsert Error:', upsertError.message);
+           throw upsertError;
+        }
+        
+        console.log(`✅ Lisensi EA untuk ${buyerUsername} berhasil dibuat & disimpan!`);
 
-        // Kirim Email Lisensi
-        if (updatedEA && updatedEA.email) {
-          await sendEALicenseEmail(updatedEA.email, updatedEA.name, updatedEA.username, newLicenseKey);
+        // 4. Kirim Email Lisensi
+        if (buyerEmail) {
+          await sendEALicenseEmail(buyerEmail, buyerName, buyerUsername, newLicenseKey);
         }
       }
     }

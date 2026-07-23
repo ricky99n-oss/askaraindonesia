@@ -88,7 +88,7 @@ export default function AskaraEA() {
         {/* GAMBAR 1: TAMPILAN DASHBOARD UTAMA */}
         <div className="relative w-full aspect-video max-w-4xl mx-auto bg-gray-800 rounded-2xl border border-gray-700 shadow-[0_0_40px_rgba(59,130,246,0.15)] overflow-hidden flex items-center justify-center group cursor-pointer">
           <img 
-            src="/images/placeholder-dashboard.jpg" // Ganti path ini ke gambar asli Anda
+            src="/images/dashboard.jpg" // Ganti path ini ke gambar asli Anda
             alt="Askara AI Dashboard di MetaTrader 5" 
             className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.02] transition-all duration-500" 
           />
@@ -117,7 +117,7 @@ export default function AskaraEA() {
           {/* GAMBAR 2: TAMPILAN INPUT/PROMPT */}
           <div className="relative w-full aspect-square md:aspect-auto md:h-[500px] bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden flex items-center justify-center group cursor-pointer">
             <img 
-              src="/images/placeholder-inputs.jpg" // Ganti path ini ke gambar asli Anda
+              src="/images/inputs.jpg" // Ganti path ini ke gambar asli Anda
               alt="Askara AI Menu Input & Prompt" 
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
             />
@@ -188,7 +188,7 @@ export default function AskaraEA() {
               <div>
                 <h4 className="text-yellow-400 font-bold mb-1">Peringatan: HWID Locked System</h4>
                 <p className="text-sm text-yellow-200/80 leading-relaxed">
-                  Sistem ini menggunakan perlindungan Cloud Supabase. <strong className="text-yellow-100">1 Lisensi = 1 Perangkat.</strong> 
+                  Sistem ini menggunakan perlindungan Cloud Database. <strong className="text-yellow-100">1 Lisensi = 1 Perangkat.</strong> 
                   <br className="mb-2"/>
                   Saat EA pertama kali dipasang, ia akan mengunci Hardware ID perangkat tersebut secara permanen. Pastikan Anda menginstalnya langsung di VPS atau PC Trading utama Anda.
                 </p>

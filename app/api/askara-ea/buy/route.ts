@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-// WAJIB DITAMBAHKAN AGAR KOMPATIBEL DENGAN CLOUDFLARE PAGES
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    // 1. Ambil data dari Frontend
     const body = await req.json();
     const { name, username, email, phone } = body;
 
@@ -17,7 +14,7 @@ export async function POST(req: Request) {
     const orderId = `ASKARA-EA-${Date.now()}`;
     const grossAmount = 129000;
 
-    // 2. Siapkan Payload untuk Midtrans
+    // KITA TITIPKAN DATA PEMBELI KE CUSTOM FIELD MIDTRANS
     const parameter = {
       transaction_details: {
         order_id: orderId,
@@ -33,18 +30,18 @@ export async function POST(req: Request) {
         first_name: name,
         email: email,
         phone: phone
-      }
+      },
+      custom_field1: username, // Titip Username
+      custom_field2: email,    // Titip Email
+      custom_field3: name      // Titip Nama
     };
 
-    // 3. PANGGIL MIDTRANS LANGSUNG TANPA LIBRARY (Native Fetch)
-    const isProd = false;
+    const isProd = process.env.NODE_ENV === 'production';
     const midtransUrl = isProd 
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
       
     const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
-    
-    // Midtrans mewajibkan Server Key di-encode ke Base64 dengan tambahan titik dua (:)
     const base64Key = btoa(`${serverKey}:`);
 
     const midtransRes = await fetch(midtransUrl, {
@@ -59,39 +56,11 @@ export async function POST(req: Request) {
 
     const midtransData = await midtransRes.json();
 
-    // Jika Midtrans menolak permintaan
     if (!midtransRes.ok) {
-      console.error("MIDTRANS ERROR:", midtransData);
       throw new Error(midtransData.error_messages?.[0] || 'Gagal membuat transaksi di Midtrans');
     }
 
-    // 4. Simpan Data Awal ke Supabase (Status: Pending)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
-
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      const { error: dbError } = await supabase
-        .from('ea_licenses')
-        .insert([{
-          order_id: orderId,
-          username: username,
-          email: email,
-          phone: phone,
-          is_active: false,
-          payment_status: 'pending'
-        }]);
-
-      if (dbError) {
-        console.error('SUPABASE INSERT ERROR:', dbError.message);
-        // Kita biarkan proses berlanjut meski log database gagal, agar popup tetap muncul
-      }
-    } else {
-      console.warn('SUPABASE KEYS MISSING: Data tidak disimpan ke database.');
-    }
-
-    // 5. Kembalikan Token ke Frontend
+    // Kita lewati proses insert Supabase di sini, biarkan Webhook yang bekerja nanti!
     return NextResponse.json({ token: midtransData.token, orderId: orderId });
 
   } catch (error: any) {
