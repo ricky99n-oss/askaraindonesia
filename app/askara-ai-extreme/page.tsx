@@ -12,7 +12,7 @@ export default function AskaraEA() {
   // Load Midtrans Snap Script
   useEffect(() => {
     // Ubah ke URL Production jika sudah siap rilis
-    const snapUrl = 'https://app.sandbox.midtrans.com/snap/snap.js';
+    const snapUrl = 'https://app.midtrans.com/snap/snap.js';
       
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
     

@@ -61,7 +61,7 @@ function SubscribeContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
       <Script 
-        src="https://app.sandbox.midtrans.com/snap/snap.js" 
+        src="https://app.midtrans.com/snap/snap.js" 
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
         strategy="lazyOnload"
       />
