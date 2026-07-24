@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       custom_field3: name
     };
 
-    const midtransResponse = await fetch('https://app.midtrans.com/snap/snap.js', {
+    const midtransResponse = await fetch('https://app.midtrans.com/snap/v1/transactions', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
