@@ -56,99 +56,156 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-white text-gray-800 font-sans">
+    <main className="min-h-screen bg-[#FAFAFA] text-gray-900 font-sans selection:bg-[#FF8C00] selection:text-white">
       
-      {/* 1. HEADER */}
-      <header className="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-5 flex justify-between items-center">
+      {/* 1. HEADER - Clean & Modern */}
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200/50 transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center">
             <Image 
               src="/logo.png" 
               alt="Logo Askara Indonesia" 
-              width={180} 
-              height={50} 
-              className="object-contain h-10 w-auto md:h-12"
+              width={160} 
+              height={40} 
+              className="object-contain h-9 w-auto md:h-11"
               priority
+              quality={80}
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<span class="text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2]">ASKARA <span class="font-medium text-[#FF8C00]">INDONESIA</span></span>';
+                e.currentTarget.parentElement!.innerHTML = '<span class="text-xl md:text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2]">ASKARA <span class="font-medium text-[#FF8C00]">INDONESIA</span></span>';
               }}
             />
           </Link>
-          <nav className="hidden lg:flex space-x-8 font-medium items-center">
-            <Link href="/" className="text-gray-600 hover:text-[#FF8C00] transition">Beranda</Link>
+          
+          <nav className="hidden lg:flex space-x-8 font-medium items-center text-sm tracking-wide text-gray-600">
+            <Link href="/" className="hover:text-[#4A00E0] transition-colors">Beranda</Link>
+            
             <div className="relative group py-4 cursor-pointer">
-              <span className="text-gray-600 group-hover:text-[#FF8C00] transition flex items-center gap-1 font-bold">
+              <span className="hover:text-[#4A00E0] transition-colors flex items-center gap-1">
                 Layanan
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
               </span>
-              <div className="absolute left-0 mt-2 w-72 bg-white border border-gray-100 shadow-xl rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden transform origin-top-left scale-95 group-hover:scale-100">
-                <div className="py-2">
-                  <button onClick={() => handleScrollToSection(0)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition border-b border-gray-50 text-sm">1. Sejarah Perusahaan</button>
-                  <button onClick={() => handleScrollToSection(1)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition border-b border-gray-50 text-sm">2. Jaringan & CCTV</button>
-                  <button onClick={() => handleScrollToSection(2)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition border-b border-gray-50 text-sm">3. Manajemen Sosial Media</button>
-                  <button onClick={() => handleScrollToSection(3)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition border-b border-gray-50 text-sm">4. Desain Grafis Profesional</button>
-                  <button onClick={() => handleScrollToSection(4)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition border-b border-gray-50 text-sm">5. Photo & Videography</button>
-                  <button onClick={() => handleScrollToSection(5)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition border-b border-gray-50 text-sm">6. Website & Aplikasi</button>
-                  <button onClick={() => handleScrollToSection(6)} className="w-full text-left block px-5 py-3 hover:bg-purple-50 hover:text-[#4A00E0] transition text-sm font-bold text-purple-600">7. Askara Apps Product</button>
+              <div className="absolute left-0 mt-2 w-64 bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden transform origin-top-left scale-95 group-hover:scale-100">
+                <div className="p-2 flex flex-col gap-1">
+                  {scrollyData.map((item, idx) => (
+                    <button 
+                      key={item.id} 
+                      onClick={() => handleScrollToSection(idx)} 
+                      className={`text-left block px-4 py-2.5 rounded-xl transition-colors text-xs ${idx === 6 ? 'font-bold text-[#4A00E0] bg-purple-50/50' : 'hover:bg-gray-50 hover:text-gray-900'}`}
+                    >
+                      {item.title}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
-             <Link href="/produk" className="bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2] text-white px-5 py-2 rounded-lg font-bold shadow-md hover:shadow-lg transition">Katalog Produk</Link>
+            
+            <Link href="/produk" className="hover:text-[#4A00E0] transition-colors">Katalog Produk</Link>
+            
+            {/* NEW: Tombol Price List */}
+            <Link href="/pricelist" className="relative overflow-hidden group bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5">
+              <span className="relative z-10">Price List</span>
+              <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
+            </Link>
           </nav>
         </div>
       </header>
 
-      {/* 2. HERO SECTION */}
-      <section className="text-white py-16 md:py-32 px-6 bg-gradient-to-br from-[#4A00E0] via-[#6a11cb] to-[#8E2DE2] overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-10 items-center text-center lg:text-left">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:pr-8 z-10">
-            <div className="bg-[#FF8C00] text-[10px] md:text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">IT AGENCY & APPS</div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight uppercase tracking-tight">Akselerasi Bisnis Bersama <span className="text-[#FF8C00]">Askara</span>.</h1>
-            <p className="text-base md:text-xl text-purple-100 max-w-md mx-auto lg:mx-0">Solusi Teknologi Menyeluruh. Melayani 300+ Perusahaan di seluruh Indonesia.</p>
+      {/* 2. HERO SECTION - Modern Solid Gradient */}
+      <section className="relative text-white pt-24 pb-32 px-6 bg-[#0B0A10] overflow-hidden">
+        {/* Soft abstract blur in background */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#4A00E0] rounded-full mix-blend-screen filter blur-[120px] opacity-40 animate-blob"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#FF8C00] rounded-full mix-blend-screen filter blur-[120px] opacity-30 animate-blob animation-delay-2000"></div>
+
+        <div className="max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center relative z-10">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="lg:pr-8 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm mb-6">
+              <span className="w-2 h-2 rounded-full bg-[#FF8C00] animate-pulse"></span>
+              <span className="text-xs font-semibold tracking-widest uppercase text-white/80">IT Agency & Apps</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-[1.1] tracking-tighter">
+              Akselerasi Bisnis<br/> Bersama <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8C00] to-[#FFD700]">Askara.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-400 font-light max-w-lg mx-auto lg:mx-0 leading-relaxed">
+              Solusi Teknologi Menyeluruh. Kami telah dipercaya melayani 300+ Perusahaan di seluruh Indonesia.
+            </p>
           </motion.div>
           
-          <div className="flex justify-center mt-8 lg:mt-0 relative w-full h-[400px] md:h-[600px] lg:h-[700px] z-0">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, duration: 1.2 }} className="relative w-full h-full max-w-3xl mx-auto">
-              <div 
-                className="w-full h-full relative pointer-events-none"
-                style={{
-                  WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)',
-                  maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)'
-                }}
-              >
-                <Image src="/hero-tech(2).png" alt="Teknologi Askara" fill className="object-cover mix-blend-luminosity opacity-90" priority />
+          <div className="relative w-full h-[400px] md:h-[550px] lg:h-[650px]">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 1 }} className="absolute inset-0 w-full h-full max-w-2xl mx-auto">
+              <div className="w-full h-full relative" style={{ maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}>
+                {/* Optimized Hero Image */}
+                <Image 
+                  src="/hero-tech(2).png" 
+                  alt="Teknologi Askara" 
+                  fill 
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-contain opacity-90 drop-shadow-2xl" 
+                  priority 
+                  quality={85}
+                />
               </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 3. SCROLLYTELLING */}
-      <section ref={containerRef} className="relative bg-gray-50" style={{ height: '600vh' }}>
-        <div className="sticky top-[70px] md:top-24 h-[85vh] max-w-7xl mx-auto px-4 md:px-6 flex flex-col lg:flex-row items-center justify-center lg:justify-between overflow-hidden">
+      {/* 3. SCROLLYTELLING - Clean Typography Focus */}
+      <section ref={containerRef} className="relative bg-white" style={{ height: '600vh' }}>
+        <div className="sticky top-20 h-[85vh] max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-center lg:justify-between overflow-hidden">
           
-          {/* IMAGE TOP (Mobile) */}
-          <div className="w-full lg:w-1/2 h-[55%] lg:h-auto flex justify-center items-center relative z-10 pt-4 lg:pt-0">
-            <motion.div className="relative w-[220px] h-[440px] md:w-[300px] md:h-[600px] lg:w-[380px] lg:h-[760px]" style={{ y: translateY }}>
+          {/* IMAGE TOP (Mobile) / LEFT (Desktop) */}
+          <div className="w-full lg:w-1/2 h-[55%] lg:h-full flex justify-center items-center relative z-10 pt-8 lg:pt-0">
+            <motion.div className="relative w-[240px] h-[480px] md:w-[320px] md:h-[640px] lg:w-[400px] lg:h-[800px]" style={{ y: translateY }}>
               {phoneSketches.map((url, index) => (
-                <motion.img key={index} src={url} className="absolute inset-0 w-full h-full object-contain drop-shadow-xl" style={{ opacity: useTransform(imageOpacityIndex, [index - 0.5, index, index + 0.5], [0, 1, 0]) }} />
+                <motion.div 
+                  key={index} 
+                  className="absolute inset-0 w-full h-full"
+                  style={{ opacity: useTransform(imageOpacityIndex, [index - 0.5, index, index + 0.5], [0, 1, 0]) }}
+                >
+                  {/* Menggunakan next/image untuk kompresi otomatis */}
+                  <Image 
+                    src={url} 
+                    alt={`Layanan Askara ${index + 1}`}
+                    fill
+                    sizes="(max-width: 768px) 240px, (max-width: 1024px) 320px, 400px"
+                    className="object-contain drop-shadow-2xl"
+                    quality={75}
+                  />
+                </motion.div>
               ))}
             </motion.div>
-            <div className="absolute w-48 h-48 md:w-80 md:h-80 rounded-full blur-3xl opacity-20 bg-[#FF8C00] -z-10"></div>
+            {/* Modern Subtle Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96 rounded-full blur-[100px] opacity-10 bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] pointer-events-none -z-10"></div>
           </div>
 
-          {/* TEXT BOTTOM (Mobile) */}
-          <div className="w-full lg:w-1/2 h-[45%] lg:h-auto flex flex-col justify-start lg:justify-center text-center lg:text-left px-2 md:px-10 z-20 pt-4 md:pt-0">
+          {/* TEXT BOTTOM (Mobile) / RIGHT (Desktop) */}
+          <div className="w-full lg:w-1/2 h-[45%] lg:h-full flex flex-col justify-start lg:justify-center text-center lg:text-left z-20 pt-6 md:pt-0">
             <AnimatePresence mode="wait">
-              <motion.div key={activeTextIndex} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} className="max-w-lg mx-auto lg:ml-0 w-full">
-                <div className="w-12 md:w-16 h-1 md:h-1.5 rounded-full mb-3 md:mb-6 bg-[#FF8C00] mx-auto lg:ml-0"></div>
-                <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2] leading-tight">{scrollyData[activeTextIndex].title}</h2>
-                <p className="text-sm md:text-lg lg:text-xl text-gray-600 leading-relaxed line-clamp-3 md:line-clamp-none">{scrollyData[activeTextIndex].description}</p>
+              <motion.div 
+                key={activeTextIndex} 
+                initial={{ opacity: 0, y: 15 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -15 }} 
+                transition={{ duration: 0.4, ease: "easeOut" }} 
+                className="max-w-lg mx-auto lg:ml-12 w-full"
+              >
+                <span className="text-[10px] md:text-xs font-bold tracking-widest text-[#FF8C00] uppercase mb-4 block">
+                  0{activeTextIndex + 1} / 0{scrollyData.length}
+                </span>
+                <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 leading-[1.1] tracking-tight">
+                  {scrollyData[activeTextIndex].title}
+                </h2>
+                <p className="text-base md:text-xl text-gray-500 font-light leading-relaxed">
+                  {scrollyData[activeTextIndex].description}
+                </p>
+                
                 {activeTextIndex === 6 && (
-                  <Link href="/produk" className="bg-[#FF8C00] text-white font-bold px-6 py-2.5 md:px-8 md:py-4 rounded-lg mt-4 md:mt-8 inline-block shadow-lg text-sm md:text-lg hover:opacity-90 transition">Lihat Askara Apps</Link>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                    <Link href="/produk" className="mt-8 inline-flex items-center justify-center gap-2 bg-[#4A00E0] text-white px-8 py-4 rounded-full font-medium hover:bg-gray-900 transition-colors duration-300">
+                      Lihat Aplikasi Kami
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </Link>
+                  </motion.div>
                 )}
               </motion.div>
             </AnimatePresence>
@@ -156,46 +213,43 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. FOOTER (MINIMALIST TYPOGRAPHY) */}
-      <footer className="bg-[#0f172a] text-white pt-20 pb-10 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-12 mb-16">
+      {/* 4. FOOTER - Minimalist Clean */}
+      <footer className="bg-white border-t border-gray-100 pt-24 pb-10 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
           
-          {/* Kolom 1: Brand & Alamat */}
           <div className="space-y-6 text-center md:text-left">
-            <div className="relative w-[160px] h-[40px] mx-auto md:mx-0">
-              <Image src="/logo.png" alt="Logo Askara" fill className="object-contain object-center md:object-left brightness-0 invert opacity-100" />
-            </div>
-            <p className="text-gray-400 text-sm leading-relaxed tracking-wide font-light">
+            <Link href="/" className="inline-block relative w-[160px] h-[40px]">
+              <Image src="/logo.png" alt="Logo Askara" fill className="object-contain object-center md:object-left" quality={80} />
+            </Link>
+            <p className="text-gray-500 text-sm leading-relaxed font-light max-w-xs mx-auto md:mx-0">
               Jl. Patimura, Gg VI, 10H,<br />
               Temas, Kota Batu,<br />
               Jawa Timur, Indonesia.
             </p>
           </div>
 
-          {/* Kolom 2: Akses Cepat */}
           <div className="space-y-6 text-center md:text-left">
-            <h4 className="text-sm font-bold text-white uppercase tracking-widest">Akses Cepat</h4>
-            <ul className="space-y-3 font-light text-sm text-gray-400">
-              <li><Link href="/" className="hover:text-white transition">Beranda</Link></li>
-              <li><button onClick={() => handleScrollToSection(0)} className="hover:text-white transition">Tentang Kami</button></li>
-              <li><button onClick={() => handleScrollToSection(1)} className="hover:text-white transition">Layanan IT</button></li>
-              <li><Link href="/produk" className="hover:text-white transition">Katalog Produk</Link></li>
+            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Akses Cepat</h4>
+            <ul className="space-y-3 font-light text-sm text-gray-500">
+              <li><Link href="/" className="hover:text-[#FF8C00] transition-colors">Beranda</Link></li>
+              <li><button onClick={() => handleScrollToSection(0)} className="hover:text-[#FF8C00] transition-colors">Layanan IT</button></li>
+              <li><Link href="/produk" className="hover:text-[#FF8C00] transition-colors">Katalog Produk</Link></li>
+              <li><Link href="/pricelist" className="hover:text-[#4A00E0] font-medium transition-colors">Price List Layanan</Link></li>
             </ul>
           </div>
 
-          {/* Kolom 3: Kontak (Tipografi Bersih) */}
           <div className="space-y-6 text-center md:text-left">
-            <h4 className="text-sm font-bold text-white uppercase tracking-widest">Hubungi Kami</h4>
+            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Hubungi Kami</h4>
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">WhatsApp</p>
-                <a href="https://wa.me/6285815999953" className="text-gray-300 text-base font-medium hover:text-white transition tracking-wide">
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">WhatsApp</p>
+                <a href="https://wa.me/6285815999953" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors">
                   0858 1599 9953
                 </a>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Telepon</p>
-                <a href="tel:085212347382" className="text-gray-300 text-base font-medium hover:text-white transition tracking-wide">
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Telepon</p>
+                <a href="tel:085212347382" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors">
                   0852 1234 7382
                 </a>
               </div>
@@ -204,14 +258,13 @@ export default function Home() {
 
         </div>
 
-        {/* Copyright Line */}
-        <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
-          <p className="text-gray-500 text-xs tracking-wider uppercase font-medium">
-            © {new Date().getFullYear()} PT Askara Indonesia Perkasa.
+        <div className="max-w-7xl mx-auto pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
+          <p className="text-gray-400 text-xs font-light">
+            © {new Date().getFullYear()} PT Askara Indonesia Perkasa. All rights reserved.
           </p>
-          <div className="flex gap-8 text-xs text-gray-500 uppercase tracking-wider font-medium">
-            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
-            <Link href="/terms" className="hover:text-white transition">Terms</Link>
+          <div className="flex gap-6 text-xs text-gray-400 font-light">
+            <Link href="/privacy" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-gray-900 transition-colors">Terms of Service</Link>
           </div>
         </div>
       </footer>
