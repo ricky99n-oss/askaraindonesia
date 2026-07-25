@@ -74,7 +74,7 @@ export default function PriceListPage() {
           Temukan paket layanan yang paling sesuai dengan kebutuhan akselerasi digital dan keamanan bisnis Anda.
         </p>
       </section>
-
+  
       {/* PRICELIST CONTENT */}
       <section className="pb-24 px-6 max-w-7xl mx-auto space-y-24">
         {priceListCategories.map((category, idx) => (
