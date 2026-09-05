@@ -129,10 +129,12 @@ export default function EstimatorPage() {
   const totalJual = cart.reduce((sum, item) => sum + (item.selling_price * item.qty), 0)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] space-y-4 lg:flex-row lg:space-y-0 lg:space-x-6">
+    // PERBAIKAN 1: Halaman bisa di-scroll pada HP (h- constraint dilepas untuk mobile)
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-4rem)] space-y-6 lg:space-y-0 lg:space-x-6 pb-8 lg:pb-0">
       
       {/* KIRI: KATALOG */}
-      <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* PERBAIKAN 2: Batas tinggi aman untuk Katalog di HP (min 450px) */}
+      <div className="w-full h-[55vh] min-h-[450px] lg:h-full lg:min-h-0 lg:w-1/2 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-100 bg-gray-50 space-y-3">
           <input
             type="text"
@@ -188,7 +190,8 @@ export default function EstimatorPage() {
       </div>
 
       {/* KANAN: ESTIMATOR */}
-      <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* PERBAIKAN 3: Batas tinggi aman untuk Estimator di HP (min 500px) */}
+      <div className="w-full h-[65vh] min-h-[500px] lg:h-full lg:min-h-0 lg:w-1/2 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         
         {/* HEADER ESTIMATOR & TOMBOL MANUAL */}
         <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">

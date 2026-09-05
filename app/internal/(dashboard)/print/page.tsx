@@ -20,8 +20,11 @@ export default function PrintInvoicePage() {
   const [projectName, setProjectName] = useState('Instalasi ...')
   const [date, setDate] = useState('')
   const [invoiceNumber, setInvoiceNumber] = useState('INV/2026/0102')
+  
+  // State Baru: Diskon
+  const [discount, setDiscount] = useState<number | ''>('')
 
-  // Profil Default (Akan ditimpa oleh localStorage jika ada)
+  // Profil Default 
   const [profile, setProfile] = useState<CompanyProfile>({
     address: 'Jl. Sukarno Hatta No.83 Ruko Kav.e Malang',
     phone: '089 6810 11 618',
@@ -46,7 +49,11 @@ export default function PrintInvoicePage() {
   const formatIDR = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num)
 
   if (!isMounted) return null
-  const total = items.reduce((sum, item) => sum + (item.selling_price * item.qty), 0)
+  
+  // Kalkulasi Total & Diskon
+  const subTotal = items.reduce((sum, item) => sum + (item.selling_price * item.qty), 0)
+  const discountValue = Number(discount) || 0
+  const grandTotal = subTotal - discountValue
 
   return (
     <div className="max-w-[210mm] mx-auto bg-gray-100 print:bg-white pb-10 print:pb-0">
@@ -72,18 +79,27 @@ export default function PrintInvoicePage() {
             <label className="block text-sm font-medium mb-1">Lokasi / Instansi</label>
             <input type="text" value={clientLocation} onChange={e => setClientLocation(e.target.value)} className="w-full p-2 border rounded outline-none" />
           </div>
-          {docType === 'penawaran' ? (
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">Nama Proyek</label>
-              <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="w-full p-2 border rounded outline-none" />
-            </div>
-          ) : (
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">Nomor Invoice</label>
-              <input type="text" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="w-full p-2 border rounded outline-none" />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">{docType === 'penawaran' ? 'Nama Proyek' : 'Nomor Invoice'}</label>
+            <input 
+              type="text" 
+              value={docType === 'penawaran' ? projectName : invoiceNumber} 
+              onChange={e => docType === 'penawaran' ? setProjectName(e.target.value) : setInvoiceNumber(e.target.value)} 
+              className="w-full p-2 border rounded outline-none" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-red-600">Diskon (Rp) - Opsional</label>
+            <input 
+              type="number" 
+              placeholder="Misal: 50000"
+              value={discount} 
+              onChange={e => setDiscount(e.target.value ? Number(e.target.value) : '')} 
+              className="w-full p-2 border border-red-200 rounded outline-none focus:ring-1 focus:ring-red-500" 
+            />
+          </div>
         </div>
+        
         <button 
           disabled={isSaving}
           onClick={async () => {
@@ -93,7 +109,7 @@ export default function PrintInvoicePage() {
               document_type: docType,
               client_name: clientName,
               project_name: docType === 'penawaran' ? projectName : '-',
-              total_amount: total,
+              total_amount: grandTotal, // Menyimpan nilai akhir setelah diskon ke database
               items: items
             })
             setIsSaving(false)
@@ -161,10 +177,24 @@ export default function PrintInvoicePage() {
               </tr>
             ))}
           </tbody>
+          
+          {/* BAGIAN FOOTER TABEL DENGAN LOGIKA DISKON */}
           <tfoot>
-            <tr className="border-t-2 border-gray-900">
-              <td colSpan={4} className="py-3 px-1 font-bold text-right text-base">Total</td>
-              <td className="py-3 px-1 font-bold text-right text-base">{formatIDR(total)}</td>
+            {discountValue > 0 && (
+              <>
+                <tr className="border-t-2 border-gray-900">
+                  <td colSpan={4} className="py-2 px-1 font-bold text-right text-gray-600">Subtotal</td>
+                  <td className="py-2 px-1 font-bold text-right text-gray-600">{formatIDR(subTotal)}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td colSpan={4} className="py-2 px-1 font-bold text-right text-red-600">Diskon</td>
+                  <td className="py-2 px-1 font-bold text-right text-red-600">- {formatIDR(discountValue)}</td>
+                </tr>
+              </>
+            )}
+            <tr className={discountValue > 0 ? "" : "border-t-2 border-gray-900"}>
+              <td colSpan={4} className="py-3 px-1 font-bold text-right text-base text-gray-900">Total</td>
+              <td className="py-3 px-1 font-bold text-right text-base text-gray-900">{formatIDR(grandTotal)}</td>
             </tr>
           </tfoot>
         </table>
