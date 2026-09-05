@@ -13,7 +13,7 @@
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.115.0",
     "framer-motion": "^12.38.0",
-    "googleapis": "^178.0.0",
+    "jose": "^6.2.11",
     "leaflet": "^1.9.4",
     "midtrans-client": "^1.4.3",
     "next": "16.2.4",

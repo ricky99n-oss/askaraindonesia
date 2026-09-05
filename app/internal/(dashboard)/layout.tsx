@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createInternalServerClient } from '@/lib/internal/supabase/server'
-
+export const runtime = 'edge'
 export default async function DashboardLayout({
   children,
 }: {
