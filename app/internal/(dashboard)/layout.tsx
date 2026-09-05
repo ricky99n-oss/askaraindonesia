@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createInternalServerClient } from '@/lib/internal/supabase/server'
+import ClientSidebar from './ClientSidebar'
+
 export const runtime = 'edge'
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -21,30 +23,40 @@ export default async function DashboardLayout({
   if (!teamMember || !teamMember.is_active) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        {/* ... (kode blokir akses sama seperti sebelumnya) ... */}
-        <h1 className="text-xl font-bold">Akses Ditolak</h1>
+        <div className="max-w-md bg-white p-8 rounded-lg shadow-md border border-red-100 text-center space-y-4">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Akses Ditolak</h1>
+          <p className="text-sm text-gray-500">
+            Akun Anda terdaftar di sistem, tetapi tidak memiliki izin untuk masuk ke area manajerial Askara.
+          </p>
+          <form action={async () => {
+            'use server'
+            const sb = await createInternalServerClient()
+            await sb.auth.signOut()
+            redirect('/internal/login')
+          }}>
+            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              Keluar & Ganti Akun
+            </button>
+          </form>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-100 print:bg-white">
-      {/* Tambahkan print:hidden di sini agar sidebar menghilang saat di-print */}
-      <aside className="w-64 bg-gray-900 text-white p-6 flex flex-col space-y-4 print:hidden">
-        <div className="text-xl font-bold mb-8">Askara Internal</div>
-        <nav className="flex-1 space-y-2">
-          <Link href="/internal/dashboard" className="block px-4 py-2 rounded hover:bg-gray-800 text-gray-300 hover:text-white">Estimator</Link>
-          <Link href="/internal/sync" className="block px-4 py-2 rounded hover:bg-gray-800 text-gray-300 hover:text-white">Data Supplier</Link>
-          <Link href="/internal/settings" className="block px-4 py-2 rounded hover:bg-gray-800 text-gray-300 hover:text-white">Pengaturan</Link>
-          <Link href="/internal/history" className="block px-4 py-2 rounded hover:bg-gray-800 text-gray-300 hover:text-white">Riwayat Dokumen</Link>
-        </nav>
-        <div className="border-t border-gray-700 pt-4 text-xs text-gray-400">
-          Role: {teamMember.role.toUpperCase()}
-        </div>
-      </aside>
+    // Penyesuaian flex-col untuk HP, flex-row untuk Desktop
+    <div className="min-h-screen flex flex-col md:flex-row bg-gray-100 print:bg-white">
       
-      {/* Tambahkan print:p-0 print:overflow-visible agar kertas memenuhi layar penuh */}
-      <main className="flex-1 p-8 overflow-y-auto print:p-0 print:overflow-visible">
+      {/* Menggunakan Sidebar Dinamis */}
+      <ClientSidebar role={teamMember.role} />
+      
+      {/* Konten Utama (Akan terdorong ke bawah di HP) */}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto print:p-0 print:overflow-visible">
         {children}
       </main>
     </div>
