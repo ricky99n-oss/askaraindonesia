@@ -1,4 +1,5 @@
 export const runtime = 'edge'
+
 import { supabase } from '@/lib/supabaseClient'
 import MarketplaceClient from './MarketplaceClient'
 
