@@ -1,43 +1,77 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function SettingsPage() {
   const [margin, setMargin] = useState<number>(20)
-  
-  // State Profil Perusahaan (Sesuai data invoice & penawaran standar)
   const [profile, setProfile] = useState({
-    address: 'Jl. Sukarno Hatta No.83 Ruko Kav.e Malang',
-    phone: '089 6810 11 618',
-    email: 'askaraindonesiacompany@gmail.com',
-    bankName: 'BCA',
-    bankAccount: '0190702197',
-    bankOwner: 'Yohanes Vianey Riki Nugroho',
-    signatureName: 'I Gusti Ngurah'
+    address: '',
+    phone: '',
+    email: '',
+    bankName: '',
+    bankAccount: '',
+    bankOwner: '',
+    signatureName: ''
   })
-
+  const [isLoading, setIsLoading] = useState(true)
   const [saved, setSaved] = useState(false)
 
+  // Mengambil data dari Supabase saat halaman dimuat
   useEffect(() => {
-    const savedMargin = localStorage.getItem('askara_profit_margin')
-    if (savedMargin) setMargin(Number(savedMargin))
-
-    const savedProfile = localStorage.getItem('askara_company_profile')
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile))
+    async function fetchSettings() {
+      const { data, error } = await supabase
+        .from('askara_settings')
+        .select('*')
+        .eq('id', 1)
+        .single()
+      
+      if (data) {
+        setMargin(data.profit_margin)
+        setProfile({
+          address: data.address || '',
+          phone: data.phone || '',
+          email: data.email || '',
+          bankName: data.bank_name || '',
+          bankAccount: data.bank_account || '',
+          bankOwner: data.bank_owner || '',
+          signatureName: data.signature_name || ''
+        })
+      }
+      setIsLoading(false)
     }
+    fetchSettings()
   }, [])
 
-  const saveSettings = () => {
-    localStorage.setItem('askara_profit_margin', margin.toString())
-    localStorage.setItem('askara_company_profile', JSON.stringify(profile))
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  // Menyimpan perubahan kembali ke Supabase
+  const saveSettings = async () => {
+    const { error } = await supabase
+      .from('askara_settings')
+      .update({
+        profit_margin: margin,
+        address: profile.address,
+        phone: profile.phone,
+        email: profile.email,
+        bank_name: profile.bankName,
+        bank_account: profile.bankAccount,
+        bank_owner: profile.bankOwner,
+        signature_name: profile.signatureName
+      })
+      .eq('id', 1)
+
+    if (!error) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } else {
+      alert('Gagal menyimpan: ' + error.message)
+    }
   }
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfile({ ...profile, [e.target.name]: e.target.value })
   }
+
+  if (isLoading) return <div className="p-8 animate-pulse text-gray-500 font-medium">Memuat pengaturan...</div>
 
   return (
     <div className="max-w-4xl bg-white p-8 rounded-xl shadow-sm border border-gray-200">
@@ -97,7 +131,7 @@ export default function SettingsPage() {
         <button onClick={saveSettings} className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
           Simpan Pengaturan
         </button>
-        {saved && <span className="text-green-600 text-sm font-medium">Berhasil disimpan!</span>}
+        {saved && <span className="text-green-600 text-sm font-medium">Data live Supabase berhasil diperbarui!</span>}
       </div>
     </div>
   )

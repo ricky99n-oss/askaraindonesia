@@ -33,10 +33,12 @@ export default function ClientSidebar({ role }: { role: string }) {
 
   const closeMenu = () => setIsOpen(false)
 
+  // Tambahan menu Katalog Marketplace
   const navLinks = [
     { name: 'Estimator', href: '/internal/dashboard' },
     { name: 'Riwayat Dokumen', href: '/internal/history' },
     { name: 'Data Supplier', href: '/internal/sync' },
+    { name: 'Katalog Marketplace', href: '/internal/marketplace' },
     { name: 'Pengaturan', href: '/internal/settings' },
   ]
 

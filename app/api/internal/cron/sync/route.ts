@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/internal/supabase/admin'
 const COL_NAME_INDEX = 1;
 const COL_PRICE_INDEX = 2;
 
+// Fungsi untuk mendeteksi sel berwarna merah (Tanda barang habis di spreadsheet)
 function isCellRed(color: any) {
   if (!color) return false;
   const r = color.red || 0;
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient()
 
+    // 1. Catat versi sinkronisasi
     const { data: version, error: versionError } = await supabase
       .from('askara_internal_catalog_versions')
       .insert([{ status: 'syncing' }])
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
 
     if (versionError) throw new Error(`Gagal membuat versi: ${versionError.message}`)
 
-    // --- MULAI EDGE FETCH ---
+    // 2. Fetch data dari Google Sheets
     const token = await getGoogleAuthToken()
     const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.GOOGLE_SPREADSHEET_ID}?includeGridData=true&fields=sheets(properties.title,data.rowData.values(formattedValue,effectiveFormat.backgroundColor))`
     
@@ -73,6 +75,7 @@ export async function POST(request: Request) {
     const parsedItems: any[] = []
     const sheetData = responseData.sheets || []
 
+    // 3. Ekstrak dan bersihkan data
     for (const sheet of sheetData) {
       const categoryName = sheet.properties?.title || 'Uncategorized'
       const rows = sheet.data?.[0]?.rowData || []
@@ -94,26 +97,35 @@ export async function POST(request: Request) {
         const bgColor = nameCell.effectiveFormat?.backgroundColor
         const isOutOfStock = isCellRed(bgColor)
 
+        // Set stok default ke 5 jika tidak merah, dan 0 jika merah
         parsedItems.push({
           version_id: version.id,
           sku: `${categoryName}-${rowIndex + 1}`,
           name: itemName,
           category: categoryName,
           base_price: basePrice,
-          stock_status: isOutOfStock ? 'out_of_stock' : 'available',
+          stock_status: isOutOfStock ? 'Habis' : 'Tersedia',
+          stock_qty: isOutOfStock ? 0 : 5, 
         })
       })
     }
 
+    // 4. Proses UPSERT ke database
     const chunkSize = 1000;
     for (let i = 0; i < parsedItems.length; i += chunkSize) {
       const chunk = parsedItems.slice(i, i + chunkSize);
-      const { error: insertError } = await supabase
+      
+      const { error: upsertError } = await supabase
         .from('askara_internal_catalog_items')
-        .insert(chunk);
-      if (insertError) throw new Error(`Gagal insert data: ${insertError.message}`);
+        .upsert(chunk, { 
+          onConflict: 'sku', 
+          ignoreDuplicates: false 
+        });
+        
+      if (upsertError) throw new Error(`Gagal upsert data: ${upsertError.message}`);
     }
 
+    // 5. Update status versi sinkronisasi
     await supabase
       .from('askara_internal_catalog_versions')
       .update({ 
@@ -125,7 +137,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Sync berhasil: ${parsedItems.length} item diperbarui.`,
+      message: `Sync berhasil: ${parsedItems.length} item diperbarui/ditambahkan tanpa duplikasi.`,
       version_id: version.id 
     })
 
