@@ -7,7 +7,6 @@ import { createAdminClient } from '@/lib/internal/supabase/admin'
 const COL_NAME_INDEX = 1;
 const COL_PRICE_INDEX = 2;
 
-// Fungsi untuk mendeteksi sel berwarna merah (Tanda barang habis di spreadsheet)
 function isCellRed(color: any) {
   if (!color) return false;
   const r = color.red || 0;
@@ -16,7 +15,6 @@ function isCellRed(color: any) {
   return r > 0.7 && g < 0.4 && b < 0.4;
 }
 
-// Fungsi ringan untuk mendapatkan token Google tanpa menggunakan package `googleapis`
 async function getGoogleAuthToken() {
   const privateKeyEnv = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -52,7 +50,6 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient()
 
-    // 1. Catat versi sinkronisasi
     const { data: version, error: versionError } = await supabase
       .from('askara_internal_catalog_versions')
       .insert([{ status: 'syncing' }])
@@ -61,21 +58,29 @@ export async function POST(request: Request) {
 
     if (versionError) throw new Error(`Gagal membuat versi: ${versionError.message}`)
 
-    // 2. Fetch data dari Google Sheets
     const token = await getGoogleAuthToken()
     const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.GOOGLE_SPREADSHEET_ID}?includeGridData=true&fields=sheets(properties.title,data.rowData.values(formattedValue,effectiveFormat.backgroundColor))`
     
-    const sheetRes = await fetch(sheetUrl, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    const sheetRes = await fetch(sheetUrl, { headers: { Authorization: `Bearer ${token}` } })
     const responseData = await sheetRes.json()
-
     if (responseData.error) throw new Error(responseData.error.message)
+
+    // PERBAIKAN UTAMA: Ambil semua data katalog lama dari Database
+    // Agar kita bisa mengingat editan manual user dan tidak menimpanya
+    const { data: existingDbItems } = await supabase
+      .from('askara_internal_catalog_items')
+      .select('*')
+    
+    const existingDataMap = new Map()
+    if (existingDbItems) {
+      existingDbItems.forEach(item => {
+        if (item.sku) existingDataMap.set(item.sku, item)
+      })
+    }
 
     const parsedItems: any[] = []
     const sheetData = responseData.sheets || []
 
-    // 3. Ekstrak dan bersihkan data
     for (const sheet of sheetData) {
       const categoryName = sheet.properties?.title || 'Uncategorized'
       const rows = sheet.data?.[0]?.rowData || []
@@ -96,21 +101,37 @@ export async function POST(request: Request) {
 
         const bgColor = nameCell.effectiveFormat?.backgroundColor
         const isOutOfStock = isCellRed(bgColor)
+        
+        const sku = `${categoryName}-${rowIndex + 1}`
+        
+        // Cek apakah produk ini sudah ada di Database sebelumnya?
+        const existingItem = existingDataMap.get(sku)
 
-        // Set stok default ke 5 jika tidak merah, dan 0 jika merah
-        parsedItems.push({
-          version_id: version.id,
-          sku: `${categoryName}-${rowIndex + 1}`,
-          name: itemName,
-          category: categoryName,
-          base_price: basePrice,
-          stock_status: isOutOfStock ? 'Habis' : 'Tersedia',
-          stock_qty: isOutOfStock ? 0 : 5, 
-        })
+        if (existingItem) {
+          // JIKA SUDAH ADA: Pertahankan Nama Editan, Gambar, Kategori, Deskripsi.
+          // Hanya timpa (update) Harga Dasar dan Stoknya saja!
+          parsedItems.push({
+            ...existingItem, 
+            version_id: version.id, 
+            base_price: basePrice, 
+            stock_status: isOutOfStock ? 'Habis' : 'Tersedia',
+            stock_qty: isOutOfStock ? 0 : 5, 
+          })
+        } else {
+          // JIKA BARANG BARU: Tambahkan apa adanya dari Spreadsheet
+          parsedItems.push({
+            version_id: version.id,
+            sku: sku,
+            name: itemName,
+            category: categoryName,
+            base_price: basePrice,
+            stock_status: isOutOfStock ? 'Habis' : 'Tersedia',
+            stock_qty: isOutOfStock ? 0 : 5,
+          })
+        }
       })
     }
 
-    // 4. Proses UPSERT ke database
     const chunkSize = 1000;
     for (let i = 0; i < parsedItems.length; i += chunkSize) {
       const chunk = parsedItems.slice(i, i + chunkSize);
@@ -125,7 +146,6 @@ export async function POST(request: Request) {
       if (upsertError) throw new Error(`Gagal upsert data: ${upsertError.message}`);
     }
 
-    // 5. Update status versi sinkronisasi
     await supabase
       .from('askara_internal_catalog_versions')
       .update({ 
@@ -137,7 +157,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Sync berhasil: ${parsedItems.length} item diperbarui/ditambahkan tanpa duplikasi.`,
+      message: `Sync berhasil: ${parsedItems.length} item diperbarui. Nama editan user dipertahankan!`,
       version_id: version.id 
     })
 

@@ -10,12 +10,16 @@ export async function saveProduct(formData: FormData) {
   const category = formData.get('category') as string
   const description = formData.get('description') as string
   
-  const base_price = parseFloat((formData.get('base_price') as string) || '0')
-  const stock_qty = parseInt((formData.get('stock_qty') as string) || '0')
+  // PERBAIKAN: Mencegah masuknya NaN jika user mengosongkan input
+  const rawPrice = formData.get('base_price') as string
+  const base_price = rawPrice && !isNaN(Number(rawPrice)) ? parseFloat(rawPrice) : 0
+  
+  const rawStock = formData.get('stock_qty') as string
+  const stock_qty = rawStock && !isNaN(Number(rawStock)) ? parseInt(rawStock) : 0
   
   const isActive = formData.get('is_active') === 'on'
   const applyMargin = formData.get('apply_margin') === 'true'
-  const isBestseller = formData.get('is_bestseller') === 'on' // Menangkap nilai checkbox terlaris
+  const isBestseller = formData.get('is_bestseller') === 'on'
 
   const files = formData.getAll('images') as File[]
   let uploadedUrls: string[] = []
@@ -41,7 +45,13 @@ export async function saveProduct(formData: FormData) {
 
   let finalImageUrl = formData.get('existing_image_url') as string
   let finalGalleryRaw = formData.get('existing_gallery_urls') as string
-  let finalGalleryUrls: string[] = finalGalleryRaw ? JSON.parse(finalGalleryRaw) : []
+  let finalGalleryUrls: string[] = []
+  
+  try {
+    finalGalleryUrls = finalGalleryRaw ? JSON.parse(finalGalleryRaw) : []
+  } catch (e) {
+    finalGalleryUrls = []
+  }
 
   if (uploadedUrls.length > 0) {
     if (!finalImageUrl) finalImageUrl = uploadedUrls[0] 
@@ -59,16 +69,21 @@ export async function saveProduct(formData: FormData) {
     gallery_urls: finalGalleryUrls,
     is_active: isActive,
     apply_margin: applyMargin,
-    is_bestseller: isBestseller, // Menyimpan status terlaris ke database
+    is_bestseller: isBestseller,
     stock_status: stock_qty > 0 ? 'Tersedia' : 'Habis'
   }
 
-  if (id) {
-    const { error } = await supabase.from('askara_internal_catalog_items').update(payload).match({ id })
-    if (error) throw new Error(`Gagal update DB: ${error.message}`)
-  } else {
-    const { error } = await supabase.from('askara_internal_catalog_items').insert([payload])
-    if (error) throw new Error(`Gagal insert DB: ${error.message}`)
+  // Menangkap error spesifik jika database menolak update
+  try {
+    if (id) {
+      const { error } = await supabase.from('askara_internal_catalog_items').update(payload).match({ id })
+      if (error) throw new Error(error.message)
+    } else {
+      const { error } = await supabase.from('askara_internal_catalog_items').insert([payload])
+      if (error) throw new Error(error.message)
+    }
+  } catch (dbError: any) {
+    throw new Error(`Database Error: ${dbError.message}`)
   }
 
   revalidatePath('/internal/marketplace')
