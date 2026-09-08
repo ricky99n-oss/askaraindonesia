@@ -59,16 +59,14 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     return result
   }, [processedProducts, searchQuery, selectedCategory, sortOption])
 
-  // FITUR BARU 1: Auto-buka produk jika dikunjungi melalui Link Share
+  // Logika Auto-buka Share Link
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const productId = params.get('p');
       if (productId && processedProducts.length > 0) {
         const prod = processedProducts.find(p => p.id === productId || p.sku === productId);
-        if (prod) {
-          setSelectedProduct(prod);
-        }
+        if (prod) setSelectedProduct(prod);
       }
     }
   }, [processedProducts]);
@@ -120,94 +118,34 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     setIsUploading(false); setCart([]); setPaymentProof(null); setIsCheckoutMode(false); setIsCartOpen(false);
   }
 
-  // FITUR BARU 2: Logika Share Link Spesifik
   const handleShareProduct = async (product: any, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); 
+    if (e) { e.stopPropagation(); e.preventDefault(); }
     
-    // Membuat URL unik berdasar ID
     const productUrl = `${window.location.origin}/marketplace?p=${product.id}`;
-    
     const shareText = `Cek produk ini di AskaraShop!\n\n*${product.name}*\nHarga: Rp ${product.base_price?.toLocaleString('id-ID')}\n\nLihat detail dan pesan sekarang di sini:\n${productUrl}`;
     
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: product.name,
-          text: shareText,
-          url: productUrl, 
-        });
-      } catch (error) {
-        console.log('Share dibatalkan:', error);
-      }
+        await navigator.share({ title: product.name, text: shareText, url: productUrl });
+      } catch (error) { console.log('Share dibatalkan'); }
     } else {
       navigator.clipboard.writeText(shareText);
       alert('Link produk berhasil disalin! Silakan paste (Ctrl+V) di WA atau Sosmed Anda.');
     }
   }
 
-  // FITUR BARU 3: Komponen Wrapper untuk Klik & Geser di PC (Mouse Drag)
-  const DraggableCarousel = ({ children }: { children: React.ReactNode }) => {
-    const sliderRef = useRef<HTMLDivElement>(null);
-    const isDown = useRef(false);
-    const isDragging = useRef(false);
-    const startX = useRef(0);
-    const scrollLeft = useRef(0);
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-      isDown.current = true;
-      isDragging.current = false;
-      if (sliderRef.current) {
-        startX.current = e.pageX - sliderRef.current.offsetLeft;
-        scrollLeft.current = sliderRef.current.scrollLeft;
-      }
-    };
-
-    const handleMouseLeave = () => { isDown.current = false; };
-    const handleMouseUp = () => { isDown.current = false; };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-      if (!isDown.current || !sliderRef.current) return;
-      e.preventDefault();
-      isDragging.current = true;
-      const x = e.pageX - sliderRef.current.offsetLeft;
-      const walk = (x - startX.current) * 2; // kecepatan geser
-      sliderRef.current.scrollLeft = scrollLeft.current - walk;
-    };
-
-    // Mencegah klik masuk ke produk jika user sedang menggeser
-    const handleClickCapture = (e: React.MouseEvent) => {
-      if (isDragging.current) {
-        e.stopPropagation();
-        e.preventDefault();
-        isDragging.current = false;
-      }
-    };
-
-    return (
-      <div 
-        ref={sliderRef}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onClickCapture={handleClickCapture}
-        className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide snap-x flex-nowrap cursor-grab active:cursor-grabbing"
-      >
-        {children}
-      </div>
-    );
-  }
-
+  // --- KOMPONEN KARTU PRODUK UTAMA ---
   const ProductCard = ({ product }: { product: any }) => {
     const isOutOfStock = product.stock_qty <= 0;
     
     return (
-      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group pointer-events-auto">
+      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group">
         <div className="bg-gray-50 rounded-lg sm:rounded-xl aspect-square mb-3 relative overflow-hidden flex items-center justify-center">
-          {product.image_url ? <img src={product.image_url} alt={product.name} className={`object-contain w-full h-full p-2 sm:p-4 transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50">Visual Kosong</div>}
+          {/* Tambahan draggable={false} untuk mencegah browser menarik gambar saat mouse ditekan */}
+          {product.image_url ? <img src={product.image_url} alt={product.name} draggable={false} className={`object-contain w-full h-full p-2 sm:p-4 transition-transform duration-500 group-hover:scale-105 select-none ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50 select-none">Visual Kosong</div>}
           
           {product.is_bestseller && !isOutOfStock && (
-             <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">Hot Item 🔥</span>
+             <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10 select-none">Hot Item 🔥</span>
           )}
 
           <button 
@@ -219,12 +157,12 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </button>
 
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none select-none">
               <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-3 py-1 rounded-sm shadow-md transform -rotate-12 tracking-wider">STOK HABIS</span>
             </div>
           )}
         </div>
-        <div className="flex flex-col flex-grow">
+        <div className="flex flex-col flex-grow select-none">
           <div className="flex justify-between items-start mb-1 sm:mb-1.5"><p className={`text-[9px] sm:text-xs font-semibold uppercase truncate pr-2 ${isOutOfStock ? 'text-gray-400' : 'text-orange-500'}`}>{product.category}</p></div>
           <h3 className={`text-xs sm:text-sm font-bold leading-snug mb-1.5 line-clamp-2 ${isOutOfStock ? 'text-gray-400' : 'text-gray-900'}`}>{product.name}</h3>
           
@@ -250,6 +188,76 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
         </div>
       </div>
     )
+  }
+
+  // --- KOMPONEN CAROUSEL DRAGGABLE YANG SUPER MULUS ---
+  const DraggableCarousel = ({ items }: { items: any[] }) => {
+    const sliderRef = useRef<HTMLDivElement>(null);
+    const isDown = useRef(false);
+    const startX = useRef(0);
+    const scrollLeft = useRef(0);
+    const isDragging = useRef(false);
+
+    // Kunci "Infinite Loop": Jika datanya kurang dari 8, kita gandakan 4x lipat
+    // agar selalu penuh dan sangat panjang untuk di-scroll layaknya infinite!
+    const displayItems = items.length > 0 && items.length < 8 
+      ? [...items, ...items, ...items, ...items] 
+      : items;
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      isDown.current = true;
+      isDragging.current = false;
+      if (sliderRef.current) {
+        startX.current = e.pageX - sliderRef.current.offsetLeft;
+        scrollLeft.current = sliderRef.current.scrollLeft;
+      }
+    };
+
+    const handleMouseLeave = () => { isDown.current = false; };
+    const handleMouseUp = () => { isDown.current = false; };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDown.current || !sliderRef.current) return;
+      e.preventDefault(); 
+      
+      const x = e.pageX - sliderRef.current.offsetLeft;
+      // Beri batas toleransi 5 pixel, agar klik biasa tidak terhitung sebagai 'menggeser'
+      if (Math.abs(x - startX.current) > 5) {
+        isDragging.current = true;
+      }
+      
+      const walk = (x - startX.current) * 1.5; // Kecepatan geser
+      sliderRef.current.scrollLeft = scrollLeft.current - walk;
+    };
+
+    const handleClickCapture = (e: React.MouseEvent) => {
+      // Jika user sedang menggeser, cegah klik masuk ke dalam kartu produk
+      if (isDragging.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        isDragging.current = false;
+      }
+    };
+
+    return (
+      <div 
+        ref={sliderRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onClickCapture={handleClickCapture}
+        // Hapus class 'snap-x', tambahkan select-none dan cursor-grab
+        className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide flex-nowrap cursor-grab active:cursor-grabbing select-none"
+      >
+        {displayItems.map((item, idx) => (
+          // Atur lebar pasti agar muat 4-5 items di PC
+          <div key={`${item.id}-${idx}`} className="shrink-0 w-[160px] sm:w-[220px] md:w-[240px] lg:w-[260px]">
+            <ProductCard product={item} />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -302,35 +310,23 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         </div>
 
-        {/* Pilihan Terlaris dengan DRAG & SCROLL */}
+        {/* Pilihan Terlaris dengan DRAG & SCROLL YANG DITINGKATKAN */}
         {bestSellers.length > 0 && (
           <div className="pt-4 pb-2">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Pilihan Terlaris <span className="text-2xl">🔥</span>
             </h2>
-            <DraggableCarousel>
-              {bestSellers.map((product: any) => (
-                <div key={product.id} className="snap-start shrink-0 w-[160px] sm:w-[220px] md:w-[250px]">
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </DraggableCarousel>
+            <DraggableCarousel items={bestSellers} />
           </div>
         )}
 
-        {/* Kategori Jasa dengan DRAG & SCROLL */}
+        {/* Kategori Jasa dengan DRAG & SCROLL YANG DITINGKATKAN */}
         {serviceProducts.length > 0 && (
           <div className="pt-2 pb-2">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Layanan & Jasa Askara <span className="text-2xl">🛠️</span>
             </h2>
-            <DraggableCarousel>
-              {serviceProducts.map((product: any) => (
-                <div key={product.id} className="snap-start shrink-0 w-[160px] sm:w-[220px] md:w-[250px]">
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </DraggableCarousel>
+            <DraggableCarousel items={serviceProducts} />
           </div>
         )}
 
