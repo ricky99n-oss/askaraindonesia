@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -30,7 +30,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
 
   const bestSellers = useMemo(() => processedProducts.filter(p => p.is_bestseller && p.stock_qty > 0), [processedProducts])
   
-  // Ambil semua produk yang kategorinya atau namanya mengandung "JASA"
   const serviceProducts = useMemo(() => processedProducts.filter(p => 
     p.category?.toUpperCase().includes('JASA') || p.name?.toUpperCase().includes('JASA')
   ), [processedProducts])
@@ -60,11 +59,22 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     return result
   }, [processedProducts, searchQuery, selectedCategory, sortOption])
 
-  const addToCart = (product: any) => {
-    if (product.stock_qty <= 0) {
-      alert("Maaf, stok produk ini sedang habis.");
-      return;
+  // FITUR BARU 1: Auto-buka produk jika dikunjungi melalui Link Share
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('p');
+      if (productId && processedProducts.length > 0) {
+        const prod = processedProducts.find(p => p.id === productId || p.sku === productId);
+        if (prod) {
+          setSelectedProduct(prod);
+        }
+      }
     }
+  }, [processedProducts]);
+
+  const addToCart = (product: any) => {
+    if (product.stock_qty <= 0) { alert("Maaf, stok produk ini sedang habis."); return; }
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id)
       if (existing) return prev.map((item) => item.id === product.id ? { ...item, qty: item.qty + 1 } : item)
@@ -110,34 +120,89 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     setIsUploading(false); setCart([]); setPaymentProof(null); setIsCheckoutMode(false); setIsCartOpen(false);
   }
 
-  // Fungsi Share Global (Bisa dipanggil dari Card maupun Modal)
+  // FITUR BARU 2: Logika Share Link Spesifik
   const handleShareProduct = async (product: any, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); // Mencegah modal terbuka saat tombol share diklik
+    if (e) e.stopPropagation(); 
     
-    const shareText = `Cek produk ini di AskaraShop!\n\n*${product.name}*\nHarga: Rp ${product.base_price?.toLocaleString('id-ID')}\nKategori: ${product.category}\n\nPesan sekarang di: https://askaraindonesia.my.id/marketplace`;
+    // Membuat URL unik berdasar ID
+    const productUrl = `${window.location.origin}/marketplace?p=${product.id}`;
+    
+    const shareText = `Cek produk ini di AskaraShop!\n\n*${product.name}*\nHarga: Rp ${product.base_price?.toLocaleString('id-ID')}\n\nLihat detail dan pesan sekarang di sini:\n${productUrl}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: product.name,
           text: shareText,
-          url: 'https://askaraindonesia.my.id/marketplace',
+          url: productUrl, 
         });
       } catch (error) {
-        console.log('User membatalkan share atau error:', error);
+        console.log('Share dibatalkan:', error);
       }
     } else {
       navigator.clipboard.writeText(shareText);
-      alert('Info produk dan link telah disalin ke clipboard! Silakan paste (Ctrl+V) di WA atau Sosmed Anda.');
+      alert('Link produk berhasil disalin! Silakan paste (Ctrl+V) di WA atau Sosmed Anda.');
     }
   }
 
-  // Komponen Kartu Produk
+  // FITUR BARU 3: Komponen Wrapper untuk Klik & Geser di PC (Mouse Drag)
+  const DraggableCarousel = ({ children }: { children: React.ReactNode }) => {
+    const sliderRef = useRef<HTMLDivElement>(null);
+    const isDown = useRef(false);
+    const isDragging = useRef(false);
+    const startX = useRef(0);
+    const scrollLeft = useRef(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      isDown.current = true;
+      isDragging.current = false;
+      if (sliderRef.current) {
+        startX.current = e.pageX - sliderRef.current.offsetLeft;
+        scrollLeft.current = sliderRef.current.scrollLeft;
+      }
+    };
+
+    const handleMouseLeave = () => { isDown.current = false; };
+    const handleMouseUp = () => { isDown.current = false; };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDown.current || !sliderRef.current) return;
+      e.preventDefault();
+      isDragging.current = true;
+      const x = e.pageX - sliderRef.current.offsetLeft;
+      const walk = (x - startX.current) * 2; // kecepatan geser
+      sliderRef.current.scrollLeft = scrollLeft.current - walk;
+    };
+
+    // Mencegah klik masuk ke produk jika user sedang menggeser
+    const handleClickCapture = (e: React.MouseEvent) => {
+      if (isDragging.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        isDragging.current = false;
+      }
+    };
+
+    return (
+      <div 
+        ref={sliderRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onClickCapture={handleClickCapture}
+        className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide snap-x flex-nowrap cursor-grab active:cursor-grabbing"
+      >
+        {children}
+      </div>
+    );
+  }
+
   const ProductCard = ({ product }: { product: any }) => {
     const isOutOfStock = product.stock_qty <= 0;
     
     return (
-      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group">
+      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group pointer-events-auto">
         <div className="bg-gray-50 rounded-lg sm:rounded-xl aspect-square mb-3 relative overflow-hidden flex items-center justify-center">
           {product.image_url ? <img src={product.image_url} alt={product.name} className={`object-contain w-full h-full p-2 sm:p-4 transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50">Visual Kosong</div>}
           
@@ -145,11 +210,10 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
              <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">Hot Item 🔥</span>
           )}
 
-          {/* TOMBOL SHARE DI KARTU PRODUK DEPAN */}
           <button 
             onClick={(e) => handleShareProduct(product, e)}
             className="absolute top-2 right-2 bg-white/90 backdrop-blur text-gray-500 hover:text-purple-600 p-1.5 sm:p-2 rounded-full shadow-sm border border-gray-100 transition-all hover:scale-110 active:scale-95 z-20"
-            title="Bagikan Produk"
+            title="Bagikan Link Produk"
           >
             <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
           </button>
@@ -218,7 +282,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8 sm:space-y-12">
         
-        {/* HERO SECTION FIX LAYOUT PANJANG */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-2xl md:rounded-3xl overflow-hidden flex flex-col md:flex-row items-center relative px-6 py-10 md:p-12 lg:p-16">
           <div className="absolute top-0 right-0 bottom-0 w-full md:w-[55%] bg-gradient-to-bl from-purple-600 to-orange-500 md:rounded-l-[120px] hidden md:block z-0 opacity-95"></div>
           <div className="relative z-10 md:w-1/2 lg:w-[45%] space-y-4 sm:space-y-6 text-center md:text-left flex flex-col items-center md:items-start py-4">
@@ -239,39 +302,38 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         </div>
 
-        {/* SECTION 1: PILIHAN TERLARIS (HORIZONTAL CAROUSEL) */}
+        {/* Pilihan Terlaris dengan DRAG & SCROLL */}
         {bestSellers.length > 0 && (
           <div className="pt-4 pb-2">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Pilihan Terlaris <span className="text-2xl">🔥</span>
             </h2>
-            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide snap-x flex-nowrap">
+            <DraggableCarousel>
               {bestSellers.map((product: any) => (
                 <div key={product.id} className="snap-start shrink-0 w-[160px] sm:w-[220px] md:w-[250px]">
                   <ProductCard product={product} />
                 </div>
               ))}
-            </div>
+            </DraggableCarousel>
           </div>
         )}
 
-        {/* SECTION 2: KATEGORI JASA (HORIZONTAL CAROUSEL) */}
+        {/* Kategori Jasa dengan DRAG & SCROLL */}
         {serviceProducts.length > 0 && (
           <div className="pt-2 pb-2">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Layanan & Jasa Askara <span className="text-2xl">🛠️</span>
             </h2>
-            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide snap-x flex-nowrap">
+            <DraggableCarousel>
               {serviceProducts.map((product: any) => (
                 <div key={product.id} className="snap-start shrink-0 w-[160px] sm:w-[220px] md:w-[250px]">
                   <ProductCard product={product} />
                 </div>
               ))}
-            </div>
+            </DraggableCarousel>
           </div>
         )}
 
-        {/* SECTION 3: SEMUA KATALOG (GRID 4 KOLOM) */}
         <div id="katalog-section" className="pt-4 scroll-mt-24 border-t border-gray-100">
           <div className="mb-5 space-y-4 pt-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Semua Katalog Produk</h2>
@@ -334,11 +396,10 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
                       <span className="text-gray-400 text-sm">Visual Kosong</span>
                     )}
                     
-                    {/* TOMBOL SHARE DI DALAM GAMBAR MODAL */}
                     <button 
                       onClick={(e) => handleShareProduct(selectedProduct, e)}
                       className="absolute top-3 right-3 bg-white/90 backdrop-blur text-gray-700 hover:text-purple-600 p-2.5 rounded-full shadow-md border border-gray-100 transition-all hover:scale-105 active:scale-95 z-20"
-                      title="Bagikan Produk"
+                      title="Bagikan Link Produk"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
                     </button>
