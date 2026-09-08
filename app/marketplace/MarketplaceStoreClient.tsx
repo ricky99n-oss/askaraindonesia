@@ -30,7 +30,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
 
   const bestSellers = useMemo(() => processedProducts.filter(p => p.is_bestseller && p.stock_qty > 0), [processedProducts])
   
-  // Ambil semua produk yang kategorinya mengandung kata "JASA" atau namanya mengandung "JASA"
+  // Ambil semua produk yang kategorinya atau namanya mengandung "JASA"
   const serviceProducts = useMemo(() => processedProducts.filter(p => 
     p.category?.toUpperCase().includes('JASA') || p.name?.toUpperCase().includes('JASA')
   ), [processedProducts])
@@ -48,9 +48,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     result.sort((a, b) => {
       const aReady = a.stock_qty > 0 ? 1 : 0;
       const bReady = b.stock_qty > 0 ? 1 : 0;
-
       if (aReady !== bReady) { return bReady - aReady; }
-
       switch (sortOption) {
         case 'harga-asc': return (a.base_price || 0) - (b.base_price || 0);
         case 'harga-desc': return (b.base_price || 0) - (a.base_price || 0);
@@ -59,7 +57,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
         default: return 0; 
       }
     })
-
     return result
   }, [processedProducts, searchQuery, selectedCategory, sortOption])
 
@@ -92,7 +89,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     if (!paymentProof) { alert("Harap unggah gambar bukti pembayaran terlebih dahulu."); return; }
     setIsUploading(true)
     let proofUrl = ''
-
     try {
       const fileExt = paymentProof.name.split('.').pop()
       const fileName = `${trxId}-${Date.now()}.${fileExt}`
@@ -114,8 +110,10 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     setIsUploading(false); setCart([]); setPaymentProof(null); setIsCheckoutMode(false); setIsCartOpen(false);
   }
 
-  // Fungsi Share Produk
-  const handleShareProduct = async (product: any) => {
+  // Fungsi Share Global (Bisa dipanggil dari Card maupun Modal)
+  const handleShareProduct = async (product: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation(); // Mencegah modal terbuka saat tombol share diklik
+    
     const shareText = `Cek produk ini di AskaraShop!\n\n*${product.name}*\nHarga: Rp ${product.base_price?.toLocaleString('id-ID')}\nKategori: ${product.category}\n\nPesan sekarang di: https://askaraindonesia.my.id/marketplace`;
     
     if (navigator.share) {
@@ -126,28 +124,38 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           url: 'https://askaraindonesia.my.id/marketplace',
         });
       } catch (error) {
-        console.log('Error sharing:', error);
+        console.log('User membatalkan share atau error:', error);
       }
     } else {
-      // Fallback untuk desktop / browser yang tidak support Web Share API
       navigator.clipboard.writeText(shareText);
       alert('Info produk dan link telah disalin ke clipboard! Silakan paste (Ctrl+V) di WA atau Sosmed Anda.');
     }
   }
 
+  // Komponen Kartu Produk
   const ProductCard = ({ product }: { product: any }) => {
     const isOutOfStock = product.stock_qty <= 0;
+    
     return (
-      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer w-[160px] sm:w-[220px] md:w-full shrink-0">
+      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group">
         <div className="bg-gray-50 rounded-lg sm:rounded-xl aspect-square mb-3 relative overflow-hidden flex items-center justify-center">
-          {product.image_url ? <img src={product.image_url} alt={product.name} className={`object-contain w-full h-full p-2 sm:p-4 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50">Visual Kosong</div>}
+          {product.image_url ? <img src={product.image_url} alt={product.name} className={`object-contain w-full h-full p-2 sm:p-4 transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50">Visual Kosong</div>}
           
           {product.is_bestseller && !isOutOfStock && (
-             <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm">Hot Item 🔥</span>
+             <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">Hot Item 🔥</span>
           )}
 
+          {/* TOMBOL SHARE DI KARTU PRODUK DEPAN */}
+          <button 
+            onClick={(e) => handleShareProduct(product, e)}
+            className="absolute top-2 right-2 bg-white/90 backdrop-blur text-gray-500 hover:text-purple-600 p-1.5 sm:p-2 rounded-full shadow-sm border border-gray-100 transition-all hover:scale-110 active:scale-95 z-20"
+            title="Bagikan Produk"
+          >
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+          </button>
+
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center pointer-events-none">
               <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-3 py-1 rounded-sm shadow-md transform -rotate-12 tracking-wider">STOK HABIS</span>
             </div>
           )}
@@ -209,22 +217,14 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8 sm:space-y-12">
-        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl md:rounded-3xl overflow-hidden flex flex-col md:flex-row items-center relative px-6 py-10 md:p-12 lg:p-16 min-h-[400px] lg:min-h-[500px]">
-          <div className="absolute top-0 right-0 w-full md:w-[55%] h-full bg-gradient-to-bl from-purple-600 to-orange-500 md:rounded-l-[120px] hidden md:block z-0 opacity-95"></div>
-          <div className="relative z-10 md:w-1/2 lg:w-[45%] space-y-4 sm:space-y-6 text-center md:text-left flex flex-col items-center md:items-start">
+        
+        {/* HERO SECTION FIX LAYOUT PANJANG */}
+        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl md:rounded-3xl overflow-hidden flex flex-col md:flex-row items-center relative px-6 py-10 md:p-12 lg:p-16">
+          <div className="absolute top-0 right-0 bottom-0 w-full md:w-[55%] bg-gradient-to-bl from-purple-600 to-orange-500 md:rounded-l-[120px] hidden md:block z-0 opacity-95"></div>
+          <div className="relative z-10 md:w-1/2 lg:w-[45%] space-y-4 sm:space-y-6 text-center md:text-left flex flex-col items-center md:items-start py-4">
             <span className="inline-block bg-orange-50 text-orange-500 font-bold tracking-wider text-[10px] sm:text-xs uppercase px-3 py-1 sm:px-4 sm:py-1.5 rounded-full">Askara Indonesia Services</span>
-            
-            {/* REVISI JUDUL HERO */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
-              Creative, Digital <br className="hidden lg:block" /> 
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-orange-500">& IT Solutions</span>
-            </h1>
-            
-            {/* REVISI DESKRIPSI HERO */}
-            <p className="text-gray-500 max-w-md text-sm sm:text-base leading-relaxed">
-              Solusi kreatif dan teknologi untuk mendukung bisnis Anda. Mulai dari penjualan dan instalasi CCTV serta jaringan, desain grafis, manajemen media sosial, hingga pengembangan website & aplikasi.
-            </p>
-            
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">Creative, Digital <br className="hidden lg:block" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-orange-500">& IT Solutions</span></h1>
+            <p className="text-gray-500 max-w-sm md:max-w-md text-sm sm:text-base leading-relaxed">Solusi kreatif dan teknologi untuk mendukung bisnis Anda. Mulai dari penjualan dan instalasi CCTV serta jaringan, desain grafis, manajemen media sosial, hingga pengembangan website & aplikasi.</p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 relative z-20 w-full sm:w-auto">
               <button onClick={() => window.open(`https://wa.me/${ADMIN_WA_NUMBER}?text=Halo%20Askara,%20saya%20ingin%20berkonsultasi%20mengenai%20kebutuhan%20bisnis%20saya.`, '_blank')} className="bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 sm:px-8 py-3 rounded-full font-semibold text-sm sm:text-base hover:from-purple-700 hover:to-orange-600 transition-all flex justify-center items-center gap-2 shadow-lg w-full sm:w-auto">
                 Konsultasikan Kebutuhan Anda <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
@@ -234,20 +234,20 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
               </button>
             </div>
           </div>
-          <div className="relative z-10 w-full md:w-1/2 lg:w-[55%] mt-8 md:mt-0 flex justify-center md:justify-end items-center pointer-events-none">
-             <img src="/hero-market.png" alt="IT Solutions Mockup" className="w-full max-w-[250px] sm:max-w-[320px] md:max-w-none md:w-[120%] lg:w-[125%] object-contain drop-shadow-2xl hover:-translate-y-2 transition-transform duration-700 md:translate-x-8 lg:translate-x-16 pointer-events-auto" />
+          <div className="relative z-10 w-full md:w-1/2 lg:w-[55%] mt-8 md:mt-0 flex justify-center md:justify-end items-center">
+             <img src="/hero-market2.png" alt="Creative & IT Solutions" className="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] object-contain drop-shadow-2xl hover:-translate-y-2 transition-transform duration-700" />
           </div>
         </div>
 
-        {/* SECTION 1: PILIHAN TERLARIS (FORMAT 1 BARIS HORIZONTAL SCROLL) */}
+        {/* SECTION 1: PILIHAN TERLARIS (HORIZONTAL CAROUSEL) */}
         {bestSellers.length > 0 && (
           <div className="pt-4 pb-2">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Pilihan Terlaris <span className="text-2xl">🔥</span>
             </h2>
-            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 scrollbar-hide snap-x">
+            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide snap-x flex-nowrap">
               {bestSellers.map((product: any) => (
-                <div key={product.id} className="snap-start shrink-0">
+                <div key={product.id} className="snap-start shrink-0 w-[160px] sm:w-[220px] md:w-[250px]">
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -255,15 +255,15 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         )}
 
-        {/* SECTION 2: KATEGORI JASA (FORMAT 1 BARIS HORIZONTAL SCROLL) */}
+        {/* SECTION 2: KATEGORI JASA (HORIZONTAL CAROUSEL) */}
         {serviceProducts.length > 0 && (
           <div className="pt-2 pb-2">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Layanan & Jasa Askara <span className="text-2xl">🛠️</span>
             </h2>
-            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 scrollbar-hide snap-x">
+            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide snap-x flex-nowrap">
               {serviceProducts.map((product: any) => (
-                <div key={product.id} className="snap-start shrink-0">
+                <div key={product.id} className="snap-start shrink-0 w-[160px] sm:w-[220px] md:w-[250px]">
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -271,6 +271,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         )}
 
+        {/* SECTION 3: SEMUA KATALOG (GRID 4 KOLOM) */}
         <div id="katalog-section" className="pt-4 scroll-mt-24 border-t border-gray-100">
           <div className="mb-5 space-y-4 pt-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Semua Katalog Produk</h2>
@@ -326,17 +327,17 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
             <div className="overflow-y-auto p-4 sm:p-8 flex-1">
               <div className="flex flex-col md:flex-row gap-6 sm:gap-8">
                 <div className="w-full md:w-2/5 shrink-0">
-                  <div className="bg-gray-50 rounded-xl sm:rounded-2xl aspect-square border border-gray-100 flex items-center justify-center overflow-hidden relative p-4">
+                  <div className="bg-gray-50 rounded-xl sm:rounded-2xl aspect-square border border-gray-100 flex items-center justify-center overflow-hidden relative p-4 group">
                     {selectedProduct.image_url ? (
-                      <img src={selectedProduct.image_url} alt={selectedProduct.name} className={`w-full h-full object-contain ${selectedProduct.stock_qty <= 0 ? 'opacity-50 grayscale' : ''}`} />
+                      <img src={selectedProduct.image_url} alt={selectedProduct.name} className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 ${selectedProduct.stock_qty <= 0 ? 'opacity-50 grayscale' : ''}`} />
                     ) : (
                       <span className="text-gray-400 text-sm">Visual Kosong</span>
                     )}
                     
                     {/* TOMBOL SHARE DI DALAM GAMBAR MODAL */}
                     <button 
-                      onClick={() => handleShareProduct(selectedProduct)}
-                      className="absolute top-3 right-3 bg-white/90 backdrop-blur text-gray-700 hover:text-purple-600 p-2.5 rounded-full shadow-md border border-gray-100 transition-all hover:scale-105 active:scale-95"
+                      onClick={(e) => handleShareProduct(selectedProduct, e)}
+                      className="absolute top-3 right-3 bg-white/90 backdrop-blur text-gray-700 hover:text-purple-600 p-2.5 rounded-full shadow-md border border-gray-100 transition-all hover:scale-105 active:scale-95 z-20"
                       title="Bagikan Produk"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
