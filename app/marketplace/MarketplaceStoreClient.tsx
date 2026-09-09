@@ -59,7 +59,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     return result
   }, [processedProducts, searchQuery, selectedCategory, sortOption])
 
-  // Logika Auto-buka Share Link
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -134,15 +133,14 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     }
   }
 
-  // --- KOMPONEN KARTU PRODUK UTAMA ---
   const ProductCard = ({ product }: { product: any }) => {
     const isOutOfStock = product.stock_qty <= 0;
     
     return (
-      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group">
+      <div onClick={() => setSelectedProduct(product)} className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full active:scale-[0.98] cursor-pointer relative group pointer-events-auto">
         <div className="bg-gray-50 rounded-lg sm:rounded-xl aspect-square mb-3 relative overflow-hidden flex items-center justify-center">
-          {/* Tambahan draggable={false} untuk mencegah browser menarik gambar saat mouse ditekan */}
-          {product.image_url ? <img src={product.image_url} alt={product.name} draggable={false} className={`object-contain w-full h-full p-2 sm:p-4 transition-transform duration-500 group-hover:scale-105 select-none ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50 select-none">Visual Kosong</div>}
+          {/* PERBAIKAN: object-cover agar gambar di-zoom menyesuaikan bingkai tanpa ruang kosong */}
+          {product.image_url ? <img src={product.image_url} alt={product.name} draggable={false} className={`object-cover w-full h-full transition-transform duration-500 group-hover:scale-110 select-none ${isOutOfStock ? 'opacity-50 grayscale' : ''}`} /> : <div className="text-gray-400 text-[10px] sm:text-xs opacity-50 select-none">Visual Kosong</div>}
           
           {product.is_bestseller && !isOutOfStock && (
              <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10 select-none">Hot Item 🔥</span>
@@ -165,21 +163,16 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
         <div className="flex flex-col flex-grow select-none">
           <div className="flex justify-between items-start mb-1 sm:mb-1.5"><p className={`text-[9px] sm:text-xs font-semibold uppercase truncate pr-2 ${isOutOfStock ? 'text-gray-400' : 'text-orange-500'}`}>{product.category}</p></div>
           <h3 className={`text-xs sm:text-sm font-bold leading-snug mb-1.5 line-clamp-2 ${isOutOfStock ? 'text-gray-400' : 'text-gray-900'}`}>{product.name}</h3>
-          
           <p className="text-xs text-gray-500 line-clamp-3 mb-3 whitespace-normal break-words">
             {product.description || 'Detail produk tersedia via admin.'}
           </p>
-
           <div className="mt-auto flex items-center justify-between pt-2 border-t border-dashed border-gray-100 sm:border-none sm:pt-0">
             <span className={`text-sm sm:text-lg font-extrabold ${isOutOfStock ? 'text-gray-400 line-through' : 'text-gray-900'}`}>Rp {product.base_price?.toLocaleString('id-ID')}</span>
-            
             <button 
               onClick={(e) => { e.stopPropagation(); addToCart(product) }} 
               disabled={isOutOfStock}
               className={`w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full flex items-center justify-center ml-2 transition-colors ${
-                isOutOfStock 
-                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                  : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white active:bg-purple-700'
+                isOutOfStock ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white active:bg-purple-700'
               }`}
             >
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
@@ -190,19 +183,34 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     )
   }
 
-  // --- KOMPONEN CAROUSEL DRAGGABLE YANG SUPER MULUS ---
+  // --- PERBAIKAN CAROUSEL: Auto-scroll, Hover Pause, Arrow Navigation ---
   const DraggableCarousel = ({ items }: { items: any[] }) => {
     const sliderRef = useRef<HTMLDivElement>(null);
     const isDown = useRef(false);
     const startX = useRef(0);
     const scrollLeft = useRef(0);
     const isDragging = useRef(false);
+    const isHovered = useRef(false);
 
-    // Kunci "Infinite Loop": Jika datanya kurang dari 8, kita gandakan 4x lipat
-    // agar selalu penuh dan sangat panjang untuk di-scroll layaknya infinite!
-    const displayItems = items.length > 0 && items.length < 8 
-      ? [...items, ...items, ...items, ...items] 
+    // Gandakan data untuk efek infinite loop yang sangat panjang
+    const displayItems = items.length > 0 && items.length < 12 
+      ? [...items, ...items, ...items, ...items, ...items] 
       : items;
+
+    // Logika Auto Scroll
+    useEffect(() => {
+      const interval = setInterval(() => {
+        if (sliderRef.current && !isHovered.current && !isDown.current) {
+          sliderRef.current.scrollLeft += 1; // Kecepatan scroll perlahan
+          
+          // Loop kembali ke awal jika mencapai ujung kanan
+          if (sliderRef.current.scrollLeft >= sliderRef.current.scrollWidth - sliderRef.current.clientWidth - 5) {
+            sliderRef.current.scrollLeft = 0;
+          }
+        }
+      }, 30);
+      return () => clearInterval(interval);
+    }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
       isDown.current = true;
@@ -212,50 +220,63 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
         scrollLeft.current = sliderRef.current.scrollLeft;
       }
     };
-
-    const handleMouseLeave = () => { isDown.current = false; };
+    const handleMouseLeave = () => { isDown.current = false; isHovered.current = false; };
     const handleMouseUp = () => { isDown.current = false; };
-
     const handleMouseMove = (e: React.MouseEvent) => {
       if (!isDown.current || !sliderRef.current) return;
       e.preventDefault(); 
-      
       const x = e.pageX - sliderRef.current.offsetLeft;
-      // Beri batas toleransi 5 pixel, agar klik biasa tidak terhitung sebagai 'menggeser'
-      if (Math.abs(x - startX.current) > 5) {
-        isDragging.current = true;
-      }
-      
-      const walk = (x - startX.current) * 1.5; // Kecepatan geser
+      if (Math.abs(x - startX.current) > 5) isDragging.current = true;
+      const walk = (x - startX.current) * 1.5; 
       sliderRef.current.scrollLeft = scrollLeft.current - walk;
     };
-
     const handleClickCapture = (e: React.MouseEvent) => {
-      // Jika user sedang menggeser, cegah klik masuk ke dalam kartu produk
       if (isDragging.current) {
-        e.stopPropagation();
-        e.preventDefault();
+        e.stopPropagation(); e.preventDefault();
         isDragging.current = false;
       }
     };
 
+    const scrollByArrow = (offset: number) => {
+      if (sliderRef.current) sliderRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    };
+
     return (
       <div 
-        ref={sliderRef}
-        onMouseDown={handleMouseDown}
+        className="relative group w-full"
+        onMouseEnter={() => { isHovered.current = true; }}
         onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onClickCapture={handleClickCapture}
-        // Hapus class 'snap-x', tambahkan select-none dan cursor-grab
-        className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide flex-nowrap cursor-grab active:cursor-grabbing select-none"
       >
-        {displayItems.map((item, idx) => (
-          // Atur lebar pasti agar muat 4-5 items di PC
-          <div key={`${item.id}-${idx}`} className="shrink-0 w-[160px] sm:w-[220px] md:w-[240px] lg:w-[260px]">
-            <ProductCard product={item} />
-          </div>
-        ))}
+        {/* Tombol Kiri (Muncul saat hover di PC, agar indikasi jelas) */}
+        <button 
+          onClick={() => scrollByArrow(-280)}
+          className="absolute left-[-15px] top-1/2 -translate-y-1/2 z-30 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-100 p-2.5 sm:p-3 rounded-full text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all opacity-80 hover:opacity-100 hidden md:flex"
+        >
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+
+        <div 
+          ref={sliderRef}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onClickCapture={handleClickCapture}
+          className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 pt-2 scrollbar-hide flex-nowrap cursor-grab active:cursor-grabbing select-none"
+        >
+          {displayItems.map((item, idx) => (
+            <div key={`${item.id}-${idx}`} className="shrink-0 w-[160px] sm:w-[220px] md:w-[240px] lg:w-[260px]">
+              <ProductCard product={item} />
+            </div>
+          ))}
+        </div>
+
+        {/* Tombol Kanan */}
+        <button 
+          onClick={() => scrollByArrow(280)}
+          className="absolute right-[-15px] top-1/2 -translate-y-1/2 z-30 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-100 p-2.5 sm:p-3 rounded-full text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all opacity-80 hover:opacity-100 hidden md:flex"
+        >
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+        </button>
       </div>
     );
   }
@@ -289,7 +310,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8 sm:space-y-12">
-        
         <div className="bg-white border border-gray-100 shadow-sm rounded-2xl md:rounded-3xl overflow-hidden flex flex-col md:flex-row items-center relative px-6 py-10 md:p-12 lg:p-16">
           <div className="absolute top-0 right-0 bottom-0 w-full md:w-[55%] bg-gradient-to-bl from-purple-600 to-orange-500 md:rounded-l-[120px] hidden md:block z-0 opacity-95"></div>
           <div className="relative z-10 md:w-1/2 lg:w-[45%] space-y-4 sm:space-y-6 text-center md:text-left flex flex-col items-center md:items-start py-4">
@@ -310,9 +330,9 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         </div>
 
-        {/* Pilihan Terlaris dengan DRAG & SCROLL YANG DITINGKATKAN */}
+        {/* DRAGGABLE CAROUSEL SECTION */}
         {bestSellers.length > 0 && (
-          <div className="pt-4 pb-2">
+          <div className="pt-4 pb-2 relative">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Pilihan Terlaris <span className="text-2xl">🔥</span>
             </h2>
@@ -320,9 +340,9 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         )}
 
-        {/* Kategori Jasa dengan DRAG & SCROLL YANG DITINGKATKAN */}
+        {/* DRAGGABLE CAROUSEL SECTION */}
         {serviceProducts.length > 0 && (
-          <div className="pt-2 pb-2">
+          <div className="pt-2 pb-2 relative">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               Layanan & Jasa Askara <span className="text-2xl">🛠️</span>
             </h2>
@@ -371,6 +391,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
         </div>
       </main>
 
+      {/* MODAL DETAIL PRODUK */}
       {selectedProduct && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedProduct(null)}></div>
@@ -385,9 +406,10 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
             <div className="overflow-y-auto p-4 sm:p-8 flex-1">
               <div className="flex flex-col md:flex-row gap-6 sm:gap-8">
                 <div className="w-full md:w-2/5 shrink-0">
-                  <div className="bg-gray-50 rounded-xl sm:rounded-2xl aspect-square border border-gray-100 flex items-center justify-center overflow-hidden relative p-4 group">
+                  <div className="bg-gray-50 rounded-xl sm:rounded-2xl aspect-square border border-gray-100 flex items-center justify-center overflow-hidden relative group">
+                    {/* PERBAIKAN: Modal juga menggunakan object-cover agar pas di bingkai */}
                     {selectedProduct.image_url ? (
-                      <img src={selectedProduct.image_url} alt={selectedProduct.name} className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 ${selectedProduct.stock_qty <= 0 ? 'opacity-50 grayscale' : ''}`} />
+                      <img src={selectedProduct.image_url} alt={selectedProduct.name} className={`object-cover w-full h-full transition-transform duration-500 group-hover:scale-110 ${selectedProduct.stock_qty <= 0 ? 'opacity-50 grayscale' : ''}`} />
                     ) : (
                       <span className="text-gray-400 text-sm">Visual Kosong</span>
                     )}
@@ -415,7 +437,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
                   </div>
                   <div>
                     <div className="text-3xl font-black text-gray-900">Rp {selectedProduct.base_price?.toLocaleString('id-ID')}</div>
-                    
                     {selectedProduct.stock_qty > 0 ? (
                       <div className="text-sm text-green-600 font-medium mt-1">Stok Tersedia: {selectedProduct.stock_qty} unit</div>
                     ) : (
@@ -470,7 +491,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
                   cart.map((item) => (
                     <div key={item.id} className="flex gap-3 sm:gap-4 items-center bg-gray-50 p-2.5 sm:p-3 rounded-xl border border-gray-100">
                       <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-lg border flex items-center justify-center p-1 shrink-0 overflow-hidden">
-                        {item.image_url ? <img src={item.image_url} className="w-full h-full object-contain" /> : <span className="text-[8px] text-gray-300">No Img</span>}
+                        {item.image_url ? <img src={item.image_url} className="w-full h-full object-cover" /> : <span className="text-[8px] text-gray-300">No Img</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-1">{item.name}</h4>
@@ -494,7 +515,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
                   <div className="space-y-4">
                     <h3 className="font-bold text-xs sm:text-sm text-gray-900 border-b pb-2">Metode 1: QRIS</h3>
                     <div className="bg-white border rounded-xl p-4 flex flex-col items-center">
-                      <img src="/Qris.jpeg" alt="QRIS Askara" className="w-full max-w-[180px] object-contain rounded-lg shadow-sm mb-3" />
+                      <img src="/Qris.jpeg" alt="QRIS Askara" className="w-full max-w-[180px] object-cover rounded-lg shadow-sm mb-3" />
                       <p className="text-[10px] sm:text-xs text-gray-500 text-center">Scan QRIS menggunakan M-Banking atau E-Wallet Anda.</p>
                     </div>
                     <h3 className="font-bold text-xs sm:text-sm text-gray-900 border-b pb-2 pt-2">Metode 2: Transfer Bank {serverSettings.bankName}</h3>
