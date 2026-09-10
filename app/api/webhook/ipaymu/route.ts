@@ -1,6 +1,6 @@
 // app/api/webhook/ipaymu/route.ts
 import { NextResponse } from 'next/server';
-
+export const runtime = 'edge';
 export async function POST(req: Request) {
   try {
     // iPaymu mengirim notifikasi dalam bentuk Form Data
