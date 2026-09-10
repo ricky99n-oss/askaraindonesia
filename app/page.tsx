@@ -5,6 +5,34 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import Link from 'next/link';
 import Image from 'next/image'; 
 
+// --- DATA DUMMY PRODUK TERLARIS ---
+const bestSellingProducts = [
+  {
+    id: 1,
+    name: "Aplikasi Kasir Smart POS",
+    price: "Rp 1.500.000",
+    description: "Sistem kasir modern berbasis cloud untuk mempermudah transaksi bisnis Anda.",
+    href: "/askarasmartpos",
+    icon: "💻"
+  },
+  {
+    id: 2,
+    name: "Paket Website & E-Course",
+    price: "Rp 3.500.000",
+    description: "LMS lengkap terintegrasi dengan video hosting (Supabase & Bunny.net).",
+    href: "/marketplace",
+    icon: "🌐"
+  },
+  {
+    id: 3,
+    name: "Setup Jaringan & MikroTik",
+    price: "Mulai Rp 500.000",
+    description: "Konfigurasi VPN, load balancing, failover, dan setup UniFi Access Point.",
+    href: "/marketplace",
+    icon: "📡"
+  }
+];
+
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,14 +81,14 @@ export default function Home() {
     const targetProgress = (index + 0.1) / scrollyData.length; 
     const targetY = containerTop + (targetProgress * scrollableDistance);
     
-    setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
+    setIsMobileMenuOpen(false); 
     window.scrollTo({ top: targetY, behavior: 'smooth' });
   };
 
   return (
     <main className="min-h-screen bg-[#FAFAFA] text-gray-900 font-sans selection:bg-[#FF8C00] selection:text-white">
       
-      {/* 1. HEADER - Clean, Modern & Responsive */}
+      {/* 1. HEADER - Menambahkan Menu Kontak & FAQ */}
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center z-50">
@@ -83,7 +111,7 @@ export default function Home() {
           </Link>
           
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex space-x-8 font-medium items-center text-sm tracking-wide text-gray-600">
+          <nav className="hidden lg:flex space-x-6 xl:space-x-8 font-medium items-center text-sm tracking-wide text-gray-600">
             <Link href="/" className="hover:text-[#4A00E0] transition-colors">Beranda</Link>
             
             <div className="relative group py-4 cursor-pointer">
@@ -108,12 +136,14 @@ export default function Home() {
               </div>
             </div>
             
-            <Link href="/produk" className="hover:text-[#4A00E0] transition-colors">Katalog Produk</Link>
+            <Link href="/produk" className="hover:text-[#4A00E0] transition-colors">Katalog</Link>
+            <Link href="/faq" className="hover:text-[#4A00E0] transition-colors">FAQ</Link>
+            <Link href="/contact" className="hover:text-[#4A00E0] transition-colors">Kontak</Link>
             
-            <Link href="/pricelist" className="relative overflow-hidden group bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5">
-              <span className="relative z-10">Price List</span>
-              <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
-            </Link>
+            <Link href="/marketplace" className="relative overflow-hidden group bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5">
+  <span className="relative z-10">Askara Store</span>
+  <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
+</Link>
           </nav>
 
           {/* Mobile Menu Toggle */}
@@ -156,16 +186,17 @@ export default function Home() {
                   ))}
                 </div>
                 <Link href="/produk" onClick={() => setIsMobileMenuOpen(false)} className="text-gray-600 font-medium">Katalog Produk</Link>
-                <Link href="/pricelist" onClick={() => setIsMobileMenuOpen(false)} className="text-[#4A00E0] font-bold">Price List</Link>
+                <Link href="/faq" onClick={() => setIsMobileMenuOpen(false)} className="text-gray-600 font-medium">FAQ</Link>
+                <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="text-gray-600 font-medium">Kontak Kami</Link>
+                <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)} className="text-[#4A00E0] font-bold">Askara Store</Link>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </header>
 
-      {/* 2. HERO SECTION - Modern Solid Gradient with Framer Animations */}
+      {/* 2. HERO SECTION */}
       <section className="relative text-white pt-24 pb-32 px-6 bg-[#0B0A10] overflow-hidden">
-        {/* Animated Background Blobs using Framer Motion */}
         <motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
@@ -209,11 +240,66 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. SCROLLYTELLING - Clean Typography Focus */}
-      <section ref={containerRef} className="relative bg-white" style={{ height: '600vh' }}>
+      {/* 3. PRODUK TERLARIS (SEKSI BARU YANG DITAMBAHKAN) */}
+      <section className="py-24 bg-white relative z-20 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              viewport={{ once: true }} 
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+                Produk & Layanan Terlaris
+              </h2>
+              <p className="mt-4 max-w-2xl text-lg text-gray-500 mx-auto">
+                Pilihan sistem dan layanan unggulan kami berdasarkan tingkat kepuasan klien.
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {bestSellingProducts.map((product, index) => (
+              <motion.div 
+                key={product.id} 
+                initial={{ opacity: 0, y: 30 }} 
+                whileInView={{ opacity: 1, y: 0 }} 
+                viewport={{ once: true }} 
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="flex flex-col bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-2xl hover:shadow-blue-900/5 border border-gray-100 transition-all duration-300 group"
+              >
+                <div className="text-4xl mb-6 bg-white w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  {product.icon}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{product.name}</h3>
+                <p className="text-gray-600 mb-6 flex-grow leading-relaxed">{product.description}</p>
+                <p className="text-2xl font-extrabold text-[#4A00E0] mb-8">{product.price}</p>
+                <Link 
+                  href={product.href}
+                  className="w-full text-center bg-white border border-gray-200 text-gray-900 font-semibold py-3.5 px-4 rounded-xl hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-colors"
+                >
+                  Lihat Detail Produk
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          
+          <div className="mt-16 text-center">
+            <Link href="/produk" className="inline-flex items-center text-[#4A00E0] font-semibold hover:text-[#FF8C00] transition-colors group">
+              Lihat seluruh katalog produk kami 
+              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. SCROLLYTELLING */}
+      <section ref={containerRef} className="relative bg-[#FAFAFA]" style={{ height: '600vh' }}>
         <div className="sticky top-20 h-[85vh] max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-center lg:justify-between overflow-hidden">
           
-          {/* IMAGE TOP (Mobile) / LEFT (Desktop) */}
           <div className="w-full lg:w-1/2 h-[55%] lg:h-full flex justify-center items-center relative z-10 pt-8 lg:pt-0">
             <motion.div className="relative w-[240px] h-[480px] md:w-[320px] md:h-[640px] lg:w-[400px] lg:h-[800px]" style={{ y: translateY }}>
               {phoneSketches.map((url, index) => (
@@ -233,11 +319,9 @@ export default function Home() {
                 </motion.div>
               ))}
             </motion.div>
-            {/* Modern Subtle Glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96 rounded-full blur-[100px] opacity-10 bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] pointer-events-none -z-10"></div>
           </div>
 
-          {/* TEXT BOTTOM (Mobile) / RIGHT (Desktop) */}
           <div className="w-full lg:w-1/2 h-[45%] lg:h-full flex flex-col justify-start lg:justify-center text-center lg:text-left z-20 pt-6 md:pt-0">
             <AnimatePresence mode="wait">
               <motion.div 
@@ -272,11 +356,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. FOOTER - Minimalist Clean */}
+      {/* 5. FOOTER - Menambahkan Menu Terms, Refund & Kontak */}
       <footer className="bg-white border-t border-gray-100 pt-24 pb-10 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           
-          <div className="space-y-6 text-center md:text-left">
+          <div className="col-span-1 md:col-span-1 space-y-6 text-center md:text-left">
             <Link href="/" className="inline-block relative w-[160px] h-[40px]">
                {logoError ? (
                 <span className="text-xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2]">
@@ -299,23 +383,34 @@ export default function Home() {
               <li><Link href="/" className="hover:text-[#FF8C00] transition-colors">Beranda</Link></li>
               <li><button onClick={() => handleScrollToSection(0)} className="hover:text-[#FF8C00] transition-colors">Layanan IT</button></li>
               <li><Link href="/produk" className="hover:text-[#FF8C00] transition-colors">Katalog Produk</Link></li>
-              <li><Link href="/pricelist" className="hover:text-[#4A00E0] font-medium transition-colors">Price List Layanan</Link></li>
+              <li><Link href="/marketplace" className="hover:text-[#4A00E0] font-medium transition-colors">Askara Store</Link></li>
+            </ul>
+          </div>
+
+          {/* KOLOM BARU UNTUK HALAMAN INFORMASI */}
+          <div className="space-y-6 text-center md:text-left">
+            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Informasi</h4>
+            <ul className="space-y-3 font-light text-sm text-gray-500">
+              <li><Link href="/faq" className="hover:text-[#FF8C00] transition-colors">FAQ</Link></li>
+              <li><Link href="/contact" className="hover:text-[#FF8C00] transition-colors">Kontak Kami</Link></li>
+              <li><Link href="/terms" className="hover:text-[#FF8C00] transition-colors">Syarat & Ketentuan</Link></li>
+              <li><Link href="/refund-policy" className="hover:text-[#FF8C00] transition-colors">Kebijakan Pengembalian</Link></li>
             </ul>
           </div>
 
           <div className="space-y-6 text-center md:text-left">
-            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Hubungi Kami</h4>
+            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Hubungi Cepat</h4>
             <div className="space-y-4">
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">WhatsApp</p>
-                <a href="https://wa.me/6285815999953" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors font-medium">
-                  0858 1599 9953
+                <a href="https://wa.me/6285815999953" className="text-gray-700 text-sm hover:text-[#FF8C00] transition-colors font-medium">
+                  +62 858 1599 9953
                 </a>
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Telepon</p>
-                <a href="tel:085212347382" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors font-medium">
-                  0852 1234 7382
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Email</p>
+                <a href="mailto:admin@askaraindonesia.com" className="text-gray-700 text-sm hover:text-[#FF8C00] transition-colors font-medium">
+                  admin@askaraindonesia.com
                 </a>
               </div>
             </div>
