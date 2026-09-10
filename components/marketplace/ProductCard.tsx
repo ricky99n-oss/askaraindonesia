@@ -20,6 +20,9 @@ export default function ProductCard({ product }: { product: any }) {
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
   const [selectedShippingCost, setSelectedShippingCost] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  
+  // State Status Kota (Untuk menampilkan pesan error langsung di UI)
+  const [cityStatus, setCityStatus] = useState(''); 
 
   // Kategori & Deteksi
   const safeCategory = product?.category?.toLowerCase() || 'lainnya';
@@ -36,16 +39,23 @@ export default function ProductCard({ product }: { product: any }) {
   // Load Kota Hanya Sekali saat Modal Terbuka & Hanya Jika Produk Fisik
   useEffect(() => {
     if (showCheckoutModal && isPhysical && cities.length === 0) {
+      setCityStatus('Memuat daftar kota dari server...');
       fetch('/api/ongkir')
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
             setCities(data);
+            setCityStatus(''); // Kosongkan pesan jika sukses
           } else {
+            // TAMPILKAN ERROR DARI BACKEND LANGSUNG KE DROPDOWN
+            setCityStatus(`Error: ${data.error || 'Gagal memuat kota'}`);
             console.error('Data kota gagal dimuat:', data);
           }
         })
-        .catch(err => console.error('Gagal memuat kota', err));
+        .catch(err => {
+          setCityStatus('Error: Terputus dari server web.');
+          console.error(err);
+        });
     }
   }, [showCheckoutModal, isPhysical]);
 
@@ -93,7 +103,7 @@ export default function ProductCard({ product }: { product: any }) {
           name: safeName,
           price: safePrice,
           quantity: 1,
-          shippingCost: isPhysical ? selectedShippingCost : 0, // 0 untuk Jasa & Digital
+          shippingCost: isPhysical ? selectedShippingCost : 0, 
           buyerName,
           buyerEmail,
           buyerPhone
@@ -133,7 +143,6 @@ export default function ProductCard({ product }: { product: any }) {
           
           <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between gap-2">
             <span className="text-sm font-extrabold text-gray-900">Rp {formattedPrice}</span>
-            {/* SEMUA PRODUK MEMBUKA MODAL CHECKOUT */}
             <button 
               onClick={() => setShowCheckoutModal(true)}
               disabled={safePrice === 0}
@@ -152,7 +161,6 @@ export default function ProductCard({ product }: { product: any }) {
             <p className="text-xs text-gray-500 mb-5">Silakan lengkapi data pesanan Anda.</p>
             
             <form onSubmit={handleCheckout} className="space-y-4">
-              {/* Form Data Diri (Wajib untuk semua) */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Nama Lengkap</label>
                 <input required type="text" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm" placeholder="Contoh: Budi Santoso" />
@@ -179,8 +187,14 @@ export default function ProductCard({ product }: { product: any }) {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Kota Tujuan</label>
-                      <select value={selectedCity} onChange={(e) => { setSelectedCity(e.target.value); setShippingOptions([]); setSelectedShippingCost(0); }} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none">
-                        <option value="">-- Pilih Kota --</option>
+                      <select 
+                        value={selectedCity} 
+                        onChange={(e) => { setSelectedCity(e.target.value); setShippingOptions([]); setSelectedShippingCost(0); }} 
+                        className={`w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none ${cityStatus ? 'bg-red-50 text-red-600 font-bold border-red-300' : ''}`}
+                        disabled={!!cityStatus}
+                      >
+                        {/* Menampilkan status error langsung di dropdown */}
+                        <option value="">{cityStatus ? cityStatus : '-- Pilih Kota --'}</option>
                         {cities.map((city: any) => (<option key={city.city_id} value={city.city_id}>{city.type} {city.city_name}</option>))}
                       </select>
                     </div>
@@ -207,7 +221,6 @@ export default function ProductCard({ product }: { product: any }) {
                 </div>
               )}
 
-              {/* Aksi Bawah */}
               <div className="flex gap-3 pt-6 border-t border-gray-100">
                 <button type="button" onClick={() => setShowCheckoutModal(false)} className="flex-1 py-3 text-gray-600 font-semibold bg-gray-100 rounded-xl text-sm hover:bg-gray-200 transition-colors">
                   Batal
