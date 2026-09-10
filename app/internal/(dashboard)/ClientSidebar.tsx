@@ -2,15 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
+
+// Setup Supabase Client untuk fungsi Logout
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function ClientSidebar({ role }: { role: string }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isInstallable, setIsInstallable] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
 
-  // Deteksi jika browser mendukung instalasi PWA
+  // Deteksi PWA Install
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault()
@@ -33,7 +40,16 @@ export default function ClientSidebar({ role }: { role: string }) {
 
   const closeMenu = () => setIsOpen(false)
 
-  // Tambahan menu Data Transaksi untuk memantau pesanan Marketplace
+  // Fungsi Logout Supabase
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      router.push('/internal/login'); // Arahkan kembali ke halaman login
+    } else {
+      alert('Gagal melakukan logout');
+    }
+  }
+
   const navLinks = [
     { name: 'Estimator', href: '/internal/dashboard' },
     { name: 'Riwayat Dokumen', href: '/internal/history' },
@@ -45,7 +61,7 @@ export default function ClientSidebar({ role }: { role: string }) {
 
   return (
     <>
-      {/* HEADER MOBILE (Hanya muncul di HP) */}
+      {/* HEADER MOBILE */}
       <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center print:hidden z-30 sticky top-0">
         <div className="text-xl font-bold tracking-tight">Askara Internal</div>
         <button onClick={() => setIsOpen(!isOpen)} className="p-2 focus:outline-none bg-gray-800 rounded-lg">
@@ -59,7 +75,7 @@ export default function ClientSidebar({ role }: { role: string }) {
         </button>
       </div>
 
-      {/* OVERLAY GELAP (Saat menu terbuka di HP) */}
+      {/* OVERLAY GELAP MOBILE */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={closeMenu} />
       )}
@@ -92,9 +108,18 @@ export default function ClientSidebar({ role }: { role: string }) {
               className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-4 py-3 rounded-lg text-sm font-semibold shadow-md transition-all active:scale-95"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-              Install ke Perangkat
+              Install App
             </button>
           )}
+
+          {/* TOMBOL LOGOUT */}
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-red-500 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            Keluar
+          </button>
           
           <div className="text-xs font-mono text-gray-500 bg-gray-950/50 p-3 rounded-lg text-center border border-gray-800">
             Role: <span className="text-blue-400 font-semibold">{role.toUpperCase()}</span>
