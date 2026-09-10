@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
-const ORIGIN_CITY = '256'; // Kode Kota Malang
+export const dynamic = 'force-dynamic'; // WAJIB AGAR CLOUDFLARE TIDAK MENG-CACHE API INI
 
-// Sistem sekarang akan mencoba 3 jalur RajaOngkir sekaligus
+const ORIGIN_CITY = '256'; // Malang
+
 const ENDPOINTS = [
   'https://api.rajaongkir.com/starter',
   'https://pro.rajaongkir.com/api',
@@ -12,10 +13,9 @@ const ENDPOINTS = [
 
 export async function GET() {
   const key = process.env.RAJAONGKIR_API_KEY;
-  if (!key) return NextResponse.json({ error: 'API Key Ongkir belum terbaca oleh Cloudflare. Pastikan sudah Deploy Ulang.' }, { status: 500 });
+  if (!key) return NextResponse.json({ error: 'API Key Ongkir belum disetting.' }, { status: 500 });
 
   let lastError = '';
-  
   for (const baseUrl of ENDPOINTS) {
     try {
       const res = await fetch(`${baseUrl}/city`, { method: 'GET', headers: { key } });
@@ -28,13 +28,12 @@ export async function GET() {
       lastError = e.message;
     }
   }
-  
-  return NextResponse.json({ error: `API Key Salah atau Tidak Aktif. Detail: ${lastError}` }, { status: 400 });
+  return NextResponse.json({ error: lastError }, { status: 400 });
 }
 
 export async function POST(request: Request) {
   const key = process.env.RAJAONGKIR_API_KEY;
-  if (!key) return NextResponse.json({ error: 'API Key Ongkir belum terbaca' }, { status: 500 });
+  if (!key) return NextResponse.json({ error: 'API Key Ongkir belum disetting.' }, { status: 500 });
 
   try {
     const body = await request.json();
@@ -46,12 +45,7 @@ export async function POST(request: Request) {
         const res = await fetch(`${baseUrl}/cost`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'key': key },
-          body: new URLSearchParams({
-            origin: ORIGIN_CITY,
-            destination: destination,
-            weight: weight.toString(),
-            courier: courier
-          }).toString()
+          body: new URLSearchParams({ origin: ORIGIN_CITY, destination, weight: weight.toString(), courier }).toString()
         });
         const data = await res.json();
         
@@ -63,9 +57,8 @@ export async function POST(request: Request) {
         lastError = e.message;
       }
     }
-    
-    return NextResponse.json({ error: `Kurir tidak tersedia. Detail: ${lastError}` }, { status: 400 });
+    return NextResponse.json({ error: lastError }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: 'Format request salah' }, { status: 500 });
+    return NextResponse.json({ error: 'Format error' }, { status: 500 });
   }
 }

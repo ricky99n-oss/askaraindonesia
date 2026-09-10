@@ -7,57 +7,63 @@ export default function ProductCard({ product }: { product: any }) {
   const [imgError, setImgError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // State Modal & Customer Info
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [buyerName, setBuyerName] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
 
-  // State Ongkir
   const [cities, setCities] = useState<any[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedCourier, setSelectedCourier] = useState('jne');
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
   const [selectedShippingCost, setSelectedShippingCost] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
-  
-  // State Status Kota (Untuk menampilkan pesan error langsung di UI)
   const [cityStatus, setCityStatus] = useState(''); 
 
-  // Kategori & Deteksi
   const safeCategory = product?.category?.toLowerCase() || 'lainnya';
   const safeName = product?.name || 'Produk Askara';
   const safeDesc = product?.description || 'Tidak ada deskripsi.';
   const safePrice = Number(product?.price || product?.base_price || 0); 
   const formattedPrice = safePrice.toLocaleString('id-ID'); 
 
-  // Deteksi Fisik / Non-Fisik
   const isJasa = safeCategory.includes('jasa');
   const isDigital = safeCategory.includes('digital') || safeCategory.includes('lisensi') || safeCategory.includes('software');
   const isPhysical = !isJasa && !isDigital;
 
-  // Load Kota Hanya Sekali saat Modal Terbuka & Hanya Jika Produk Fisik
+  // FITUR FAIL-SAFE (Anti-Gagal)
   useEffect(() => {
-    if (showCheckoutModal && isPhysical && cities.length === 0) {
-      setCityStatus('Memuat daftar kota dari server...');
-      fetch('/api/ongkir')
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setCities(data);
-            setCityStatus(''); // Kosongkan pesan jika sukses
-          } else {
-            // TAMPILKAN ERROR DARI BACKEND LANGSUNG KE DROPDOWN
-            setCityStatus(`Error: ${data.error || 'Gagal memuat kota'}`);
-            console.error('Data kota gagal dimuat:', data);
-          }
-        })
-        .catch(err => {
-          setCityStatus('Error: Terputus dari server web.');
-          console.error(err);
-        });
-    }
-  }, [showCheckoutModal, isPhysical]);
+    let isMounted = true;
+    
+    const loadCities = async () => {
+      if (!showCheckoutModal || !isPhysical || cities.length > 0) return;
+      
+      try {
+        setCityStatus('Memuat daftar kota...');
+        // Menggunakan URL Absolute untuk menghindari NetworkError relatif
+        const res = await fetch(`${window.location.origin}/api/ongkir`);
+        
+        if (!res.ok) throw new Error('API tertolak (HTTP ' + res.status + ')');
+        const data = await res.json();
+        
+        if (Array.isArray(data) && isMounted) {
+          setCities(data);
+          setCityStatus('');
+        } else {
+          throw new Error(data.error || 'Data invalid');
+        }
+      } catch (err: any) {
+        console.error("Gagal Ongkir:", err);
+        if (isMounted) {
+          // JIKA ERROR, MUNCULKAN MODE MANUAL AGAR PEMBELI TETAP BISA CHECKOUT
+          setCityStatus('');
+          setCities([{ city_id: 'MANUAL', type: 'Manual', city_name: 'Hitung Ongkir via WhatsApp' }]);
+        }
+      }
+    };
+
+    loadCities();
+    return () => { isMounted = false; };
+  }, [showCheckoutModal, isPhysical, cities.length]);
 
   const handleCheckOngkir = async () => {
     if (!selectedCity) return alert('Pilih kota tujuan!');
@@ -65,8 +71,15 @@ export default function ProductCard({ product }: { product: any }) {
     setShippingOptions([]);
     setSelectedShippingCost(0);
     
+    // Jika Masuk Mode Darurat
+    if (selectedCity === 'MANUAL') {
+      setShippingOptions([{ service: 'Ongkir Dihitung Admin via WA (Bayar Terpisah)', cost: [{ value: 0, etd: '-' }] }]);
+      setIsCalculating(false);
+      return;
+    }
+    
     try {
-      const res = await fetch('/api/ongkir', {
+      const res = await fetch(`${window.location.origin}/api/ongkir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ destination: selectedCity, weight: 1000, courier: selectedCourier })
@@ -88,8 +101,7 @@ export default function ProductCard({ product }: { product: any }) {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Cegah checkout jika barang fisik tapi ongkir belum dipilih
-    if (isPhysical && (shippingOptions.length === 0 || selectedShippingCost === 0)) {
+    if (isPhysical && shippingOptions.length === 0) {
       return alert('Silakan cek harga dan pilih layanan ongkos kirim terlebih dahulu.');
     }
 
@@ -174,7 +186,6 @@ export default function ProductCard({ product }: { product: any }) {
                 <input required type="tel" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm" placeholder="081234567890" />
               </div>
 
-              {/* KHUSUS PRODUK FISIK - MUNCULKAN ONGKIR */}
               {isPhysical && (
                 <div className="pt-4 border-t border-gray-100 space-y-4">
                   <div className="grid grid-cols-2 gap-2">
@@ -190,10 +201,9 @@ export default function ProductCard({ product }: { product: any }) {
                       <select 
                         value={selectedCity} 
                         onChange={(e) => { setSelectedCity(e.target.value); setShippingOptions([]); setSelectedShippingCost(0); }} 
-                        className={`w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none ${cityStatus ? 'bg-red-50 text-red-600 font-bold border-red-300' : ''}`}
+                        className={`w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none transition-colors ${cityStatus ? 'bg-orange-50 text-orange-600 font-bold border-orange-300' : ''}`}
                         disabled={!!cityStatus}
                       >
-                        {/* Menampilkan status error langsung di dropdown */}
                         <option value="">{cityStatus ? cityStatus : '-- Pilih Kota --'}</option>
                         {cities.map((city: any) => (<option key={city.city_id} value={city.city_id}>{city.type} {city.city_name}</option>))}
                       </select>
@@ -206,9 +216,9 @@ export default function ProductCard({ product }: { product: any }) {
 
                   {shippingOptions.length > 0 && (
                     <div className="space-y-2 mt-2">
-                      {shippingOptions.map((opt: any) => (
-                        <label key={opt.service} className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors ${selectedShippingCost === opt.cost[0].value ? 'border-purple-500 bg-purple-50' : 'hover:bg-gray-50'}`}>
-                          <input type="radio" name="shipping" className="mr-3 text-purple-600" onChange={() => setSelectedShippingCost(opt.cost[0].value)} />
+                      {shippingOptions.map((opt: any, idx: number) => (
+                        <label key={idx} className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors ${selectedShippingCost === opt.cost[0].value ? 'border-purple-500 bg-purple-50' : 'hover:bg-gray-50'}`}>
+                          <input type="radio" name="shipping" className="mr-3 text-purple-600" onChange={() => setSelectedShippingCost(opt.cost[0].value)} defaultChecked={idx===0} />
                           <div className="flex-grow">
                             <p className="text-xs font-bold">{opt.service}</p>
                             <p className="text-[10px] text-gray-500">{opt.cost[0].etd} Hari</p>
