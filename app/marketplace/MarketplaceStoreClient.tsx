@@ -8,42 +8,46 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [sortOption, setSortOption] = useState('terbaru');
+  
+  // STATE PAGINATION BARU
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const ADMIN_WA_NUMBER = "6285815999953";
 
-  // 1. PEMETAAN DATA (MEMPERBAIKI HARGA 0 DAN GAMBAR KOSONG)
+  // Reset ke Halaman 1 jika pengguna mencari atau mengganti kategori/filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, sortOption]);
+
   const processedProducts = useMemo(() => {
     const margin = Number(serverSettings?.margin) || 0;
     
     return initialProducts.map(p => {
-      // Kalkulasi margin
       const calculatedPrice = p.apply_margin !== false
         ? Math.round((p.base_price || 0) * (1 + (margin / 100)))
         : (p.base_price || 0);
 
-      // Mapping properti DB ke properti yang dibutuhkan ProductCard baru
       return {
         ...p,
         id: p.id,
         name: p.name,
         category: p.category || 'Lainnya',
         description: p.description,
-        price: calculatedPrice,       // Mapping base_price -> price
-        image: p.image_url || '',     // Mapping image_url -> image
+        price: calculatedPrice,       
+        image: p.image_url || '',     
         stock: p.stock_qty || 0,
         is_bestseller: p.is_bestseller,
       };
     });
   }, [initialProducts, serverSettings]);
 
-  // 2. FILTERING & SORTING
   const bestSellers = useMemo(() => processedProducts.filter(p => p.is_bestseller && p.stock > 0), [processedProducts]);
   
   const serviceProducts = useMemo(() => processedProducts.filter(p => 
     p.category?.toUpperCase().includes('JASA') || p.name?.toUpperCase().includes('JASA')
   ), [processedProducts]);
 
-  // Membuat daftar kategori dinamis berdasarkan data yang ada
   const categories = ['Semua', ...Array.from(new Set(processedProducts.map(p => p.category).filter(Boolean)))];
   
   const sortedAndFilteredProducts = useMemo(() => {
@@ -70,7 +74,13 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
     return result;
   }, [processedProducts, searchQuery, selectedCategory, sortOption]);
 
-  // 3. KOMPONEN CAROUSEL (DIPERTAHANKAN DARI KODE LAMA)
+  // LOGIKA PEMOTONGAN DATA UNTUK PAGINATION
+  const totalPages = Math.ceil(sortedAndFilteredProducts.length / itemsPerPage);
+  const paginatedProducts = sortedAndFilteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const DraggableCarousel = ({ items }: { items: any[] }) => {
     const sliderRef = useRef<HTMLDivElement>(null);
     const isDown = useRef(false);
@@ -167,7 +177,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24 relative overflow-x-hidden">
       
-      {/* HEADER NAVIGATION */}
       <nav className="bg-white border-b sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -192,7 +201,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8 sm:space-y-12">
         
-        {/* HERO SECTION */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-2xl md:rounded-3xl overflow-hidden flex flex-col md:flex-row items-center relative px-6 py-10 md:p-12 lg:p-16">
           <div className="absolute top-0 right-0 bottom-0 w-full md:w-[55%] bg-gradient-to-bl from-purple-600 to-orange-500 md:rounded-l-[120px] hidden md:block z-0 opacity-95"></div>
           <div className="relative z-10 md:w-1/2 lg:w-[45%] space-y-4 sm:space-y-6 text-center md:text-left flex flex-col items-center md:items-start py-4">
@@ -213,7 +221,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         </div>
 
-        {/* BEST SELLERS CAROUSEL */}
         {bestSellers.length > 0 && (
           <div className="pt-4 pb-2 relative">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
@@ -223,7 +230,6 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         )}
 
-        {/* SERVICES CAROUSEL */}
         {serviceProducts.length > 0 && (
           <div className="pt-2 pb-2 relative">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
@@ -233,7 +239,7 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
           </div>
         )}
 
-        {/* MAIN CATALOG FILTER & GRID */}
+        {/* MAIN CATALOG FILTER & GRID DENGAN PAGINATION */}
         <div id="katalog-section" className="pt-4 scroll-mt-24 border-t border-gray-100">
           <div className="mb-5 space-y-4 pt-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Semua Katalog Produk</h2>
@@ -263,17 +269,50 @@ export default function MarketplaceStoreClient({ initialProducts, serverSettings
             </div>
           </div>
           
+          {/* GRID PRODUK MENGGUNAKAN PAGINATED PRODUCTS */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 mt-2">
-            {sortedAndFilteredProducts.length === 0 ? (
+            {paginatedProducts.length === 0 ? (
               <div className="col-span-full py-20 text-center text-gray-500 flex flex-col items-center"><svg className="w-16 h-16 opacity-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>Produk tidak ditemukan.</div>
             ) : (
-              sortedAndFilteredProducts.map((product: any) => (
+              paginatedProducts.map((product: any) => (
                 <div key={product.id} className="w-full">
                    <ProductCard product={product} />
                 </div>
               ))
             )}
           </div>
+
+          {/* KONTROL PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row justify-center items-center mt-12 gap-4 pb-8">
+              <button
+                onClick={() => {
+                  setCurrentPage(prev => Math.max(prev - 1, 1));
+                  document.getElementById('katalog-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                disabled={currentPage === 1}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:text-purple-600 transition-all shadow-sm"
+              >
+                &larr; Sebelumnya
+              </button>
+
+              <span className="text-sm font-semibold text-gray-600 px-4">
+                Halaman <span className="text-purple-600 font-bold text-lg mx-1">{currentPage}</span> dari {totalPages}
+              </span>
+
+              <button
+                onClick={() => {
+                  setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                  document.getElementById('katalog-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                disabled={currentPage === totalPages}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:text-purple-600 transition-all shadow-sm"
+              >
+                Selanjutnya &rarr;
+              </button>
+            </div>
+          )}
+
         </div>
       </main>
 
