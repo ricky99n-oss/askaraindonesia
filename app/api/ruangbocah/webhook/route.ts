@@ -5,40 +5,35 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
+    // iPaymu mengirim data Webhook melalui Form Data (x-www-form-urlencoded / multipart)
+    const formData = await req.formData();
+    
+    const status_code = formData.get('status_code');
+    const status = formData.get('status');
+    const reference_id = formData.get('reference_id') as string;
 
-    // 1. Ambil variabel environment di dalam fungsi (Praktik terbaik untuk Edge)
-    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
     const APP_SUPABASE_URL = process.env.RUANG_BOCAH_SUPABASE_URL || '';
     const APP_SUPABASE_KEY = process.env.RUANG_BOCAH_SUPABASE_SERVICE_KEY || '';
 
-    if (!serverKey || !APP_SUPABASE_URL || !APP_SUPABASE_KEY) {
+    if (!APP_SUPABASE_URL || !APP_SUPABASE_KEY) {
       console.error('Environment variables Ruang Bocah tidak lengkap');
       return NextResponse.json({ error: 'Konfigurasi server tidak lengkap' }, { status: 500 });
     }
 
-    // 2. Validasi Keamanan (Signature Midtrans menggunakan Web Crypto API)
-    const textToHash = `${data.order_id}${data.status_code}${data.gross_amount}${serverKey}`;
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(textToHash);
-    const hashBuffer = await crypto.subtle.digest('SHA-512', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    if (data.signature_key !== hashHex) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
-    }
-
-    // 3. Cek apakah transaksi lunas (settlement / capture)
-    if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
-      const uid = data.custom_field1; // ID User Flutter yang diselipkan
+    // Cek apakah transaksi lunas dari iPaymu (status_code = 1)
+    if (status_code === '1' || status?.toString().toLowerCase() === 'berhasil') {
       
-      if (uid) {
+      // Validasi apakah ini transaksi Ruang Bocah
+      if (reference_id && reference_id.startsWith('RB-PREM-')) {
+        
+        // Ekstrak UID asli (Menghilangkan prefix RB-PREM-)
+        const uid = reference_id.replace('RB-PREM-', '');
+
         // Menghitung tanggal expired baru (30 hari dari sekarang)
         const validUntil = new Date();
         validUntil.setDate(validUntil.getDate() + 30);
 
-        // 4. RPC Call ke Supabase App untuk update langganan & koin
+        // RPC Call ke Supabase App untuk update langganan & koin
         const rpcResponse = await fetch(`${APP_SUPABASE_URL}/rest/v1/rpc/perpanjang_langganan`, {
           method: 'POST',
           headers: {
@@ -53,19 +48,21 @@ export async function POST(req: Request) {
           })
         });
 
-        // 5. Validasi hasil dari Supabase
+        // Validasi hasil dari Supabase
         if (!rpcResponse.ok) {
           const errorDetail = await rpcResponse.text();
           console.error('❌ Gagal update ke Supabase Ruang Bocah:', errorDetail);
-          // Mengembalikan 500 agar Midtrans mencoba ulang webhook jika terjadi kegagalan jaringan internal
+          // 500 agar Gateway mencoba ulang webhook jika Supabase sedang down
           return NextResponse.json({ error: 'Gagal sinkronisasi database' }, { status: 500 });
         }
+
+        console.log(`✅ Langganan Ruang Bocah berhasil diupdate untuk UID: ${uid}`);
       } else {
-        console.warn('⚠️ Custom Field 1 (UID) kosong dari Midtrans, mengabaikan proses update Supabase.');
+        console.warn('⚠️ Reference ID bukan format Ruang Bocah, mengabaikan proses update Supabase.');
       }
     }
 
-    // Berikan respons 200 OK agar Midtrans tahu webhook sukses diterima
+    // Berikan respons 200 OK agar iPaymu berhenti mengirim ulang notifikasi (retry)
     return NextResponse.json({ status: 'success' }, { status: 200 });
     
   } catch (error: any) {

@@ -2,13 +2,6 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
-import Script from 'next/script';
-
-declare global {
-  interface Window {
-    snap: any;
-  }
-}
 
 // 1. PISAHKAN KONTEN UTAMA KE DALAM KOMPONEN BARU
 function SubscribeContent() {
@@ -24,48 +17,41 @@ function SubscribeContent() {
     );
   }
 
+  // Logika Pembayaran Terintegrasi dengan iPaymu
   const handlePayment = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/ruangbocah/midtrans-token', {
+      const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid }),
+        body: JSON.stringify({
+          // UID disisipkan ke productId agar mudah dilacak di Webhook nanti
+          productId: `RB-PREM-${uid}`, 
+          name: 'Ruang Bocah Premium (1 Bulan)',
+          price: 4900,
+          quantity: 1,
+          buyerName: 'Member Ruang Bocah', 
+        }),
       });
 
-      const { token } = await response.json();
+      const data = await response.json();
 
-      if (token) {
-        window.snap.pay(token, {
-          onSuccess: function (result: any) {
-            alert("Pembayaran berhasil! Silakan kembali ke aplikasi Ruang Bocah.");
-          },
-          onPending: function (result: any) {
-            alert("Menunggu pembayaran Anda.");
-          },
-          onError: function (result: any) {
-            alert("Pembayaran gagal. Silakan coba lagi.");
-          },
-          onClose: function () {
-            setIsLoading(false);
-          }
-        });
+      if (data.paymentUrl) {
+        // Redirect langsung ke halaman pembayaran iPaymu
+        window.location.href = data.paymentUrl;
+      } else {
+        alert(data.error || 'Terjadi kesalahan saat membuat link pembayaran.');
+        setIsLoading(false);
       }
     } catch (error) {
       console.error(error);
-      alert('Terjadi kesalahan saat memproses pembayaran.');
+      alert('Gagal terhubung ke server pembayaran. Silakan coba lagi.');
       setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
-      <Script 
-        src="https://app.midtrans.com/snap/snap.js" 
-        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
-        strategy="lazyOnload"
-      />
-
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
         <div className="bg-purple-700 p-8 text-center relative">
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-orange-500 rounded-b-md"></div>
@@ -101,17 +87,23 @@ function SubscribeContent() {
           <button
             onClick={handlePayment}
             disabled={isLoading}
-            className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-4 rounded-xl transition duration-300 shadow-md shadow-purple-200 flex justify-center items-center"
+            className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-4 rounded-xl transition duration-300 shadow-md shadow-purple-200 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? (
-              <span className="animate-pulse">Memproses...</span>
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses...
+              </span>
             ) : (
               'Berlangganan Sekarang'
             )}
           </button>
           
           <p className="text-center text-xs text-gray-400 mt-4">
-            Pembayaran aman didukung oleh Midtrans.
+            Pembayaran aman didukung oleh <strong>iPaymu</strong>.
           </p>
         </div>
       </div>
