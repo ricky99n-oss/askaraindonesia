@@ -5,36 +5,16 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import Link from 'next/link';
 import Image from 'next/image'; 
 
-// --- DATA DUMMY PRODUK TERLARIS ---
-const bestSellingProducts = [
-  {
-    id: 1,
-    name: "Aplikasi Kasir Smart POS",
-    price: "Rp 1.500.000",
-    description: "Sistem kasir modern berbasis cloud untuk mempermudah transaksi bisnis Anda.",
-    href: "/askarasmartpos",
-    icon: "💻"
-  },
-  {
-    id: 2,
-    name: "Paket Website & E-Course",
-    price: "Rp 3.500.000",
-    description: "LMS lengkap terintegrasi dengan video hosting (Supabase & Bunny.net).",
-    href: "/marketplace",
-    icon: "🌐"
-  },
-  {
-    id: 3,
-    name: "Setup Jaringan & MikroTik",
-    price: "Mulai Rp 500.000",
-    description: "Konfigurasi VPN, load balancing, failover, dan setup UniFi Access Point.",
-    href: "/marketplace",
-    icon: "📡"
-  }
-];
+// IMPORT DATA TERPUSAT
+import { storeProducts } from '@/lib/storeData';
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Ambil maksimal 3 produk terlaris dari lib/storeData.ts
+  const bestSellingProducts = storeProducts
+    .filter(product => product.isBestSeller)
+    .slice(0, 3);
 
   const scrollyData = [
     { id: 0, title: "Sejarah PT Askara Indonesia", description: "9+ tahun pengalaman. Didirikan oleh innovator IT berbakat, melayani 300+ klien besar, UMKM, hingga korporasi." },
@@ -88,7 +68,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#FAFAFA] text-gray-900 font-sans selection:bg-[#FF8C00] selection:text-white">
       
-      {/* 1. HEADER - Menambahkan Menu Kontak & FAQ */}
+      {/* 1. HEADER */}
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center z-50">
@@ -110,7 +90,6 @@ export default function Home() {
             )}
           </Link>
           
-          {/* Desktop Nav */}
           <nav className="hidden lg:flex space-x-6 xl:space-x-8 font-medium items-center text-sm tracking-wide text-gray-600">
             <Link href="/" className="hover:text-[#4A00E0] transition-colors">Beranda</Link>
             
@@ -141,12 +120,11 @@ export default function Home() {
             <Link href="/contact" className="hover:text-[#4A00E0] transition-colors">Kontak</Link>
             
             <Link href="/marketplace" className="relative overflow-hidden group bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5">
-  <span className="relative z-10">Askara Store</span>
-  <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
-</Link>
+              <span className="relative z-10">Askara Store</span>
+              <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
+            </Link>
           </nav>
 
-          {/* Mobile Menu Toggle */}
           <button 
             className="lg:hidden relative z-50 p-2 text-gray-900 focus:outline-none"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -162,7 +140,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Mobile Dropdown Nav */}
         <AnimatePresence>
           {isMobileMenuOpen && (
             <motion.div 
@@ -240,7 +217,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. PRODUK TERLARIS (SEKSI BARU YANG DITAMBAHKAN) */}
+      {/* 3. PRODUK TERLARIS (TERHUBUNG KE STORE DATA) */}
       <section className="py-24 bg-white relative z-20 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -270,13 +247,15 @@ export default function Home() {
                 className="flex flex-col bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-2xl hover:shadow-blue-900/5 border border-gray-100 transition-all duration-300 group"
               >
                 <div className="text-4xl mb-6 bg-white w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  {product.icon}
+                  {product.icon || "📦"}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{product.name}</h3>
                 <p className="text-gray-600 mb-6 flex-grow leading-relaxed">{product.description}</p>
-                <p className="text-2xl font-extrabold text-[#4A00E0] mb-8">{product.price}</p>
+                <p className="text-2xl font-extrabold text-[#4A00E0] mb-8">
+                  {typeof product.price === 'number' ? `Rp ${product.price.toLocaleString('id-ID')}` : product.price}
+                </p>
                 <Link 
-                  href={product.href}
+                  href="/marketplace"
                   className="w-full text-center bg-white border border-gray-200 text-gray-900 font-semibold py-3.5 px-4 rounded-xl hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-colors"
                 >
                   Lihat Detail Produk
@@ -356,7 +335,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. FOOTER - Menambahkan Menu Terms, Refund & Kontak */}
+      {/* 5. FOOTER */}
       <footer className="bg-white border-t border-gray-100 pt-24 pb-10 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           
@@ -387,7 +366,6 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* KOLOM BARU UNTUK HALAMAN INFORMASI */}
           <div className="space-y-6 text-center md:text-left">
             <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Informasi</h4>
             <ul className="space-y-3 font-light text-sm text-gray-500">
@@ -409,8 +387,8 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Email</p>
-                <a href="mailto:admin@askaraindonesia.com" className="text-gray-700 text-sm hover:text-[#FF8C00] transition-colors font-medium">
-                  admin@askaraindonesia.com
+                <a href="mailto:hello@askaraindonesia.com" className="text-gray-700 text-sm hover:text-[#FF8C00] transition-colors font-medium">
+                  hello@askaraindonesia.com
                 </a>
               </div>
             </div>

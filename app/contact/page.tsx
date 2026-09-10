@@ -13,7 +13,7 @@ export default function ContactPage() {
               <span className="text-2xl mr-4">📧</span>
               <div>
                 <p className="text-sm text-gray-500 font-semibold">Email</p>
-                <p className="text-lg text-gray-900">admin@askaraindonesia.com</p>
+                <p className="text-lg text-gray-900">hello@askaraindonesia.com</p>
               </div>
             </div>
   
@@ -21,7 +21,7 @@ export default function ContactPage() {
               <span className="text-2xl mr-4">📱</span>
               <div>
                 <p className="text-sm text-gray-500 font-semibold">Nomor Telepon / WhatsApp</p>
-                <p className="text-lg text-gray-900">+62 812-XXXX-XXXX</p>
+                <p className="text-lg text-gray-900">+62 858 1599 9953</p>
               </div>
             </div>
   
@@ -29,7 +29,7 @@ export default function ContactPage() {
               <span className="text-2xl mr-4">📍</span>
               <div>
                 <p className="text-sm text-gray-500 font-semibold">Alamat Usaha</p>
-                <p className="text-lg text-gray-900">Malang, Jawa Timur, Indonesia</p>
+                <p className="text-lg text-gray-900">Batu, Jawa Timur, Indonesia</p>
               </div>
             </div>
           </div>
