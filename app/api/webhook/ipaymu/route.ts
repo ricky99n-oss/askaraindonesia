@@ -1,28 +1,29 @@
-// app/api/webhook/ipaymu/route.ts
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
 export const runtime = 'edge';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
 export async function POST(req: Request) {
   try {
-    // iPaymu mengirim notifikasi dalam bentuk Form Data
-    const formData = await req.formData();
-    const trx_id = formData.get('trx_id');
-    const status = formData.get('status');
-    const status_code = formData.get('status_code');
-    const reference_id = formData.get('reference_id');
+    const body = await req.json();
+    // iPaymu mengirimkan status transaksi, reference_id, dll ke webhook ini
+    const { reference_id, status_code } = body;
 
-    // Status code iPaymu: 
-    // 1 = Berhasil, 0 = Pending, -2 = Gagal/Expired
-    if (status_code === '1' || status === 'berhasil') {
-      // TODO: Update status pesanan di database Anda (Supabase/Prisma) menjadi 'PAID'
-      console.log(`Pesanan ${reference_id} BERHASIL dibayar! TrxID: ${trx_id}`);
-    } else if (status_code === '-2' || status === 'expired') {
-      // TODO: Batalkan pesanan di database
-      console.log(`Pesanan ${reference_id} EXPIRED/GAGAL.`);
+    if (reference_id && (status_code === '1' || status_code === 1)) {
+       // Status 1 artinya Berhasil (PAID)
+       await supabase.from('transactions').update({ status: 'PAID' }).eq('reference_id', reference_id);
+    } else if (reference_id && (status_code === '-2' || status_code === -2)) {
+       // Status -2 artinya Expired / Gagal
+       await supabase.from('transactions').update({ status: 'FAILED' }).eq('reference_id', reference_id);
     }
 
-    // Selalu balas HTTP 200 agar iPaymu tidak mengirim ulang notifikasi (retry)
-    return NextResponse.json({ status: 'success' }, { status: 200 });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Webhook Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

@@ -7,8 +7,13 @@ export default function ProductCard({ product }: { product: any }) {
   const [imgError, setImgError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
+  // State Modal & Customer Info
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [buyerName, setBuyerName] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
+
   // State Ongkir
-  const [showOngkirModal, setShowOngkirModal] = useState(false);
   const [cities, setCities] = useState<any[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedCourier, setSelectedCourier] = useState('jne');
@@ -16,35 +21,36 @@ export default function ProductCard({ product }: { product: any }) {
   const [selectedShippingCost, setSelectedShippingCost] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Fallback Data Aman (Menghindari error jika properti DB kosong)
+  // Kategori & Deteksi
   const safeCategory = product?.category?.toLowerCase() || 'lainnya';
   const safeName = product?.name || 'Produk Askara';
   const safeDesc = product?.description || 'Tidak ada deskripsi.';
   const safePrice = Number(product?.price || product?.base_price || 0); 
   const formattedPrice = safePrice.toLocaleString('id-ID'); 
 
-  // DETEKSI JENIS PRODUK
+  // Deteksi Fisik / Non-Fisik
   const isJasa = safeCategory.includes('jasa');
   const isDigital = safeCategory.includes('digital') || safeCategory.includes('lisensi') || safeCategory.includes('software');
   const isPhysical = !isJasa && !isDigital;
 
-  const WA_NUMBER = '6285815999953';
-  const waMessage = encodeURIComponent(`Halo Askara, saya tertarik dengan layanan: *${safeName}*. Bisa minta informasi lebih lanjut?`);
-
-  // Load daftar kota otomatis saat modal terbuka
+  // Load Kota Hanya Sekali saat Modal Terbuka & Hanya Jika Produk Fisik
   useEffect(() => {
-    if (showOngkirModal && cities.length === 0) {
+    if (showCheckoutModal && isPhysical && cities.length === 0) {
       fetch('/api/ongkir')
         .then(res => res.json())
         .then(data => {
-          if (!data.error) setCities(data);
+          if (Array.isArray(data)) {
+            setCities(data);
+          } else {
+            console.error('Data kota gagal dimuat:', data);
+          }
         })
         .catch(err => console.error('Gagal memuat kota', err));
     }
-  }, [showOngkirModal]);
+  }, [showCheckoutModal, isPhysical]);
 
   const handleCheckOngkir = async () => {
-    if (!selectedCity) return alert('Pilih kota tujuan terlebih dahulu!');
+    if (!selectedCity) return alert('Pilih kota tujuan!');
     setIsCalculating(true);
     setShippingOptions([]);
     setSelectedShippingCost(0);
@@ -53,27 +59,30 @@ export default function ProductCard({ product }: { product: any }) {
       const res = await fetch('/api/ongkir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          destination: selectedCity, 
-          weight: 1000, // Default 1kg, sesuaikan jika DB Anda punya kolom berat
-          courier: selectedCourier 
-        })
+        body: JSON.stringify({ destination: selectedCity, weight: 1000, courier: selectedCourier })
       });
       const data = await res.json();
       
       if (data.costs && data.costs.length > 0) {
         setShippingOptions(data.costs);
       } else {
-        alert(data.error || 'Kurir ini tidak tersedia untuk kota tujuan Anda.');
+        alert(data.error || 'Kurir tidak tersedia untuk kota ini.');
       }
     } catch (error) {
-      alert('Terjadi kesalahan koneksi saat mengecek harga kurir.');
+      alert('Gagal mengecek ongkir.');
     } finally {
       setIsCalculating(false);
     }
   };
 
-  const handleCheckout = async (ongkirCost = 0) => {
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Cegah checkout jika barang fisik tapi ongkir belum dipilih
+    if (isPhysical && (shippingOptions.length === 0 || selectedShippingCost === 0)) {
+      return alert('Silakan cek harga dan pilih layanan ongkos kirim terlebih dahulu.');
+    }
+
     setIsLoading(true);
     try {
       const res = await fetch('/api/checkout', {
@@ -84,7 +93,10 @@ export default function ProductCard({ product }: { product: any }) {
           name: safeName,
           price: safePrice,
           quantity: 1,
-          shippingCost: ongkirCost
+          shippingCost: isPhysical ? selectedShippingCost : 0, // 0 untuk Jasa & Digital
+          buyerName,
+          buyerEmail,
+          buyerPhone
         }),
       });
 
@@ -92,10 +104,10 @@ export default function ProductCard({ product }: { product: any }) {
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        alert(data.error || 'Terjadi kesalahan saat membuat link pembayaran.');
+        alert(data.error || 'Gagal memproses pembayaran iPaymu.');
       }
     } catch (error) {
-      alert('Gagal terhubung ke server pembayaran iPaymu.');
+      alert('Gagal terhubung ke server pembayaran.');
     } finally {
       setIsLoading(false);
     }
@@ -103,171 +115,108 @@ export default function ProductCard({ product }: { product: any }) {
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg transition-all duration-300 flex flex-col h-full group">
-        
-        {/* Gambar Produk */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg transition-all flex flex-col h-full group">
         <div className="relative w-full aspect-square bg-gray-50 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
           {!imgError && product?.image ? (
-            <Image 
-              src={product.image} 
-              alt={safeName} 
-              fill 
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 768px) 50vw, 20vw"
-              onError={() => setImgError(true)}
-            />
+            <Image src={product.image} alt={safeName} fill className="object-cover group-hover:scale-105 transition-transform" sizes="(max-width: 768px) 50vw, 20vw" onError={() => setImgError(true)} />
           ) : (
-            <div className="text-gray-400 text-xs text-center px-2">Visual Kosong</div>
+            <div className="text-gray-400 text-xs">Visual Kosong</div>
           )}
         </div>
         
-        {/* Detail Produk */}
         <div className="flex-grow flex flex-col">
-          <span className={`text-[10px] font-bold tracking-wider uppercase mb-1 ${isJasa ? 'text-green-500' : isDigital ? 'text-blue-500' : 'text-[#FF8C00]'}`}>
+          <span className={`text-[10px] font-bold uppercase mb-1 ${isJasa ? 'text-green-500' : isDigital ? 'text-blue-500' : 'text-orange-500'}`}>
             {product?.category || 'Lainnya'}
           </span>
-          <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-snug group-hover:text-purple-600 transition-colors">
-            {safeName}
-          </h3>
-          <p className="text-xs text-gray-500 mb-4 line-clamp-2">
-            {safeDesc}
-          </p>
+          <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-snug">{safeName}</h3>
+          <p className="text-xs text-gray-500 mb-4 line-clamp-2">{safeDesc}</p>
           
-          {/* Tombol Aksi */}
           <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between gap-2">
-            <span className="text-sm font-extrabold text-gray-900">
-              Rp {formattedPrice}
-            </span>
-            
-            {isJasa ? (
-              // Tombol Untuk Jasa (Langsung WA, Tanpa iPaymu)
-              <a 
-                href={`https://wa.me/${WA_NUMBER}?text=${waMessage}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition-all shrink-0"
-              >
-                Pesan (WA)
-              </a>
-            ) : isDigital ? (
-              // Tombol Untuk Digital (Langsung iPaymu, Tanpa Ongkir)
-              <button 
-                onClick={() => handleCheckout(0)}
-                disabled={isLoading || safePrice === 0}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shrink-0 disabled:opacity-50"
-              >
-                {isLoading ? 'Wait...' : 'Beli'}
-              </button>
-            ) : (
-              // Tombol Untuk Barang Fisik (Pop Up Ongkir)
-              <button 
-                onClick={() => setShowOngkirModal(true)}
-                disabled={isLoading || safePrice === 0}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all shrink-0 disabled:opacity-50"
-              >
-                Beli
-              </button>
-            )}
+            <span className="text-sm font-extrabold text-gray-900">Rp {formattedPrice}</span>
+            {/* SEMUA PRODUK MEMBUKA MODAL CHECKOUT */}
+            <button 
+              onClick={() => setShowCheckoutModal(true)}
+              disabled={safePrice === 0}
+              className="px-4 py-2 text-xs font-bold rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all disabled:opacity-50"
+            >
+              {safePrice === 0 ? 'Harga Kosong' : 'Beli Sekarang'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* MODAL ONGKIR (HANYA MUNCUL UNTUK BARANG FISIK) */}
-      {showOngkirModal && (
+      {showCheckoutModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">Kirim: {safeName}</h3>
-            <p className="text-xs text-gray-500 mb-5">Asal Pengiriman: Malang, Jawa Timur</p>
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl p-6 custom-scrollbar">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Checkout: {safeName}</h3>
+            <p className="text-xs text-gray-500 mb-5">Silakan lengkapi data pesanan Anda.</p>
             
-            <div className="space-y-4 mb-6">
-              {/* Pilihan Kurir */}
+            <form onSubmit={handleCheckout} className="space-y-4">
+              {/* Form Data Diri (Wajib untuk semua) */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Pilih Kurir</label>
-                <select 
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm"
-                  value={selectedCourier}
-                  onChange={(e) => {
-                    setSelectedCourier(e.target.value);
-                    setShippingOptions([]); 
-                    setSelectedShippingCost(0);
-                  }}
-                >
-                  <option value="jne">JNE (Reguler/YES)</option>
-                  <option value="jnt">J&T Express</option>
-                  <option value="pos">Pos Indonesia</option>
-                </select>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Nama Lengkap</label>
+                <input required type="text" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm" placeholder="Contoh: Budi Santoso" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Alamat Email (Untuk Bukti Bayar)</label>
+                <input required type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm" placeholder="budi@email.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">No. WhatsApp</label>
+                <input required type="tel" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm" placeholder="081234567890" />
               </div>
 
-              {/* Pilihan Kota */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Pilih Kota / Kabupaten Tujuan</label>
-                <select 
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-200 outline-none text-sm"
-                  value={selectedCity}
-                  onChange={(e) => {
-                    setSelectedCity(e.target.value);
-                    setShippingOptions([]); 
-                    setSelectedShippingCost(0);
-                  }}
-                >
-                  <option value="">-- Ketik / Pilih Kota --</option>
-                  {cities.map((city: any) => (
-                    <option key={city.city_id} value={city.city_id}>
-                      {city.type} {city.city_name}, {city.province}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <button 
-              onClick={handleCheckOngkir}
-              disabled={isCalculating || !selectedCity}
-              className="w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm mb-4 disabled:opacity-50 hover:bg-gray-800 transition-colors"
-            >
-              {isCalculating ? 'Menghitung Ongkos Kirim...' : 'Cek Harga Kurir'}
-            </button>
-
-            {/* Hasil Harga Ongkir */}
-            {shippingOptions.length > 0 && (
-              <div className="mb-6 space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Layanan Tersedia:</p>
-                {shippingOptions.map((opt: any) => (
-                  <label key={opt.service} className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors ${selectedShippingCost === opt.cost[0].value ? 'border-purple-500 bg-purple-50' : 'hover:bg-gray-50'}`}>
-                    <input 
-                      type="radio" 
-                      name="shipping_service" 
-                      className="mr-3 text-purple-600 focus:ring-purple-500" 
-                      onChange={() => setSelectedShippingCost(opt.cost[0].value)}
-                    />
-                    <div className="flex-grow">
-                      <p className="text-sm font-bold text-gray-900">{opt.service}</p>
-                      <p className="text-xs text-gray-500">Estimasi {opt.cost[0].etd} Hari</p>
+              {/* KHUSUS PRODUK FISIK - MUNCULKAN ONGKIR */}
+              {isPhysical && (
+                <div className="pt-4 border-t border-gray-100 space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Kurir</label>
+                      <select value={selectedCourier} onChange={(e) => { setSelectedCourier(e.target.value); setShippingOptions([]); setSelectedShippingCost(0); }} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none">
+                        <option value="jne">JNE</option>
+                        <option value="jnt">J&T</option>
+                      </select>
                     </div>
-                    <span className="text-sm font-bold text-purple-600">
-                      Rp {Number(opt.cost[0].value).toLocaleString('id-ID')}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Kota Tujuan</label>
+                      <select value={selectedCity} onChange={(e) => { setSelectedCity(e.target.value); setShippingOptions([]); setSelectedShippingCost(0); }} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none">
+                        <option value="">-- Pilih Kota --</option>
+                        {cities.map((city: any) => (<option key={city.city_id} value={city.city_id}>{city.type} {city.city_name}</option>))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <button type="button" onClick={handleCheckOngkir} disabled={isCalculating || !selectedCity} className="w-full py-2 bg-gray-100 text-gray-700 rounded-xl font-bold text-xs disabled:opacity-50 border border-gray-200 hover:bg-gray-200 transition-colors">
+                    {isCalculating ? 'Menghitung Ongkir...' : 'Cek Harga Ongkir'}
+                  </button>
 
-            {/* Aksi Bawah */}
-            <div className="flex gap-3 pt-4 border-t border-gray-100">
-              <button 
-                onClick={() => setShowOngkirModal(false)}
-                className="flex-1 py-3 text-gray-600 font-semibold bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-sm"
-              >
-                Batal
-              </button>
-              <button 
-                onClick={() => handleCheckout(selectedShippingCost)}
-                disabled={isLoading || (shippingOptions.length > 0 && selectedShippingCost === 0)}
-                className="flex-1 py-3 text-white font-bold bg-purple-600 rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm shadow-md"
-              >
-                {isLoading ? 'Wait...' : 'Bayar via iPaymu'}
-              </button>
-            </div>
+                  {shippingOptions.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {shippingOptions.map((opt: any) => (
+                        <label key={opt.service} className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors ${selectedShippingCost === opt.cost[0].value ? 'border-purple-500 bg-purple-50' : 'hover:bg-gray-50'}`}>
+                          <input type="radio" name="shipping" className="mr-3 text-purple-600" onChange={() => setSelectedShippingCost(opt.cost[0].value)} />
+                          <div className="flex-grow">
+                            <p className="text-xs font-bold">{opt.service}</p>
+                            <p className="text-[10px] text-gray-500">{opt.cost[0].etd} Hari</p>
+                          </div>
+                          <span className="text-xs font-bold text-purple-600">Rp {Number(opt.cost[0].value).toLocaleString('id-ID')}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Aksi Bawah */}
+              <div className="flex gap-3 pt-6 border-t border-gray-100">
+                <button type="button" onClick={() => setShowCheckoutModal(false)} className="flex-1 py-3 text-gray-600 font-semibold bg-gray-100 rounded-xl text-sm hover:bg-gray-200 transition-colors">
+                  Batal
+                </button>
+                <button type="submit" disabled={isLoading} className="flex-1 py-3 text-white font-bold bg-purple-600 rounded-xl disabled:opacity-50 text-sm hover:bg-purple-700 transition-colors shadow-md">
+                  {isLoading ? 'Wait...' : 'Bayar via iPaymu'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

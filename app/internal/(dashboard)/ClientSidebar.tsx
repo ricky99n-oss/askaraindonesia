@@ -33,12 +33,13 @@ export default function ClientSidebar({ role }: { role: string }) {
 
   const closeMenu = () => setIsOpen(false)
 
-  // Tambahan menu Katalog Marketplace
+  // Tambahan menu Data Transaksi untuk memantau pesanan Marketplace
   const navLinks = [
     { name: 'Estimator', href: '/internal/dashboard' },
     { name: 'Riwayat Dokumen', href: '/internal/history' },
     { name: 'Data Supplier', href: '/internal/sync' },
     { name: 'Katalog Marketplace', href: '/internal/marketplace' },
+    { name: 'Data Transaksi', href: '/internal/transactions' },
     { name: 'Pengaturan', href: '/internal/settings' },
   ]
 
