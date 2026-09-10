@@ -1,5 +1,3 @@
-// app/page.tsx
-
 'use client'; 
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -34,6 +32,8 @@ export default function Home() {
   const translateY = useTransform(scrollYProgress, [0, 1], [-20, 80]); 
 
   const [activeTextIndex, setActiveTextIndex] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     return scrollYProgress.on('change', (latest) => {
@@ -52,37 +52,46 @@ export default function Home() {
     const scrollableDistance = rect.height - window.innerHeight;
     const targetProgress = (index + 0.1) / scrollyData.length; 
     const targetY = containerTop + (targetProgress * scrollableDistance);
+    
+    setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
     window.scrollTo({ top: targetY, behavior: 'smooth' });
   };
 
   return (
     <main className="min-h-screen bg-[#FAFAFA] text-gray-900 font-sans selection:bg-[#FF8C00] selection:text-white">
       
-      {/* 1. HEADER - Clean & Modern */}
+      {/* 1. HEADER - Clean, Modern & Responsive */}
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <Image 
-              src="/logo.png" 
-              alt="Logo Askara Indonesia" 
-              width={160} 
-              height={40} 
-              className="object-contain h-9 w-auto md:h-11"
-              priority
-              quality={80}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<span class="text-xl md:text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2]">ASKARA <span class="font-medium text-[#FF8C00]">INDONESIA</span></span>';
-              }}
-            />
+          <Link href="/" className="flex items-center z-50">
+            {logoError ? (
+              <span className="text-xl md:text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2]">
+                ASKARA <span className="font-medium text-[#FF8C00]">INDONESIA</span>
+              </span>
+            ) : (
+              <Image 
+                src="/logo.png" 
+                alt="Logo Askara Indonesia" 
+                width={160} 
+                height={40} 
+                className="object-contain h-9 w-auto md:h-11"
+                priority
+                quality={80}
+                onError={() => setLogoError(true)}
+              />
+            )}
           </Link>
           
+          {/* Desktop Nav */}
           <nav className="hidden lg:flex space-x-8 font-medium items-center text-sm tracking-wide text-gray-600">
             <Link href="/" className="hover:text-[#4A00E0] transition-colors">Beranda</Link>
             
             <div className="relative group py-4 cursor-pointer">
               <span className="hover:text-[#4A00E0] transition-colors flex items-center gap-1">
                 Layanan
+                <svg className="w-4 h-4 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </span>
               <div className="absolute left-0 mt-2 w-64 bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden transform origin-top-left scale-95 group-hover:scale-100">
                 <div className="p-2 flex flex-col gap-1">
@@ -101,20 +110,72 @@ export default function Home() {
             
             <Link href="/produk" className="hover:text-[#4A00E0] transition-colors">Katalog Produk</Link>
             
-            {/* NEW: Tombol Price List */}
             <Link href="/pricelist" className="relative overflow-hidden group bg-gray-900 text-white px-6 py-2.5 rounded-full font-semibold shadow-md transition-all hover:shadow-xl hover:-translate-y-0.5">
               <span className="relative z-10">Price List</span>
               <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-[#4A00E0] to-[#FF8C00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
             </Link>
           </nav>
+
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="lg:hidden relative z-50 p-2 text-gray-900 focus:outline-none"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle Menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isMobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
+
+        {/* Mobile Dropdown Nav */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden bg-white border-t border-gray-100 overflow-hidden"
+            >
+              <div className="px-6 py-4 flex flex-col space-y-4 shadow-lg">
+                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="text-gray-600 font-medium">Beranda</Link>
+                <div className="flex flex-col space-y-2">
+                  <span className="text-gray-900 font-bold border-b pb-2">Layanan Kami</span>
+                  {scrollyData.map((item, idx) => (
+                    <button 
+                      key={item.id} 
+                      onClick={() => handleScrollToSection(idx)} 
+                      className="text-left text-sm text-gray-600 py-1"
+                    >
+                      {item.title}
+                    </button>
+                  ))}
+                </div>
+                <Link href="/produk" onClick={() => setIsMobileMenuOpen(false)} className="text-gray-600 font-medium">Katalog Produk</Link>
+                <Link href="/pricelist" onClick={() => setIsMobileMenuOpen(false)} className="text-[#4A00E0] font-bold">Price List</Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* 2. HERO SECTION - Modern Solid Gradient */}
+      {/* 2. HERO SECTION - Modern Solid Gradient with Framer Animations */}
       <section className="relative text-white pt-24 pb-32 px-6 bg-[#0B0A10] overflow-hidden">
-        {/* Soft abstract blur in background */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#4A00E0] rounded-full mix-blend-screen filter blur-[120px] opacity-40 animate-blob"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#FF8C00] rounded-full mix-blend-screen filter blur-[120px] opacity-30 animate-blob animation-delay-2000"></div>
+        {/* Animated Background Blobs using Framer Motion */}
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-0 left-1/4 w-96 h-96 bg-[#4A00E0] rounded-full mix-blend-screen filter blur-[120px]"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#FF8C00] rounded-full mix-blend-screen filter blur-[120px]"
+        />
 
         <div className="max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="lg:pr-8 text-center lg:text-left">
@@ -133,7 +194,6 @@ export default function Home() {
           <div className="relative w-full h-[400px] md:h-[550px] lg:h-[650px]">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 1 }} className="absolute inset-0 w-full h-full max-w-2xl mx-auto">
               <div className="w-full h-full relative" style={{ maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}>
-                {/* Optimized Hero Image */}
                 <Image 
                   src="/hero-tech(2).png" 
                   alt="Teknologi Askara" 
@@ -162,7 +222,6 @@ export default function Home() {
                   className="absolute inset-0 w-full h-full"
                   style={{ opacity: useTransform(imageOpacityIndex, [index - 0.5, index, index + 0.5], [0, 1, 0]) }}
                 >
-                  {/* Menggunakan next/image untuk kompresi otomatis */}
                   <Image 
                     src={url} 
                     alt={`Layanan Askara ${index + 1}`}
@@ -201,7 +260,7 @@ export default function Home() {
                 
                 {activeTextIndex === 6 && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                    <Link href="/produk" className="mt-8 inline-flex items-center justify-center gap-2 bg-[#4A00E0] text-white px-8 py-4 rounded-full font-medium hover:bg-gray-900 transition-colors duration-300">
+                    <Link href="/produk" className="mt-8 inline-flex items-center justify-center gap-2 bg-[#4A00E0] text-white px-8 py-4 rounded-full font-medium hover:bg-gray-900 transition-colors duration-300 shadow-lg hover:shadow-xl">
                       Lihat Aplikasi Kami
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </Link>
@@ -219,7 +278,13 @@ export default function Home() {
           
           <div className="space-y-6 text-center md:text-left">
             <Link href="/" className="inline-block relative w-[160px] h-[40px]">
-              <Image src="/logo.png" alt="Logo Askara" fill className="object-contain object-center md:object-left" quality={80} />
+               {logoError ? (
+                <span className="text-xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#4A00E0] to-[#8E2DE2]">
+                  ASKARA
+                </span>
+              ) : (
+                <Image src="/logo.png" alt="Logo Askara" fill className="object-contain object-center md:object-left" quality={80} onError={() => setLogoError(true)} />
+              )}
             </Link>
             <p className="text-gray-500 text-sm leading-relaxed font-light max-w-xs mx-auto md:mx-0">
               Jl. Patimura, Gg VI, 10H,<br />
@@ -243,13 +308,13 @@ export default function Home() {
             <div className="space-y-4">
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">WhatsApp</p>
-                <a href="https://wa.me/6285815999953" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors">
+                <a href="https://wa.me/6285815999953" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors font-medium">
                   0858 1599 9953
                 </a>
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Telepon</p>
-                <a href="tel:085212347382" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors">
+                <a href="tel:085212347382" className="text-gray-700 text-lg hover:text-[#FF8C00] transition-colors font-medium">
                   0852 1234 7382
                 </a>
               </div>
