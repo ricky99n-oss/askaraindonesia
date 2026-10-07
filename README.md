@@ -1,4 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Askara Indonesia
+
+Website publik dan dashboard internal Askara Indonesia, termasuk pengelolaan pengguna, subscriber, dan transaksi manual Ruang Bocah.
+
+## Dashboard Ruang Bocah
+
+- Login internal: `/internal/login`
+- CRUD pengguna, ringkasan, dan approval transaksi: `/internal/ruangbocah`
+- Nomor WhatsApp transaksi manual: `0858-1599-9953`
+
+Environment server yang wajib tersedia untuk integrasi Ruang Bocah:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+RUANG_BOCAH_SUPABASE_URL=
+RUANG_BOCAH_SUPABASE_SERVICE_KEY=
+NEXT_PUBLIC_BASE_URL=https://askaraindonesia.my.id
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` dan `RUANG_BOCAH_SUPABASE_SERVICE_KEY` hanya boleh dipasang sebagai secret server, tidak boleh diberi prefix `NEXT_PUBLIC_`.
 
 ## Getting Started
 

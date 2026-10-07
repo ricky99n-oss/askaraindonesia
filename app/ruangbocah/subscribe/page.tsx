@@ -9,45 +9,20 @@ function SubscribeContent() {
   const uid = searchParams.get('uid');
   const [isLoading, setIsLoading] = useState(false);
 
-  if (!uid) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Akses tidak valid. Harap buka halaman ini melalui aplikasi Ruang Bocah.</p>
-      </div>
-    );
-  }
-
-  // Logika Pembayaran Terintegrasi dengan iPaymu
+  // Jalur publik tetap manual. Dari aplikasi, transaksi PENDING dibuat terlebih dahulu
+  // agar approval admin dapat tersinkron otomatis ke akun yang benar.
   const handlePayment = async () => {
     setIsLoading(true);
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // UID disisipkan ke productId agar mudah dilacak di Webhook nanti
-          productId: `RB-PREM-${uid}`, 
-          name: 'Ruang Bocah Premium (1 Bulan)',
-          price: 4900,
-          quantity: 1,
-          buyerName: 'Member Ruang Bocah', 
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.paymentUrl) {
-        // Redirect langsung ke halaman pembayaran iPaymu
-        window.location.href = data.paymentUrl;
-      } else {
-        alert(data.error || 'Terjadi kesalahan saat membuat link pembayaran.');
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Gagal terhubung ke server pembayaran. Silakan coba lagi.');
-      setIsLoading(false);
-    }
+    const reference = `RB-WEB-${uid || 'TANPA-UID'}-${Date.now()}`;
+    const message = [
+      'Halo Admin Askara, saya ingin memperpanjang Ruang Bocah Premium selama 30 hari.',
+      'Nominal: Rp 49.000',
+      `Reference: ${reference}`,
+      uid ? `User ID: ${uid}` : 'Saya akan mengirim email akun setelah pesan ini.',
+      'Mohon kirim instruksi pembayaran dan approve setelah bukti transfer diverifikasi.',
+    ].join('\n');
+    window.open(`https://wa.me/6285815999953?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    setIsLoading(false);
   };
 
   return (
@@ -61,7 +36,7 @@ function SubscribeContent() {
 
         <div className="p-8">
           <div className="text-center mb-8">
-            <span className="text-5xl font-extrabold text-gray-900">Rp 4.900</span>
+            <span className="text-5xl font-extrabold text-gray-900">Rp 49.000</span>
             <span className="text-gray-500 font-medium">/bulan</span>
           </div>
 
@@ -95,15 +70,15 @@ function SubscribeContent() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Memproses...
+                Membuka WhatsApp...
               </span>
             ) : (
-              'Berlangganan Sekarang'
+              'Beli Manual via WhatsApp'
             )}
           </button>
           
           <p className="text-center text-xs text-gray-400 mt-4">
-            Pembayaran aman didukung oleh <strong>iPaymu</strong>.
+            Untuk sinkronisasi otomatis, lakukan pembelian dari menu Dompet di aplikasi. Admin hanya mengaktifkan akun setelah pembayaran diverifikasi.
           </p>
         </div>
       </div>

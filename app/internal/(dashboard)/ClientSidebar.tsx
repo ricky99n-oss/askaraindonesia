@@ -56,6 +56,7 @@ export default function ClientSidebar({ role }: { role: string }) {
     { name: 'Data Supplier', href: '/internal/sync' },
     { name: 'Katalog Marketplace', href: '/internal/marketplace' },
     { name: 'Data Transaksi', href: '/internal/transactions' },
+    { name: 'Ruang Bocah', href: '/internal/ruangbocah' },
     { name: 'Pengaturan', href: '/internal/settings' },
   ]
 
