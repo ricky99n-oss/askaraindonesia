@@ -7,7 +7,8 @@ import {
   RUANG_BOCAH_PACKAGES,
 } from '@/lib/ruangbocah/admin'
 
-export const runtime = 'nodejs'
+// Cloudflare Pages menjalankan seluruh route dinamis melalui Edge Runtime.
+export const runtime = 'edge'
 
 function errorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : 'Terjadi kesalahan pada server'

@@ -8,7 +8,8 @@ import {
   RUANG_BOCAH_PACKAGES,
 } from '@/lib/ruangbocah/admin'
 
-export const runtime = 'nodejs'
+// Cloudflare Pages menjalankan seluruh route dinamis melalui Edge Runtime.
+export const runtime = 'edge'
 
 async function authenticatedRuangBocahUser(request: Request) {
   const authorization = request.headers.get('authorization') ?? ''
