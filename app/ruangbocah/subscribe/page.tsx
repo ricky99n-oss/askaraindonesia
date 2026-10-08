@@ -59,7 +59,7 @@ function SubscribeContent() {
             </div>
 
             <div className="mx-auto mt-6 max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              <Image src="/ruangbocah/qris-askara.jpeg" alt="QRIS pembayaran Askara Indonesia" width={1136} height={1600} priority className="h-auto w-full rounded-xl" />
+              <Image src="/ruangbocah/qris-askara.jpeg" alt="QRIS pembayaran Askara Indonesia" width={1136} height={1600} priority unoptimized className="h-auto w-full rounded-xl" />
             </div>
 
             <div className="mt-6 rounded-2xl bg-orange-50 p-4 text-sm leading-relaxed text-orange-950">

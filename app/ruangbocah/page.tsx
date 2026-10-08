@@ -136,7 +136,7 @@ export default function RuangBocahLandingPage() {
 }
 
 function PhoneScreenshot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
-  return <div className="mx-auto w-full max-w-[310px] rounded-[2.7rem] border-[9px] border-slate-900 bg-slate-900 p-1 shadow-2xl"><div className="relative overflow-hidden rounded-[2.1rem] bg-white"><Image src={src} alt={alt} width={1080} height={2181} priority={priority} className="h-auto w-full" /></div></div>
+  return <div className="mx-auto w-full max-w-[310px] rounded-[2.7rem] border-[9px] border-slate-900 bg-slate-900 p-1 shadow-2xl"><div className="relative overflow-hidden rounded-[2.1rem] bg-white"><Image src={src} alt={alt} width={1080} height={2181} priority={priority} unoptimized className="h-auto w-full" /></div></div>
 }
 
 function ScreenshotCard({ src, alt, title, description }: { src: string; alt: string; title: string; description: string }) {
