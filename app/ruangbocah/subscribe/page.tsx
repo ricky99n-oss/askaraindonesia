@@ -1,100 +1,91 @@
-'use client';
+'use client'
 
-import { useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import Link from 'next/link'
+import { Suspense, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
+import {
+  RUANG_BOCAH_ANDROID_32_DOWNLOAD_URL,
+  RUANG_BOCAH_ANDROID_DOWNLOAD_URL,
+  RUANG_BOCAH_VERSION,
+} from '@/lib/ruangbocah/downloads'
 
-// 1. PISAHKAN KONTEN UTAMA KE DALAM KOMPONEN BARU
 function SubscribeContent() {
-  const searchParams = useSearchParams();
-  const uid = searchParams.get('uid');
-  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams()
+  const uid = searchParams.get('uid')
 
-  // Jalur publik tetap manual. Dari aplikasi, transaksi PENDING dibuat terlebih dahulu
-  // agar approval admin dapat tersinkron otomatis ke akun yang benar.
-  const handlePayment = async () => {
-    setIsLoading(true);
-    const reference = `RB-WEB-${uid || 'TANPA-UID'}-${Date.now()}`;
+  const whatsappUrl = useMemo(() => {
+    if (!uid) return null
+    const reference = `RB-WEB-${uid}`
     const message = [
       'Halo Admin Askara, saya ingin memperpanjang Ruang Bocah Premium selama 30 hari.',
       'Nominal: Rp 49.000',
       `Reference: ${reference}`,
-      uid ? `User ID: ${uid}` : 'Saya akan mengirim email akun setelah pesan ini.',
+      `User ID: ${uid}`,
       'Mohon kirim instruksi pembayaran dan approve setelah bukti transfer diverifikasi.',
-    ].join('\n');
-    window.open(`https://wa.me/6285815999953?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-    setIsLoading(false);
-  };
+    ].join('\n')
+    return `https://wa.me/6285815999953?text=${encodeURIComponent(message)}`
+  }, [uid])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-        <div className="bg-purple-700 p-8 text-center relative">
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-orange-500 rounded-b-md"></div>
-          <h1 className="text-3xl font-bold text-white mb-2">Ruang Bocah Premium</h1>
-          <p className="text-purple-200 text-sm">Berlangganan bulanan untuk akses ekosistem penuh.</p>
-        </div>
+    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-orange-50 px-6 py-12 text-slate-900">
+      <div className="mx-auto max-w-5xl">
+        <Link href="/ruangbocah" className="text-sm font-semibold text-purple-700 hover:text-purple-900">← Kembali ke Ruang Bocah</Link>
 
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <span className="text-5xl font-extrabold text-gray-900">Rp 49.000</span>
-            <span className="text-gray-500 font-medium">/bulan</span>
-          </div>
+        <div className="mt-8 grid overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="bg-purple-700 p-8 text-white md:p-12">
+            <div className="inline-flex rounded-full bg-orange-500 px-3 py-1 text-xs font-bold uppercase tracking-wider">Langkah pertama</div>
+            <h1 className="mt-6 text-3xl font-black md:text-4xl">Unduh aplikasi Ruang Bocah</h1>
+            <p className="mt-4 leading-relaxed text-purple-100">Pembelian dan perpanjangan harus dimulai dari akun di aplikasi agar premium dan koin masuk ke pengguna yang benar.</p>
+            <div className="mt-8 space-y-4">
+              <Step number="1" title="Unduh dan instal" detail="Gunakan APK Android resmi dari storage Ruang Bocah." />
+              <Step number="2" title="Daftar atau masuk" detail="Gunakan email yang akan menerima status premium." />
+              <Step number="3" title="Buka menu Dompet" detail="Pilih Premium 30 Hari lalu lanjutkan instruksi pembayaran." />
+            </div>
+          </section>
 
-          <ul className="space-y-4 mb-8">
-            <li className="flex items-center text-gray-700">
-              <span className="shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded-full mr-3">✓</span>
-              Gratis 50 Koin (Bisa untuk 1x Konsultasi)
-            </li>
-            <li className="flex items-center text-gray-700">
-              <span className="shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded-full mr-3">✓</span>
-              Akses Kurva Pertumbuhan Anak
-            </li>
-            <li className="flex items-center text-gray-700">
-              <span className="shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded-full mr-3">✓</span>
-              Akses Pusat Bermain & Aktivitas
-            </li>
-            <li className="flex items-center text-gray-700">
-              <span className="shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 rounded-full mr-3">✓</span>
-              Pengingat Jadwal Imunisasi & Nutrisi
-            </li>
-          </ul>
+          <section className="p-8 md:p-12">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">✓ Tersedia untuk Android</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">iOS segera hadir</span>
+            </div>
+            <h2 className="mt-6 text-2xl font-black">Ruang Bocah Android</h2>
+            <p className="mt-2 text-sm text-slate-500">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 38,5 MB</p>
 
-          <button
-            onClick={handlePayment}
-            disabled={isLoading}
-            className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-4 rounded-xl transition duration-300 shadow-md shadow-purple-200 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Membuka WhatsApp...
-              </span>
+            <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-700 px-6 py-4 font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-purple-800">
+              <span aria-hidden>↓</span> Download Aplikasi Android
+            </a>
+            <a href={RUANG_BOCAH_ANDROID_32_DOWNLOAD_URL} className="mt-3 block text-center text-xs font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-purple-700">
+              Perangkat lama? Unduh versi Android 32-bit
+            </a>
+
+            <div className="my-8 border-t border-slate-100" />
+
+            <h3 className="text-xl font-bold">Ruang Bocah Premium</h3>
+            <div className="mt-3 flex items-end gap-1"><span className="text-4xl font-black">Rp 49.000</span><span className="pb-1 text-sm text-slate-500">/30 hari</span></div>
+            <ul className="mt-6 space-y-3 text-sm text-slate-700">
+              {['Bonus 50 koin', 'Akses kurva pertumbuhan', 'Pusat bermain dan aktivitas', 'Pengingat imunisasi dan nutrisi'].map((item) => <li key={item} className="flex gap-3"><span className="font-bold text-emerald-500">✓</span>{item}</li>)}
+            </ul>
+
+            {whatsappUrl ? (
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="mt-8 block rounded-xl bg-emerald-600 px-6 py-4 text-center font-bold text-white transition hover:bg-emerald-700">
+                Lanjutkan Pembayaran via WhatsApp
+              </a>
             ) : (
-              'Beli Manual via WhatsApp'
+              <div className="mt-8 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm leading-relaxed text-orange-900">
+                Setelah login di aplikasi, lakukan pembelian dari menu <strong>Dompet</strong>. Admin akan memverifikasi pembayaran sebelum premium dan bonus koin diaktifkan.
+              </div>
             )}
-          </button>
-          
-          <p className="text-center text-xs text-gray-400 mt-4">
-            Untuk sinkronisasi otomatis, lakukan pembelian dari menu Dompet di aplikasi. Admin hanya mengaktifkan akun setelah pembayaran diverifikasi.
-          </p>
+          </section>
         </div>
       </div>
-    </div>
-  );
+    </main>
+  )
 }
 
-// 2. BUNGKUS DENGAN SUSPENSE DI EXPORT UTAMA
+function Step({ number, title, detail }: { number: string; title: string; detail: string }) {
+  return <div className="flex gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white font-black text-purple-700">{number}</span><div><h2 className="font-bold">{title}</h2><p className="mt-1 text-sm text-purple-200">{detail}</p></div></div>
+}
+
 export default function SubscribePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500 animate-pulse">Memuat halaman pembayaran...</p>
-      </div>
-    }>
-      <SubscribeContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-purple-50 text-purple-700">Memuat halaman unduhan...</div>}><SubscribeContent /></Suspense>
 }

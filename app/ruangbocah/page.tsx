@@ -1,208 +1,145 @@
-import Link from 'next/link';
+import Image from 'next/image'
+import Link from 'next/link'
+import {
+  RUANG_BOCAH_ANDROID_32_DOWNLOAD_URL,
+  RUANG_BOCAH_ANDROID_DOWNLOAD_URL,
+  RUANG_BOCAH_VERSION,
+} from '@/lib/ruangbocah/downloads'
 
 export const metadata = {
   title: 'Ruang Bocah | Ekosistem Parenting & Tumbuh Kembang Anak',
-  description: 'Aplikasi terpadu untuk memantau tumbuh kembang anak, konsultasi dokter spesialis, dan aktivitas edukatif.',
-};
+  description: 'Aplikasi Android untuk memantau tumbuh kembang anak, konsultasi dokter spesialis, dan aktivitas edukatif.',
+}
+
+const features = [
+  {
+    icon: '🩺',
+    tone: 'bg-purple-100',
+    title: 'Konsultasi Telemedis Spesialis Anak',
+    description: 'Terhubung dengan Dokter Spesialis Anak, kirim foto, chat real-time, dan simpan riwayat konsultasi dalam satu aplikasi.',
+    points: ['Sistem koin untuk sesi konsultasi', 'Chat real-time', 'Rekam medis dan ulasan dokter'],
+  },
+  {
+    icon: '📈',
+    tone: 'bg-orange-100',
+    title: 'Pantau Tumbuh Kembang Menyeluruh',
+    description: 'Catat berat, tinggi, nutrisi, tidur, gejala, dan imunisasi agar perkembangan si Kecil lebih mudah dipantau.',
+    points: ['Grafik pertumbuhan interaktif', 'Riwayat nutrisi dan tidur', 'Pengingat vaksin dan imunisasi'],
+  },
+  {
+    icon: '🧩',
+    tone: 'bg-blue-100',
+    title: 'Aktivitas Edukatif & Poin Anak',
+    description: 'Permainan sensorik dan kognitif, sistem poin serta lencana, ditambah audio penenang untuk rutinitas tidur anak.',
+    points: ['Game edukasi interaktif', 'Poin dan lencana anak', 'White noise dan lullaby'],
+  },
+]
 
 export default function RuangBocahLandingPage() {
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      {/* HERO SECTION */}
-      <section className="bg-purple-700 text-white pt-20 pb-24 px-6 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center relative z-10">
-          <div className="md:w-1/2 text-center md:text-left mb-16 md:mb-0">
-            <div className="inline-block bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-bold mb-6 tracking-wider uppercase">
-              PRODUK UNGGULAN ASKARA
+    <main className="min-h-screen bg-white text-slate-900">
+      <section className="relative overflow-hidden bg-gradient-to-br from-purple-800 via-purple-700 to-fuchsia-600 px-6 pb-24 pt-16 text-white">
+        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-orange-400/20 blur-3xl" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-16 md:grid-cols-2">
+          <div className="text-center md:text-left">
+            <div className="mb-6 inline-flex rounded-full bg-orange-500 px-4 py-1.5 text-xs font-bold uppercase tracking-wider">
+              Produk unggulan Askara
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">
-              Teman Terbaik Tumbuh Kembang si Kecil
-            </h1>
-            <p className="text-lg md:text-xl text-purple-100 mb-8 max-w-lg mx-auto md:mx-0">
-              Ruang Bocah adalah ekosistem aplikasi parenting yang menghubungkan Anda dengan Dokter Spesialis Anak, memantau kesehatan, hingga menyediakan permainan edukatif dalam satu genggaman.
+            <h1 className="text-4xl font-black leading-tight md:text-6xl">Teman terbaik tumbuh kembang si Kecil</h1>
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-purple-100 md:mx-0">
+              Pantau kesehatan, konsultasi dengan dokter anak, dan nikmati aktivitas edukatif keluarga dalam satu aplikasi.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <Link 
-                href="/ruangbocah/subscribe" 
-                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-xl transition duration-300 shadow-lg text-center"
-              >
-                Berlangganan Sekarang
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row md:justify-start">
+              <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="rounded-xl bg-orange-500 px-7 py-4 text-center font-bold text-white shadow-lg transition hover:bg-orange-600">
+                Unduh untuk Android
+              </a>
+              <Link href="/ruangbocah/subscribe" className="rounded-xl bg-white px-7 py-4 text-center font-bold text-purple-700 shadow-lg transition hover:bg-purple-50">
+                Lihat Premium
               </Link>
-              <button className="bg-white text-purple-700 hover:bg-gray-100 font-bold py-4 px-8 rounded-xl transition duration-300 shadow-lg">
-                Download Aplikasi
-              </button>
             </div>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm md:justify-start">
+              <span className="rounded-full bg-white/15 px-3 py-1.5">✓ Tersedia untuk Android</span>
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-purple-100">iOS segera hadir</span>
+            </div>
+            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 38,5 MB</p>
           </div>
-          <div className="md:w-1/2 w-full px-4 flex justify-center">
-            {/* PLACEHOLDER: MOCKUP HERO (SMARTPHONE) */}
-            <div className="w-full max-w-[300px] aspect-[9/16] bg-purple-800/80 rounded-[2.5rem] border-[8px] border-gray-900 flex items-center justify-center shadow-2xl relative overflow-hidden">
-              {/* Dynamic Island / Notch Placeholder */}
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-6 bg-gray-900 rounded-full z-20"></div>
-              
-              <span className="text-purple-300 font-medium text-center px-6 relative z-10 text-sm">
-                [Placeholder: Mockup Smartphone Layar Utama Ruang Bocah]
-              </span>
-            </div>
+          <PhoneScreenshot src="/ruangbocah/app-login.png" alt="Tampilan login aplikasi Ruang Bocah di Android" priority />
+        </div>
+      </section>
+
+      <section className="bg-slate-50 px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <SectionHeading eyebrow="Tampilan aplikasi nyata" title="Dibuat untuk keluarga Indonesia" description="Screenshot berikut diambil langsung dari aplikasi Ruang Bocah yang berjalan di perangkat Android." />
+          <div className="mt-14 grid gap-10 md:grid-cols-2">
+            <ScreenshotCard src="/ruangbocah/app-login.png" alt="Layar masuk Ruang Bocah" title="Masuk dan kelola akun dengan aman" description="Login email, pemulihan kata sandi, serta akses masuk Google tersedia dari satu layar." />
+            <ScreenshotCard src="/ruangbocah/app-home-premium.png" alt="Beranda dan status premium Ruang Bocah" title="Beranda keluarga dan langganan premium" description="Akses pertumbuhan, aktivitas, konsultasi, poin anak, dan perpanjangan premium dari akun yang sama." />
           </div>
         </div>
       </section>
 
-      {/* FITUR UTAMA SECTION */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Fitur Lengkap Ruang Bocah</h2>
-            <div className="w-24 h-1 bg-orange-500 mx-auto rounded-full"></div>
-          </div>
-
-          <div className="space-y-24">
-            {/* Fitur 1: Telemed */}
-            <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/2 w-full order-2 md:order-1 flex justify-center">
-                {/* PLACEHOLDER: TELEMED (SMARTPHONE) */}
-                <div className="w-full max-w-[280px] aspect-[9/16] bg-gray-50 rounded-[2.5rem] border-[8px] border-gray-800 flex items-center justify-center relative overflow-hidden shadow-xl">
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-gray-800 rounded-full z-20"></div>
-                  <span className="text-gray-400 font-medium text-center px-6 text-sm">
-                    [Placeholder: Layar Smartphone Chat Dokter Sp.A]
-                  </span>
-                </div>
-              </div>
-              <div className="md:w-1/2 order-1 md:order-2">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
-                  <span className="text-2xl">🩺</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Konsultasi Telemedis Spesialis Anak</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Tidak perlu antre ke klinik. Konsultasikan keluhan si Kecil langsung dengan Dokter Spesialis Anak (Sp.A) terpercaya. Dilengkapi fitur kirim foto, indikator mengetik secara <i>real-time</i>, dan notifikasi pesan pintar.
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-green-500 mr-2">✓</span> Sistem Koin (50 Koin / Sesi Konsultasi)
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-green-500 mr-2">✓</span> Chat Real-time Bebas Batas Waktu
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-green-500 mr-2">✓</span> Rekam Medis Digital & Ulasan Dokter
-                  </li>
+      <section className="px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <SectionHeading eyebrow="Semua dalam satu aplikasi" title="Fitur lengkap Ruang Bocah" description="Fitur orang tua, anak, dan dokter tersinkron dengan akun Ruang Bocah." />
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {features.map((feature) => (
+              <article key={feature.title} className="rounded-3xl border border-slate-100 bg-white p-7 shadow-lg shadow-slate-200/60">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-2xl ${feature.tone}`}>{feature.icon}</div>
+                <h3 className="mt-6 text-xl font-bold">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{feature.description}</p>
+                <ul className="mt-6 space-y-3 text-sm text-slate-700">
+                  {feature.points.map((point) => <li key={point} className="flex gap-2"><span className="font-bold text-emerald-500">✓</span>{point}</li>)}
                 </ul>
-              </div>
-            </div>
-
-            {/* Fitur 2: Tumbuh Kembang */}
-            <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/2">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6">
-                  <span className="text-2xl">📈</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Pantau Tumbuh Kembang Menyeluruh</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Catat setiap fase berharga anak Anda. Dari tinggi badan, berat badan, hingga jadwal imunisasi, semuanya direkam dalam visualisasi kurva standar medis agar perkembangan anak selalu terpantau optimal.
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-orange-500 mr-2">✓</span> Grafik Kurva Pertumbuhan Interaktif
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-orange-500 mr-2">✓</span> Pengingat Jadwal Vaksin & Imunisasi
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-orange-500 mr-2">✓</span> Pencatatan Pola Tidur & Riwayat Nutrisi
-                  </li>
-                </ul>
-              </div>
-              <div className="md:w-1/2 w-full flex justify-center">
-                {/* PLACEHOLDER: GROWTH (SMARTPHONE) */}
-                <div className="w-full max-w-[280px] aspect-[9/16] bg-gray-50 rounded-[2.5rem] border-[8px] border-gray-800 flex items-center justify-center relative overflow-hidden shadow-xl">
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-gray-800 rounded-full z-20"></div>
-                  <span className="text-gray-400 font-medium text-center px-6 text-sm">
-                    [Placeholder: Layar Smartphone Grafik Kurva Pertumbuhan]
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Fitur 3: Aktivitas & Game */}
-            <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/2 w-full order-2 md:order-1 flex justify-center">
-                {/* PLACEHOLDER: GAMES (SMARTPHONE) */}
-                <div className="w-full max-w-[280px] aspect-[9/16] bg-gray-50 rounded-[2.5rem] border-[8px] border-gray-800 flex items-center justify-center relative overflow-hidden shadow-xl">
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-gray-800 rounded-full z-20"></div>
-                  <div className="absolute top-8 right-8 w-16 h-16 bg-yellow-200 rounded-full opacity-50 blur-xl"></div>
-                  <span className="text-gray-400 font-medium text-center px-6 relative z-10 text-sm">
-                    [Placeholder: Layar Smartphone Pusat Bermain Edukatif]
-                  </span>
-                </div>
-              </div>
-              <div className="md:w-1/2 order-1 md:order-2">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
-                  <span className="text-2xl">🧩</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Aktivitas Edukatif & Poin Anak</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Ruang Bocah tidak hanya untuk orang tua, tetapi juga ramah untuk anak. Kami menyediakan berbagai permainan yang melatih sensorik dan kognitif, serta dukungan suara penenang tidur (*Lullaby*).
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-blue-500 mr-2">✓</span> Akses Game Edukasi Interaktif
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-blue-500 mr-2">✓</span> Sistem Lencana (Poin Reward) Anak
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <span className="text-blue-500 mr-2">✓</span> White Noise & Audio Pengantar Tidur
-                  </li>
-                </ul>
-              </div>
-            </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* SUBSCRIPTION SECTION */}
-      <section className="bg-gray-50 py-24 px-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
-          <div className="md:w-5/12 bg-purple-700 p-10 text-white flex flex-col justify-center">
-            <h3 className="text-3xl font-bold mb-4">Premium Membership</h3>
-            <p className="text-purple-200 mb-8">
-              Buka potensi penuh ekosistem Ruang Bocah untuk memastikan tumbuh kembang si Kecil terawasi dengan sempurna.
-            </p>
-            <div className="text-5xl font-extrabold mb-2">Rp 49K<span className="text-xl font-normal text-purple-300">/bln</span></div>
+      <section className="bg-purple-50 px-6 py-20">
+        <div className="mx-auto grid max-w-5xl gap-8 overflow-hidden rounded-3xl bg-white shadow-xl md:grid-cols-[0.9fr_1.1fr]">
+          <div className="bg-purple-700 p-10 text-white">
+            <p className="text-sm font-bold uppercase tracking-widest text-purple-200">Premium Membership</p>
+            <h2 className="mt-4 text-3xl font-black">Lebih lengkap bersama si Kecil</h2>
+            <div className="mt-8 text-5xl font-black">Rp 49K<span className="text-lg font-normal text-purple-200">/bulan</span></div>
           </div>
-          <div className="md:w-7/12 p-10 flex flex-col justify-center">
-            <h4 className="text-xl font-bold text-gray-900 mb-6">Yang Anda dapatkan:</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              <div className="flex items-start">
-                <span className="text-orange-500 mr-3 text-xl">🌟</span>
-                <span className="text-gray-600 text-sm">Gratis 50 Koin setiap bulan</span>
-              </div>
-              <div className="flex items-start">
-                <span className="text-orange-500 mr-3 text-xl">🌟</span>
-                <span className="text-gray-600 text-sm">Akses penuh Telemedis</span>
-              </div>
-              <div className="flex items-start">
-                <span className="text-orange-500 mr-3 text-xl">🌟</span>
-                <span className="text-gray-600 text-sm">Semua metrik pertumbuhan</span>
-              </div>
-              <div className="flex items-start">
-                <span className="text-orange-500 mr-3 text-xl">🌟</span>
-                <span className="text-gray-600 text-sm">Bebas iklan di Pusat Bermain</span>
-              </div>
+          <div className="p-10">
+            <h3 className="text-xl font-bold">Yang Anda dapatkan</h3>
+            <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+              {['Bonus 50 koin', 'Akses telemedis', 'Metrik pertumbuhan', 'Pusat bermain edukatif'].map((item) => <div key={item} className="flex gap-2"><span className="text-orange-500">★</span>{item}</div>)}
             </div>
-            <Link 
-              href="/ruangbocah/subscribe" 
-              className="block w-full bg-purple-700 hover:bg-purple-800 text-white text-center font-bold py-4 rounded-xl transition duration-300"
-            >
-              Berlangganan Sekarang
+            <Link href="/ruangbocah/subscribe" className="mt-8 block rounded-xl bg-purple-700 px-6 py-4 text-center font-bold text-white transition hover:bg-purple-800">
+              Mulai dari Aplikasi
             </Link>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-gray-400 py-12 px-6 text-center">
-        <p>© 2026 PT Askara Indonesia - Ruang Bocah. Seluruh hak cipta dilindungi.</p>
-      </footer>
-    </div>
-  );
+      <section className="bg-slate-950 px-6 py-20 text-white">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-sm font-bold uppercase tracking-widest text-orange-400">Unduh Ruang Bocah</p>
+          <h2 className="mt-4 text-3xl font-black md:text-4xl">Mulai perjalanan tumbuh kembang hari ini</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-slate-300">Unduh aplikasi, buat akun orang tua, lalu lakukan pembelian premium atau koin dari menu Dompet agar transaksi langsung terhubung ke akun.</p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="rounded-xl bg-orange-500 px-7 py-4 font-bold text-white hover:bg-orange-600">Unduh Android 64-bit</a>
+            <a href={RUANG_BOCAH_ANDROID_32_DOWNLOAD_URL} className="rounded-xl border border-slate-600 px-7 py-4 font-bold text-slate-200 hover:bg-slate-800">Android lama 32-bit</a>
+          </div>
+          <p className="mt-5 text-sm text-slate-400">Tersedia untuk Android · iOS segera hadir</p>
+        </div>
+      </section>
+
+      <footer className="bg-slate-950 px-6 pb-10 text-center text-sm text-slate-500">© 2026 PT Askara Indonesia · Ruang Bocah. Seluruh hak cipta dilindungi.</footer>
+    </main>
+  )
+}
+
+function PhoneScreenshot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
+  return <div className="mx-auto w-full max-w-[310px] rounded-[2.7rem] border-[9px] border-slate-900 bg-slate-900 p-1 shadow-2xl"><div className="relative overflow-hidden rounded-[2.1rem] bg-white"><Image src={src} alt={alt} width={1080} height={2181} priority={priority} className="h-auto w-full" /></div></div>
+}
+
+function ScreenshotCard({ src, alt, title, description }: { src: string; alt: string; title: string; description: string }) {
+  return <article className="grid items-center gap-7 rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70 sm:grid-cols-[180px_1fr]"><PhoneScreenshot src={src} alt={alt} /><div><h3 className="text-xl font-bold">{title}</h3><p className="mt-3 text-sm leading-relaxed text-slate-600">{description}</p></div></article>
+}
+
+function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
+  return <div className="mx-auto max-w-2xl text-center"><p className="text-sm font-bold uppercase tracking-widest text-purple-600">{eyebrow}</p><h2 className="mt-3 text-3xl font-black md:text-4xl">{title}</h2><p className="mt-4 text-slate-600">{description}</p></div>
 }
