@@ -16,10 +16,23 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 RUANG_BOCAH_SUPABASE_URL=
 RUANG_BOCAH_SUPABASE_SERVICE_KEY=
-NEXT_PUBLIC_BASE_URL=https://askaraindonesia.my.id
+NEXT_PUBLIC_BASE_URL=https://askaraindonesia.com
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` dan `RUANG_BOCAH_SUPABASE_SERVICE_KEY` hanya boleh dipasang sebagai secret server, tidak boleh diberi prefix `NEXT_PUBLIC_`.
+
+Untuk login Google aplikasi Ruang Bocah, aktifkan provider Google pada project Supabase
+`uwuooxmtclcskrrwptyo` dan tambahkan URL berikut ke **Authentication > URL Configuration > Redirect URLs**:
+
+```text
+com.askaraindonesia.ruangbocah://login-callback/**
+```
+
+OAuth Client Google harus memakai callback Supabase:
+
+```text
+https://uwuooxmtclcskrrwptyo.supabase.co/auth/v1/callback
+```
 
 ## Getting Started
 

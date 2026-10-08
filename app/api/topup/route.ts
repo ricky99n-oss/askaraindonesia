@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       cancelUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/payment/cancel`,
       notifyUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/webhook/ipaymu`,
       buyerName: restoName || 'Klien Askara POS',
-      buyerEmail: 'topup@askaraindonesia.my.id',
+      buyerEmail: 'topup@askaraindonesia.com',
       buyerPhone: '080000000000',
       referenceId: referenceId
     };

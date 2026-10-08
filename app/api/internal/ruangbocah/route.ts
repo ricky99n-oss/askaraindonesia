@@ -11,9 +11,17 @@ import {
 export const runtime = 'edge'
 
 function errorResponse(error: unknown) {
-  const message = error instanceof Error ? error.message : 'Terjadi kesalahan pada server'
+  const message = errorMessage(error)
   const status = message === 'UNAUTHORIZED' ? 401 : message === 'FORBIDDEN' ? 403 : 500
   return NextResponse.json({ error: status === 500 ? message : 'Akses ditolak' }, { status })
+}
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return 'Terjadi kesalahan pada server'
 }
 
 export async function GET() {
@@ -25,7 +33,9 @@ export async function GET() {
     const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: transactions, error: transactionError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-        ruangBocah.from('profiles').select('*'),
+        ruangBocah
+          .from('profiles')
+          .select('id, role, full_name, coin_balance, is_premium, premium_valid_until'),
         askara
           .from('transactions')
           .select('id, reference_id, product_name, buyer_name, buyer_email, buyer_phone, amount, status, created_at')
@@ -33,21 +43,39 @@ export async function GET() {
           .order('created_at', { ascending: false }),
       ])
 
-    if (authError) throw authError
     if (profileError) throw profileError
-    if (transactionError) throw transactionError
 
     const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
-    const users = authData.users.map((user) => ({
-      id: user.id,
-      email: user.email ?? '',
-      phone: user.phone ?? '',
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at,
-      ...profileById.get(user.id),
-    }))
+    const users = authError
+      ? (profiles ?? []).map((profile) => ({ ...profile, email: '', phone: '' }))
+      : authData.users.map((user) => ({
+          id: user.id,
+          email: user.email ?? '',
+          phone: user.phone ?? '',
+          created_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at,
+          ...profileById.get(user.id),
+        }))
 
-    return NextResponse.json({ users, transactions: transactions ?? [] })
+    const warnings: string[] = []
+    if (authError) {
+      warnings.push(
+        'Daftar profil berhasil dimuat, tetapi Admin Auth Supabase tidak tersedia. Periksa RUANG_BOCAH_SUPABASE_SERVICE_KEY agar email, pembuatan, dan penghapusan akun aktif.',
+      )
+    }
+    if (transactionError) {
+      warnings.push(`Riwayat transaksi belum dapat dimuat: ${errorMessage(transactionError)}`)
+    }
+
+    return NextResponse.json({
+      users,
+      transactions: transactionError ? [] : (transactions ?? []),
+      warnings,
+      capabilities: {
+        authAdmin: !authError,
+        transactions: !transactionError,
+      },
+    })
   } catch (error) {
     return errorResponse(error)
   }
@@ -195,13 +223,13 @@ export async function PATCH(request: Request) {
         .eq('id', userId)
       if (error) throw error
 
-      const authUpdate: { email?: string; password?: string; user_metadata: { full_name: string } } = {
-        user_metadata: { full_name: fullName },
-      }
+      const authUpdate: { email?: string; password?: string } = {}
       if (body.email) authUpdate.email = String(body.email).trim().toLowerCase()
       if (body.password) authUpdate.password = String(body.password)
-      const { error: authError } = await ruangBocah.auth.admin.updateUserById(userId, authUpdate)
-      if (authError) throw authError
+      if (authUpdate.email || authUpdate.password) {
+        const { error: authError } = await ruangBocah.auth.admin.updateUserById(userId, authUpdate)
+        if (authError) throw authError
+      }
 
       return NextResponse.json({ success: true })
     }

@@ -356,7 +356,7 @@ export default function AskaraDownloadPage() {
                       <li>Centang kotak <strong>"Allow WebRequest for listed URL"</strong>.</li>
                       <li>Tambahkan 3 alamat berikut (klik tanda +, ketik, tekan Enter):
                         <ul className="list-disc list-inside ml-6 mt-1 text-gray-400 font-mono text-xs">
-                          <li>https://askaraindonesia.my.id</li>
+                          <li>https://askaraindonesia.com</li>
                           <li>https://generativelanguage.googleapis.com</li>
                           <li>https://api.telegram.org</li>
                         </ul>

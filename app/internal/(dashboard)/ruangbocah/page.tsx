@@ -30,12 +30,17 @@ type RuangBocahTransaction = {
 type DashboardData = {
   users: RuangBocahUser[]
   transactions: RuangBocahTransaction[]
+  warnings?: string[]
+  capabilities?: {
+    authAdmin: boolean
+    transactions: boolean
+  }
 }
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })
 
 export default function RuangBocahAdminPage() {
-  const [data, setData] = useState<DashboardData>({ users: [], transactions: [] })
+  const [data, setData] = useState<DashboardData>({ users: [], transactions: [], warnings: [] })
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
@@ -104,8 +109,12 @@ export default function RuangBocahAdminPage() {
   async function editUser(user: RuangBocahUser) {
     const fullName = window.prompt('Nama lengkap', user.full_name || '')
     if (fullName === null || !fullName.trim()) return
-    const email = window.prompt('Email', user.email || '')
-    if (email === null || !email.trim()) return
+    let email: string | undefined
+    if (data.capabilities?.authAdmin) {
+      const emailInput = window.prompt('Email', user.email || '')
+      if (emailInput === null || !emailInput.trim()) return
+      email = emailInput.trim()
+    }
     const role = window.prompt('Role: parent atau doctor', user.role || 'parent')
     if (role === null || !['parent', 'doctor'].includes(role)) return
     const coinBalanceText = window.prompt('Saldo koin', String(user.coin_balance ?? 0))
@@ -119,7 +128,7 @@ export default function RuangBocahAdminPage() {
       action: 'update_user',
       userId: user.id,
       fullName,
-      email,
+      ...(email ? { email } : {}),
       role,
       coinBalance: Number(coinBalanceText),
       isPremium: Boolean(premiumUntil),
@@ -141,6 +150,9 @@ export default function RuangBocahAdminPage() {
       </div>
 
       {message && <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">{message}</div>}
+      {data.warnings?.map((warning) => (
+        <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{warning}</div>
+      ))}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Total akun" value={stats.users} detail={`${stats.parents} orang tua · ${stats.doctors} dokter`} />
@@ -191,7 +203,7 @@ export default function RuangBocahAdminPage() {
           <input required type="email" value={createForm.email} onChange={(event) => setCreateForm({ ...createForm, email: event.target.value })} placeholder="Email" className="rounded-lg border border-gray-200 px-3 py-2" />
           <input required minLength={6} type="password" value={createForm.password} onChange={(event) => setCreateForm({ ...createForm, password: event.target.value })} placeholder="Password awal" className="rounded-lg border border-gray-200 px-3 py-2" />
           <select value={createForm.role} onChange={(event) => setCreateForm({ ...createForm, role: event.target.value })} className="rounded-lg border border-gray-200 px-3 py-2"><option value="parent">Orang tua</option><option value="doctor">Dokter</option></select>
-          <button disabled={busyId === 'create-user'} className="rounded-lg bg-purple-700 px-4 py-2 font-bold text-white disabled:opacity-50">Buat akun</button>
+          <button disabled={busyId === 'create-user' || data.capabilities?.authAdmin === false} title={data.capabilities?.authAdmin === false ? 'Membutuhkan service-role key Supabase Ruang Bocah' : undefined} className="rounded-lg bg-purple-700 px-4 py-2 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Buat akun</button>
         </form>
       </section>
 
@@ -209,7 +221,7 @@ export default function RuangBocahAdminPage() {
                   <td className="p-4 font-semibold">{user.coin_balance ?? 0}</td>
                   <td className="p-4">{user.is_premium ? `Aktif s.d. ${user.premium_valid_until ? new Date(user.premium_valid_until).toLocaleDateString('id-ID') : '-'}` : 'Tidak aktif'}</td>
                   <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}</td>
-                  <td className="p-4"><div className="flex gap-2"><button disabled={busyId === user.id} onClick={() => void editUser(user)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">Edit</button><button disabled={busyId === user.id} onClick={() => void deleteUser(user)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Hapus</button></div></td>
+                  <td className="p-4"><div className="flex gap-2"><button disabled={busyId === user.id} onClick={() => void editUser(user)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 disabled:opacity-50">Edit</button><button disabled={busyId === user.id || data.capabilities?.authAdmin === false} title={data.capabilities?.authAdmin === false ? 'Membutuhkan service-role key Supabase Ruang Bocah' : undefined} onClick={() => void deleteUser(user)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-50">Hapus</button></div></td>
                 </tr>
               ))}
             </tbody>
