@@ -6,3 +6,9 @@
   --color-askara-light: #F8F9FE;
   --color-askara-gray: #6B7280;
 }
+
+@layer components {
+  .form-input {
+    @apply w-full rounded-lg border border-gray-200 px-3 py-2.5 text-gray-900 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-100;
+  }
+}

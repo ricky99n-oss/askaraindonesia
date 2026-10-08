@@ -10,10 +10,59 @@ import {
 // Cloudflare Pages menjalankan seluruh route dinamis melalui Edge Runtime.
 export const runtime = 'edge'
 
+class RequestValidationError extends Error {}
+
+function requiredText(value: unknown, label: string) {
+  const result = String(value ?? '').trim()
+  if (!result) throw new RequestValidationError(`${label} wajib diisi`)
+  return result
+}
+
+function parseEmail(value: unknown) {
+  const email = requiredText(value, 'Email').toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new RequestValidationError('Format email tidak valid')
+  }
+  return email
+}
+
+function parseRole(value: unknown): 'parent' | 'doctor' {
+  if (value !== 'parent' && value !== 'doctor') {
+    throw new RequestValidationError('Role harus parent atau doctor')
+  }
+  return value
+}
+
+function parseCoinBalance(value: unknown) {
+  const amount = Number(value)
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new RequestValidationError('Koin harus berupa bilangan bulat nol atau lebih')
+  }
+  return amount
+}
+
+function parsePremium(isPremiumValue: unknown, premiumValidUntilValue: unknown) {
+  const isPremium = isPremiumValue === true
+  if (!isPremium) return { isPremium: false, premiumValidUntil: null }
+
+  const rawDate = requiredText(premiumValidUntilValue, 'Masa berlaku premium')
+  const premiumValidUntil = new Date(rawDate)
+  if (Number.isNaN(premiumValidUntil.getTime())) {
+    throw new RequestValidationError('Masa berlaku premium tidak valid')
+  }
+  return { isPremium: true, premiumValidUntil: premiumValidUntil.toISOString() }
+}
+
 function errorResponse(error: unknown) {
   const message = errorMessage(error)
-  const status = message === 'UNAUTHORIZED' ? 401 : message === 'FORBIDDEN' ? 403 : 500
-  return NextResponse.json({ error: status === 500 ? message : 'Akses ditolak' }, { status })
+  const status = error instanceof RequestValidationError
+    ? 400
+    : message === 'UNAUTHORIZED'
+      ? 401
+      : message === 'FORBIDDEN'
+        ? 403
+        : 500
+  return NextResponse.json({ error: status === 401 || status === 403 ? 'Akses ditolak' : message }, { status })
 }
 
 function errorMessage(error: unknown) {
@@ -46,7 +95,7 @@ export async function GET() {
     if (profileError) throw profileError
 
     const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
-    const users = authError
+    const users: Array<Record<string, unknown>> = authError
       ? (profiles ?? []).map((profile) => ({ ...profile, email: '', phone: '' }))
       : authData.users.map((user) => ({
           id: user.id,
@@ -56,6 +105,15 @@ export async function GET() {
           last_sign_in_at: user.last_sign_in_at,
           ...profileById.get(user.id),
         }))
+
+    if (!authError) {
+      const authIds = new Set(authData.users.map((user) => user.id))
+      for (const profile of profiles ?? []) {
+        if (!authIds.has(profile.id)) {
+          users.push({ ...profile, email: '', phone: '', auth_missing: true })
+        }
+      }
+    }
 
     const warnings: string[] = []
     if (authError) {
@@ -85,21 +143,21 @@ export async function POST(request: Request) {
   try {
     await requireInternalMember()
     const body = await request.json()
-    const email = String(body.email ?? '').trim().toLowerCase()
+    const email = parseEmail(body.email)
     const password = String(body.password ?? '')
-    const fullName = String(body.fullName ?? '').trim()
-    const role = body.role === 'doctor' ? 'doctor' : 'parent'
+    const fullName = requiredText(body.fullName, 'Nama lengkap')
+    const role = parseRole(body.role)
+    const coinBalance = parseCoinBalance(body.coinBalance ?? 0)
+    const { isPremium, premiumValidUntil } = parsePremium(body.isPremium, body.premiumValidUntil)
 
-    if (!email || password.length < 6 || !fullName) {
-      return NextResponse.json({ error: 'Nama, email, dan password minimal 6 karakter wajib diisi' }, { status: 400 })
-    }
+    if (password.length < 6) throw new RequestValidationError('Password minimal 6 karakter')
 
     const ruangBocah = createRuangBocahAdminClient()
     const { data, error } = await ruangBocah.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName },
+      user_metadata: { full_name: fullName, role },
     })
     if (error || !data.user) throw error ?? new Error('Akun gagal dibuat')
 
@@ -107,7 +165,9 @@ export async function POST(request: Request) {
       id: data.user.id,
       full_name: fullName,
       role,
-      coin_balance: 0,
+      coin_balance: coinBalance,
+      is_premium: isPremium,
+      premium_valid_until: premiumValidUntil,
     })
 
     if (profileError) {
@@ -202,33 +262,51 @@ export async function PATCH(request: Request) {
     }
 
     if (body.action === 'update_user') {
-      const userId = String(body.userId ?? '')
-      const fullName = String(body.fullName ?? '').trim()
-      const role = body.role === 'doctor' ? 'doctor' : 'parent'
-      const coinBalance = Math.max(0, Number(body.coinBalance ?? 0))
-      const isPremium = Boolean(body.isPremium) && role === 'parent'
-      const premiumValidUntil = isPremium && body.premiumValidUntil
-        ? new Date(body.premiumValidUntil).toISOString()
-        : null
+      const userId = requiredText(body.userId, 'ID pengguna')
+      const fullName = requiredText(body.fullName, 'Nama lengkap')
+      const email = parseEmail(body.email)
+      const password = String(body.password ?? '')
+      const role = parseRole(body.role)
+      const coinBalance = parseCoinBalance(body.coinBalance)
+      const { isPremium, premiumValidUntil } = parsePremium(body.isPremium, body.premiumValidUntil)
+      if (password && password.length < 6) {
+        throw new RequestValidationError('Password baru minimal 6 karakter')
+      }
 
-      const { error } = await ruangBocah
+      const { data: previousProfile, error: currentProfileError } = await ruangBocah
         .from('profiles')
-        .update({
-          full_name: fullName,
-          role,
-          coin_balance: coinBalance,
-          is_premium: isPremium,
-          premium_valid_until: premiumValidUntil,
-        })
+        .select('id, full_name, role, coin_balance, is_premium, premium_valid_until')
         .eq('id', userId)
-      if (error) throw error
+        .maybeSingle()
+      if (currentProfileError) throw currentProfileError
 
-      const authUpdate: { email?: string; password?: string } = {}
-      if (body.email) authUpdate.email = String(body.email).trim().toLowerCase()
-      if (body.password) authUpdate.password = String(body.password)
-      if (authUpdate.email || authUpdate.password) {
-        const { error: authError } = await ruangBocah.auth.admin.updateUserById(userId, authUpdate)
-        if (authError) throw authError
+      const profileValues = {
+        id: userId,
+        full_name: fullName,
+        role,
+        coin_balance: coinBalance,
+        is_premium: isPremium,
+        premium_valid_until: premiumValidUntil,
+      }
+      const { error: profileError } = await ruangBocah
+        .from('profiles')
+        .upsert(profileValues)
+      if (profileError) throw profileError
+
+      const authUpdate: {
+        email: string
+        password?: string
+        user_metadata: { full_name: string; role: 'parent' | 'doctor' }
+      } = { email, user_metadata: { full_name: fullName, role } }
+      if (password) authUpdate.password = password
+      const { error: authError } = await ruangBocah.auth.admin.updateUserById(userId, authUpdate)
+      if (authError) {
+        if (previousProfile) {
+          await ruangBocah.from('profiles').upsert(previousProfile)
+        } else {
+          await ruangBocah.from('profiles').delete().eq('id', userId)
+        }
+        throw authError
       }
 
       return NextResponse.json({ success: true })
@@ -254,10 +332,13 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     await requireInternalMember()
-    const { userId } = await request.json()
+    const { userId: rawUserId } = await request.json()
+    const userId = requiredText(rawUserId, 'ID pengguna')
     const ruangBocah = createRuangBocahAdminClient()
-    const { error } = await ruangBocah.auth.admin.deleteUser(String(userId ?? ''))
+    const { error } = await ruangBocah.auth.admin.deleteUser(userId)
     if (error) throw error
+    const { error: profileError } = await ruangBocah.from('profiles').delete().eq('id', userId)
+    if (profileError) throw profileError
     return NextResponse.json({ success: true })
   } catch (error) {
     return errorResponse(error)
