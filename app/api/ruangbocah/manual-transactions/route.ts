@@ -37,6 +37,22 @@ async function authenticatedRuangBocahUser(request: Request) {
 export async function GET(request: Request) {
   try {
     const { ruangBocah, user } = await authenticatedRuangBocahUser(request)
+    if (new URL(request.url).searchParams.get('schema') === 'transactions') {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+      const schemaResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: 'application/openapi+json',
+        },
+      })
+      const schema = await schemaResponse.json() as {
+        definitions?: Record<string, { properties?: Record<string, unknown> }>
+      }
+      return NextResponse.json({
+        columns: Object.keys(schema.definitions?.transactions?.properties ?? {}),
+      })
+    }
     const askara = createAdminClient()
     const [{ data, error }, { data: profile, error: profileError }] = await Promise.all([
       askara
