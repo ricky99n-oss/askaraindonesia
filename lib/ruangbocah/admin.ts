@@ -3,6 +3,43 @@ import { createClient } from '@supabase/supabase-js'
 export const RUANG_BOCAH_ADMIN_WA = '6285815999953'
 
 export const RUANG_BOCAH_PACKAGES = {
+  ACCESS6: {
+    code: 'ACCESS6',
+    name: 'Akses Ruang Bocah 6 Bulan',
+    amount: 99_000,
+    coinBonus: 80,
+    premiumDays: 180,
+  },
+  ACCESS8: {
+    code: 'ACCESS8',
+    name: 'Akses Ruang Bocah 8 Bulan',
+    amount: 149_000,
+    coinBonus: 120,
+    premiumDays: 240,
+  },
+  ACCESS12: {
+    code: 'ACCESS12',
+    name: 'Akses Ruang Bocah 12 Bulan',
+    amount: 169_000,
+    coinBonus: 180,
+    premiumDays: 365,
+  },
+  COIN20: {
+    code: 'COIN20',
+    name: 'Top Up 20 Koin Ruang Bocah',
+    amount: 20_000,
+    coinBonus: 20,
+    premiumDays: 0,
+  },
+  COIN80: {
+    code: 'COIN80',
+    name: 'Top Up 80 Koin Ruang Bocah',
+    amount: 49_000,
+    coinBonus: 80,
+    premiumDays: 0,
+  },
+  // Paket lama dipertahankan agar transaksi yang sudah dibuat tetap dapat
+  // diproses dari dashboard admin. Paket ini tidak lagi ditampilkan ke user.
   INITIAL_ACCESS: {
     code: 'INITIAL_ACCESS',
     name: 'Akses Awal Ruang Bocah (30 Hari)',
@@ -46,6 +83,8 @@ export const RUANG_BOCAH_PACKAGES = {
     premiumDays: 0,
   },
 } as const
+
+export const RUANG_BOCAH_ACCESS_CODES = ['ACCESS6', 'ACCESS8', 'ACCESS12', 'INITIAL_ACCESS', 'PREMIUM30'] as const
 
 export type RuangBocahPackageCode = keyof typeof RUANG_BOCAH_PACKAGES
 

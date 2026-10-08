@@ -4,6 +4,7 @@ import {
   createRuangBocahReference,
   isRuangBocahPackageCode,
   RUANG_BOCAH_ADMIN_WA,
+  RUANG_BOCAH_ACCESS_CODES,
   RUANG_BOCAH_PACKAGES,
 } from '@/lib/ruangbocah/admin'
 
@@ -77,16 +78,15 @@ export async function GET(request: Request) {
     if (profileError) throw profileError
 
     const transactions = (data ?? []).map((item) => transactionFromNotification(item as PaymentNotification))
-    const hasCompletedAccessTransaction = transactions.some(
-      (transaction) => transaction.status === 'DONE' &&
-        (transaction.reference_id.includes('|INITIAL_ACCESS|') || transaction.reference_id.includes('|PREMIUM30|')),
+    const hasCompletedAccessTransaction = transactions.some((transaction) =>
+      transaction.status === 'DONE' && RUANG_BOCAH_ACCESS_CODES.some((code) => transaction.reference_id.includes(`|${code}|`)),
     )
     const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || hasCompletedAccessTransaction
     const premiumValidUntil = profile?.premium_valid_until ?? null
     const isPremiumActive = Boolean(profile?.is_premium) && Boolean(premiumValidUntil) && new Date(premiumValidUntil).getTime() > Date.now()
-    const requiredPackageCode = hasInitialAccess ? 'PREMIUM30' : 'INITIAL_ACCESS'
+    const requiredPackageCode = 'ACCESS6'
     const hasPendingPayment = transactions.some(
-      (transaction) => transaction.status === 'PENDING' && transaction.reference_id.includes(`|${requiredPackageCode}|`),
+      (transaction) => transaction.status === 'PENDING' && RUANG_BOCAH_ACCESS_CODES.some((code) => transaction.reference_id.includes(`|${code}|`)),
     )
 
     return NextResponse.json({
@@ -132,24 +132,7 @@ export async function POST(request: Request) {
     if (existingError) throw existingError
     if (profileError) throw profileError
 
-    if (packageCode === 'INITIAL_ACCESS' || packageCode === 'PREMIUM30') {
-      const { data: completedAccess, error: accessError } = await ruangBocah
-        .from('notifications')
-        .select('title')
-        .eq('user_id', user.id)
-        .eq('type', 'payment_done')
-        .limit(50)
-      if (accessError) throw accessError
-      const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || (completedAccess ?? []).some(
-        (item) => item.title.includes('|INITIAL_ACCESS|') || item.title.includes('|PREMIUM30|'),
-      )
-      if (packageCode === 'INITIAL_ACCESS' && hasInitialAccess) {
-        return NextResponse.json({ error: 'Akses awal sudah pernah dibayar. Gunakan paket perpanjangan Rp 49.000.' }, { status: 409 })
-      }
-      if (packageCode === 'PREMIUM30' && !hasInitialAccess) {
-        return NextResponse.json({ error: 'Selesaikan pembayaran akses awal Rp 99.000 terlebih dahulu.' }, { status: 409 })
-      }
-    }
+    // Paket akses baru dapat dipilih saat aktivasi pertama maupun perpanjangan.
 
     let notification = existing as PaymentNotification | null
     if (!notification) {

@@ -10,16 +10,24 @@ import {
   RUANG_BOCAH_VERSION,
 } from '@/lib/ruangbocah/downloads'
 
+const PLANS = [
+  { code: 'ACCESS6', label: '6 bulan', amount: 99_000, coins: 80 },
+  { code: 'ACCESS8', label: '8 bulan', amount: 149_000, coins: 120 },
+  { code: 'ACCESS12', label: '12 bulan', amount: 169_000, coins: 180, oldPrice: 199_000 },
+]
+
 function SubscribeContent() {
   const searchParams = useSearchParams()
   const [userId, setUserId] = useState(searchParams.get('uid') ?? '')
   const [username, setUsername] = useState('')
   const [transactionId, setTransactionId] = useState(searchParams.get('transaction') ?? '')
+  const [selectedCode, setSelectedCode] = useState('ACCESS6')
+  const selectedPlan = PLANS.find((plan) => plan.code === selectedCode) ?? PLANS[0]
 
   const whatsappUrl = useMemo(() => {
     const message = [
-      'Halo Admin Askara, saya sudah membayar Akses Awal Ruang Bocah melalui QRIS.',
-      'Nominal: Rp 99.000',
+      `Halo Admin Askara, saya sudah membayar Paket Ruang Bocah ${selectedPlan.label} melalui QRIS.`,
+      `Nominal: Rp ${selectedPlan.amount.toLocaleString('id-ID')}`,
       `Username/Email: ${username || '[isi username atau email]'}`,
       `User ID: ${userId || '[isi User ID]'}`,
       `Transaction ID: ${transactionId || '[isi Transaction ID dari menu Dompet]'}`,
@@ -27,7 +35,7 @@ function SubscribeContent() {
       'Mohon verifikasi dan aktifkan akses akun saya.',
     ].join('\n')
     return `https://wa.me/6285815999953?text=${encodeURIComponent(message)}`
-  }, [transactionId, userId, username])
+  }, [selectedPlan, transactionId, userId, username])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-orange-50 px-5 py-10 text-slate-900">
@@ -41,7 +49,7 @@ function SubscribeContent() {
             <p className="mt-4 leading-relaxed text-purple-100">Buat transaksi dari menu Dompet di aplikasi agar pembayaran otomatis terhubung dengan akun yang benar.</p>
             <div className="mt-7 space-y-4">
               <Step number="1" title="Unduh dan instal" detail="Gunakan APK Android resmi Ruang Bocah." />
-              <Step number="2" title="Daftar atau masuk" detail="Popup aktivasi Rp99.000 muncul saat akses pertama." />
+              <Step number="2" title="Daftar atau masuk" detail="Pilih paket akses 6, 8, atau 12 bulan dari aplikasi." />
               <Step number="3" title="Bayar QRIS" detail="Scan QRIS, lalu tekan konfirmasi WhatsApp dan lampirkan bukti." />
             </div>
             <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="mt-8 flex w-full items-center justify-center rounded-xl bg-white px-6 py-4 font-bold text-purple-700 shadow-lg hover:bg-purple-50">Download Aplikasi Android</a>
@@ -52,10 +60,21 @@ function SubscribeContent() {
           <section className="p-7 md:p-10">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold uppercase tracking-widest text-purple-600">Akses awal aplikasi</p>
-                <div className="mt-1 flex items-end gap-1"><span className="text-4xl font-black">Rp 99.000</span><span className="pb-1 text-sm text-slate-500">/akses awal</span></div>
+                <p className="text-sm font-bold uppercase tracking-widest text-purple-600">Pilih masa aktif aplikasi</p>
+                <div className="mt-1 flex items-end gap-1"><span className="text-4xl font-black">Rp {selectedPlan.amount.toLocaleString('id-ID')}</span><span className="pb-1 text-sm text-slate-500">/{selectedPlan.label}</span></div>
               </div>
               <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">QRIS resmi Askara</span>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {PLANS.map((plan) => (
+                <button key={plan.code} type="button" onClick={() => setSelectedCode(plan.code)} className={`rounded-2xl border p-4 text-left transition ${selectedCode === plan.code ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-100' : 'border-slate-200 hover:border-purple-300'}`}>
+                  <span className="block text-sm font-black text-purple-700">{plan.label}</span>
+                  {plan.oldPrice && <span className="mt-1 block text-xs text-slate-400 line-through">Rp {plan.oldPrice.toLocaleString('id-ID')}</span>}
+                  <span className="block font-bold">Rp {plan.amount.toLocaleString('id-ID')}</span>
+                  <span className="mt-1 block text-xs text-slate-500">Bonus {plan.coins} koin</span>
+                </button>
+              ))}
             </div>
 
             <div className="mx-auto mt-6 max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -72,7 +91,7 @@ function SubscribeContent() {
               <div className="sm:col-span-2"><Field label="Transaction ID" value={transactionId} onChange={setTransactionId} placeholder="ID transaksi dari menu Dompet" /></div>
             </div>
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="mt-5 block rounded-xl bg-emerald-600 px-6 py-4 text-center font-bold text-white transition hover:bg-emerald-700">Konfirmasi & Lampirkan Bukti via WhatsApp</a>
-            <p className="mt-4 text-xs leading-relaxed text-slate-500">Akses awal Rp99.000 mencakup 30 hari premium dan 50 koin. Setelah akses awal aktif, perpanjangan 30 hari dan top up 50 koin masing-masing tetap Rp49.000.</p>
+            <p className="mt-4 text-xs leading-relaxed text-slate-500">Masa aktif ditambahkan otomatis setelah admin menyetujui bukti pembayaran. Top up tersedia Rp20.000 untuk 20 koin dan Rp49.000 untuk 80 koin di menu Dompet aplikasi.</p>
           </section>
         </div>
       </div>
