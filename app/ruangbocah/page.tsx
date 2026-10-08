@@ -73,6 +73,8 @@ export default function RuangBocahLandingPage() {
           <div className="mt-14 grid gap-10 md:grid-cols-2">
             <ScreenshotCard src="/ruangbocah/app-login.png" alt="Layar masuk Ruang Bocah" title="Masuk dan kelola akun dengan aman" description="Login email, pemulihan kata sandi, serta akses masuk Google tersedia dari satu layar." />
             <ScreenshotCard src="/ruangbocah/app-home-premium.png" alt="Beranda dan status premium Ruang Bocah" title="Beranda keluarga dan langganan premium" description="Akses pertumbuhan, aktivitas, konsultasi, poin anak, dan perpanjangan premium dari akun yang sama." />
+            <ScreenshotCard src="/ruangbocah/app-games.png" alt="Pusat permainan edukatif Ruang Bocah" title="Permainan edukatif dengan leveling" description="Enam aktivitas ringan dengan visual baru, progres level, audio, dan tingkat kesulitan adaptif." />
+            <ScreenshotCard src="/ruangbocah/app-wallet-qris.png" alt="Pembayaran QRIS di aplikasi Ruang Bocah" title="Pembayaran QRIS yang terhubung ke akun" description="Transaksi menyertakan User ID dan Transaction ID, lalu bukti pembayaran dikirim langsung ke admin melalui WhatsApp." />
           </div>
         </div>
       </section>
@@ -100,7 +102,8 @@ export default function RuangBocahLandingPage() {
           <div className="bg-purple-700 p-10 text-white">
             <p className="text-sm font-bold uppercase tracking-widest text-purple-200">Premium Membership</p>
             <h2 className="mt-4 text-3xl font-black">Lebih lengkap bersama si Kecil</h2>
-            <div className="mt-8 text-5xl font-black">Rp 49K<span className="text-lg font-normal text-purple-200">/bulan</span></div>
+            <div className="mt-8 text-5xl font-black">Rp 99K<span className="text-lg font-normal text-purple-200"> akses awal</span></div>
+            <p className="mt-3 text-sm text-purple-100">Termasuk 30 hari premium dan bonus 50 koin. Perpanjangan berikutnya Rp49K.</p>
           </div>
           <div className="p-10">
             <h3 className="text-xl font-bold">Yang Anda dapatkan</h3>
@@ -108,7 +111,7 @@ export default function RuangBocahLandingPage() {
               {['Bonus 50 koin', 'Akses telemedis', 'Metrik pertumbuhan', 'Pusat bermain edukatif'].map((item) => <div key={item} className="flex gap-2"><span className="text-orange-500">★</span>{item}</div>)}
             </div>
             <Link href="/ruangbocah/subscribe" className="mt-8 block rounded-xl bg-purple-700 px-6 py-4 text-center font-bold text-white transition hover:bg-purple-800">
-              Mulai dari Aplikasi
+              Bayar Akses Awal via QRIS
             </Link>
           </div>
         </div>

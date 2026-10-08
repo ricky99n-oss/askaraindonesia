@@ -3,9 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 export const RUANG_BOCAH_ADMIN_WA = '6285815999953'
 
 export const RUANG_BOCAH_PACKAGES = {
+  INITIAL_ACCESS: {
+    code: 'INITIAL_ACCESS',
+    name: 'Akses Awal Ruang Bocah (30 Hari)',
+    amount: 99_000,
+    coinBonus: 50,
+    premiumDays: 30,
+  },
   PREMIUM30: {
     code: 'PREMIUM30',
-    name: 'Ruang Bocah Premium (30 Hari)',
+    name: 'Perpanjangan Ruang Bocah (30 Hari)',
     amount: 49_000,
     coinBonus: 50,
     premiumDays: 30,
@@ -13,7 +20,7 @@ export const RUANG_BOCAH_PACKAGES = {
   COIN50: {
     code: 'COIN50',
     name: 'Top Up 50 Koin Ruang Bocah',
-    amount: 50_000,
+    amount: 49_000,
     coinBonus: 50,
     premiumDays: 0,
   },

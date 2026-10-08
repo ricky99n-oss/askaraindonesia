@@ -28,17 +28,54 @@ async function authenticatedRuangBocahUser(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { user } = await authenticatedRuangBocahUser(request)
+    const { ruangBocah, user } = await authenticatedRuangBocahUser(request)
     const askara = createAdminClient()
-    const { data, error } = await askara
-      .from('transactions')
-      .select('id, reference_id, product_name, amount, status, created_at')
-      .like('reference_id', `RBM|${user.id}|%`)
-      .order('created_at', { ascending: false })
-      .limit(20)
+    const [{ data, error }, { data: profile, error: profileError }] = await Promise.all([
+      askara
+        .from('transactions')
+        .select('id, reference_id, product_name, amount, status, created_at')
+        .like('reference_id', `RBM|${user.id}|%`)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      ruangBocah
+        .from('profiles')
+        .select('is_premium, premium_valid_until')
+        .eq('id', user.id)
+        .maybeSingle(),
+    ])
 
     if (error) throw error
-    return NextResponse.json({ transactions: data ?? [] })
+    if (profileError) throw profileError
+
+    const transactions = data ?? []
+    const hasCompletedAccessTransaction = transactions.some(
+      (transaction) =>
+        transaction.status === 'DONE' &&
+        (transaction.reference_id.includes('|INITIAL_ACCESS|') ||
+          transaction.reference_id.includes('|PREMIUM30|')),
+    )
+    const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || hasCompletedAccessTransaction
+    const premiumValidUntil = profile?.premium_valid_until ?? null
+    const isPremiumActive = Boolean(profile?.is_premium) &&
+      Boolean(premiumValidUntil) &&
+      new Date(premiumValidUntil).getTime() > Date.now()
+    const requiredPackageCode = hasInitialAccess ? 'PREMIUM30' : 'INITIAL_ACCESS'
+    const hasPendingPayment = transactions.some(
+      (transaction) =>
+        transaction.status === 'PENDING' &&
+        transaction.reference_id.includes(`|${requiredPackageCode}|`),
+    )
+
+    return NextResponse.json({
+      transactions,
+      access: {
+        hasInitialAccess,
+        isPremiumActive,
+        premiumValidUntil,
+        requiredPackageCode,
+        hasPendingPayment,
+      },
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gagal memuat transaksi'
     return NextResponse.json(
@@ -71,9 +108,37 @@ export async function POST(request: Request) {
 
     const { data: profile } = await ruangBocah
       .from('profiles')
-      .select('full_name')
+      .select('full_name, is_premium, premium_valid_until')
       .eq('id', user.id)
       .maybeSingle()
+
+    if (packageCode === 'INITIAL_ACCESS' || packageCode === 'PREMIUM30') {
+      const { data: completedAccess, error: accessError } = await askara
+        .from('transactions')
+        .select('reference_id')
+        .like('reference_id', `RBM|${user.id}|%`)
+        .eq('status', 'DONE')
+        .limit(50)
+      if (accessError) throw accessError
+
+      const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || (completedAccess ?? []).some(
+        (item) =>
+          item.reference_id.includes('|INITIAL_ACCESS|') ||
+          item.reference_id.includes('|PREMIUM30|'),
+      )
+      if (packageCode === 'INITIAL_ACCESS' && hasInitialAccess) {
+        return NextResponse.json(
+          { error: 'Akses awal sudah pernah dibayar. Gunakan paket perpanjangan Rp 49.000.' },
+          { status: 409 },
+        )
+      }
+      if (packageCode === 'PREMIUM30' && !hasInitialAccess) {
+        return NextResponse.json(
+          { error: 'Selesaikan pembayaran akses awal Rp 99.000 terlebih dahulu.' },
+          { status: 409 },
+        )
+      }
+    }
 
     let transaction = existing
     if (!transaction) {
@@ -98,16 +163,21 @@ export async function POST(request: Request) {
     }
 
     const message = [
-      'Halo Admin Askara, saya ingin melakukan pembelian manual Ruang Bocah.',
+      'Halo Admin Askara, saya sudah membayar QRIS Ruang Bocah.',
       `Paket: ${packageInfo.name}`,
       `Nominal: Rp ${packageInfo.amount.toLocaleString('id-ID')}`,
       `Reference: ${transaction.reference_id}`,
-      `Akun: ${profile?.full_name || user.email || user.id}`,
-      'Saya akan mengirim bukti transfer di chat ini. Mohon di-approve setelah pembayaran diverifikasi.',
+      `Transaction ID: ${transaction.id}`,
+      `User ID: ${user.id}`,
+      `Username: ${profile?.full_name || '-'}`,
+      `Email: ${user.email || '-'}`,
+      'Saya akan melampirkan screenshot/foto bukti pembayaran pada chat ini.',
+      'Mohon di-approve setelah nominal dan bukti pembayaran diverifikasi.',
     ].join('\n')
 
     return NextResponse.json({
       transaction,
+      qrisUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://askaraindonesia.com'}/ruangbocah/qris-askara.jpeg`,
       whatsappUrl: `https://wa.me/${RUANG_BOCAH_ADMIN_WA}?text=${encodeURIComponent(message)}`,
     })
   } catch (error) {
