@@ -11,6 +11,14 @@ import {
 // Cloudflare Pages menjalankan seluruh route dinamis melalui Edge Runtime.
 export const runtime = 'edge'
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message?: unknown }).message || fallback)
+  }
+  return fallback
+}
+
 async function authenticatedRuangBocahUser(request: Request) {
   const authorization = request.headers.get('authorization') ?? ''
   const accessToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
@@ -77,7 +85,8 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal memuat transaksi'
+    console.error('Ruang Bocah transaction GET failed', error)
+    const message = getErrorMessage(error, 'Gagal memuat transaksi')
     return NextResponse.json(
       { error: message === 'UNAUTHORIZED' ? 'Sesi aplikasi tidak valid' : message },
       { status: message === 'UNAUTHORIZED' ? 401 : 500 },
@@ -181,7 +190,8 @@ export async function POST(request: Request) {
       whatsappUrl: `https://wa.me/${RUANG_BOCAH_ADMIN_WA}?text=${encodeURIComponent(message)}`,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal membuat transaksi'
+    console.error('Ruang Bocah transaction POST failed', error)
+    const message = getErrorMessage(error, 'Gagal membuat transaksi')
     return NextResponse.json(
       { error: message === 'UNAUTHORIZED' ? 'Sesi aplikasi tidak valid' : message },
       { status: message === 'UNAUTHORIZED' ? 401 : 500 },
