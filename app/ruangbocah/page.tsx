@@ -78,6 +78,8 @@ export default function RuangBocahLandingPage() {
             <ScreenshotCard src="/ruangbocah/app-wallet-qris.png" alt="Pembayaran QRIS di aplikasi Ruang Bocah" title="Pembayaran QRIS yang terhubung ke akun" description="Transaksi menyertakan User ID dan Transaction ID, lalu bukti pembayaran dikirim langsung ke admin melalui WhatsApp." />
             <ScreenshotCard src="/ruangbocah/app-onboarding.png" alt="Panduan fitur pertama kali Ruang Bocah" title="Panduan singkat saat pertama masuk" description="Tur modern memperkenalkan pertumbuhan, dokter, Kancil AI, permainan, profil anak, dan pembayaran." />
             <ScreenshotCard src="/ruangbocah/app-flashcards.png" alt="Flashcard hewan Ruang Bocah" title="Flashcard hewan yang lebih jelas" description="Enam belas hewan dengan ilustrasi besar, nama, suara, progres level, dan efek kemenangan." />
+            <ScreenshotCard src="/ruangbocah/app-rabbit-run.png" alt="Permainan Kelinci Lari Ruang Bocah" title="Kelinci Lari tanpa overlay pengganggu" description="Arena lapang, instruksi ringkas, ilustrasi kelinci baru, tingkat kecepatan bertahap, suara, dan confetti." />
+            <ScreenshotCard src="/ruangbocah/app-articles.png" alt="Artikel pengasuhan Ruang Bocah" title="Artikel terkurasi dari sumber tepercaya" description="Panduan pertumbuhan, MPASI, tidur, imunisasi, perkembangan, aktivitas, dan kesehatan gigi dengan referensi resmi." />
           </div>
         </div>
       </section>
