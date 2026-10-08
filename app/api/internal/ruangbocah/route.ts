@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/internal/supabase/admin'
 import { requireInternalMember } from '@/lib/internal/authorize'
 import {
   createRuangBocahAdminClient,
@@ -11,6 +10,41 @@ import {
 export const runtime = 'edge'
 
 class RequestValidationError extends Error {}
+
+type PaymentNotification = {
+  id: string | number
+  user_id: string
+  title: string
+  message: string
+  type: string
+  created_at: string
+}
+
+function transactionFromNotification(notification: PaymentNotification) {
+  let details: Record<string, unknown> = {}
+  try {
+    details = JSON.parse(notification.message)
+  } catch {
+    details = {}
+  }
+  return {
+    id: String(notification.id),
+    reference_id: notification.title,
+    product_name: String(details.product_name ?? 'Transaksi Ruang Bocah'),
+    buyer_name: details.buyer_name ?? null,
+    buyer_email: details.buyer_email ?? null,
+    buyer_phone: details.buyer_phone ?? null,
+    amount: Number(details.amount ?? 0),
+    status: notification.type === 'payment_done'
+      ? 'DONE'
+      : notification.type === 'payment_failed'
+        ? 'FAILED'
+        : notification.type === 'payment_processing'
+          ? 'PAID'
+          : 'PENDING',
+    created_at: notification.created_at,
+  }
+}
 
 function requiredText(value: unknown, label: string) {
   const result = String(value ?? '').trim()
@@ -76,19 +110,18 @@ function errorMessage(error: unknown) {
 export async function GET() {
   try {
     await requireInternalMember()
-    const askara = createAdminClient()
     const ruangBocah = createRuangBocahAdminClient()
 
-    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: transactions, error: transactionError }] =
+    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: paymentRows, error: transactionError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         ruangBocah
           .from('profiles')
           .select('id, role, full_name, coin_balance, is_premium, premium_valid_until'),
-        askara
-          .from('transactions')
-          .select('id, reference_id, product_name, buyer_name, buyer_email, buyer_phone, amount, status, created_at')
-          .like('reference_id', 'RBM|%')
+        ruangBocah
+          .from('notifications')
+          .select('id, user_id, title, message, type, created_at')
+          .in('type', ['payment_pending', 'payment_processing', 'payment_done', 'payment_failed'])
           .order('created_at', { ascending: false }),
       ])
 
@@ -127,7 +160,9 @@ export async function GET() {
 
     return NextResponse.json({
       users,
-      transactions: transactionError ? [] : (transactions ?? []),
+      transactions: transactionError
+        ? []
+        : (paymentRows ?? []).map((item) => transactionFromNotification(item as PaymentNotification)),
       warnings,
       capabilities: {
         authAdmin: !authError,
@@ -187,23 +222,23 @@ export async function PATCH(request: Request) {
   try {
     const { user: reviewer } = await requireInternalMember()
     const body = await request.json()
-    const askara = createAdminClient()
     const ruangBocah = createRuangBocahAdminClient()
 
     if (body.action === 'approve_transaction') {
       const transactionId = String(body.transactionId ?? '')
-      const { data: transaction, error: claimError } = await askara
-        .from('transactions')
-        .update({ status: 'PAID' })
+      const { data: paymentRow, error: claimError } = await ruangBocah
+        .from('notifications')
+        .update({ type: 'payment_processing' })
         .eq('id', transactionId)
-        .eq('status', 'PENDING')
-        .select('id, reference_id, product_name, status')
+        .eq('type', 'payment_pending')
+        .select('id, user_id, title, message, type, created_at')
         .maybeSingle()
 
       if (claimError) throw claimError
-      if (!transaction) {
+      if (!paymentRow) {
         return NextResponse.json({ error: 'Transaksi sudah diproses atau tidak ditemukan' }, { status: 409 })
       }
+      const transaction = transactionFromNotification(paymentRow as PaymentNotification)
       claimedTransactionId = transaction.id
 
       const { userId, packageCode } = parseRuangBocahReference(transaction.reference_id)
@@ -241,22 +276,22 @@ export async function PATCH(request: Request) {
         type: 'system',
       })
 
-      const { error: doneError } = await askara
-        .from('transactions')
-        .update({ status: 'DONE' })
+      const { error: doneError } = await ruangBocah
+        .from('notifications')
+        .update({ type: 'payment_done', is_read: true })
         .eq('id', transaction.id)
-        .eq('status', 'PAID')
+        .eq('type', 'payment_processing')
       if (doneError) throw doneError
 
       return NextResponse.json({ success: true, reviewedBy: reviewer.email })
     }
 
     if (body.action === 'reject_transaction') {
-      const { error } = await askara
-        .from('transactions')
-        .update({ status: 'FAILED' })
+      const { error } = await ruangBocah
+        .from('notifications')
+        .update({ type: 'payment_failed', is_read: true })
         .eq('id', String(body.transactionId ?? ''))
-        .eq('status', 'PENDING')
+        .eq('type', 'payment_pending')
       if (error) throw error
       return NextResponse.json({ success: true })
     }
@@ -316,11 +351,11 @@ export async function PATCH(request: Request) {
   } catch (error) {
     if (claimedTransactionId && canRollbackClaim) {
       try {
-        await createAdminClient()
-          .from('transactions')
-          .update({ status: 'PENDING' })
+        await createRuangBocahAdminClient()
+          .from('notifications')
+          .update({ type: 'payment_pending' })
           .eq('id', claimedTransactionId)
-          .eq('status', 'PAID')
+          .eq('type', 'payment_processing')
       } catch {
         // Status PAID sengaja dipertahankan bila rollback juga gagal agar tidak terjadi approval ganda.
       }

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/internal/supabase/admin'
 import {
   createRuangBocahAdminClient,
   createRuangBocahReference,
@@ -8,15 +7,42 @@ import {
   RUANG_BOCAH_PACKAGES,
 } from '@/lib/ruangbocah/admin'
 
-// Cloudflare Pages menjalankan seluruh route dinamis melalui Edge Runtime.
 export const runtime = 'edge'
 
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error) return error.message
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as { message?: unknown }).message || fallback)
+type PaymentStatus = 'PENDING' | 'DONE' | 'FAILED'
+type PaymentNotification = {
+  id: string | number
+  user_id: string
+  title: string
+  message: string
+  type: string
+  created_at: string
+}
+
+function paymentStatus(type: string): PaymentStatus {
+  if (type === 'payment_done') return 'DONE'
+  if (type === 'payment_failed') return 'FAILED'
+  return 'PENDING'
+}
+
+function transactionFromNotification(notification: PaymentNotification) {
+  let details: Record<string, unknown> = {}
+  try {
+    details = JSON.parse(notification.message)
+  } catch {
+    details = {}
   }
-  return fallback
+  return {
+    id: String(notification.id),
+    reference_id: notification.title,
+    product_name: String(details.product_name ?? 'Transaksi Ruang Bocah'),
+    buyer_name: details.buyer_name ?? null,
+    buyer_email: details.buyer_email ?? null,
+    buyer_phone: details.buyer_phone ?? null,
+    amount: Number(details.amount ?? 0),
+    status: paymentStatus(notification.type),
+    created_at: notification.created_at,
+  }
 }
 
 async function authenticatedRuangBocahUser(request: Request) {
@@ -25,11 +51,7 @@ async function authenticatedRuangBocahUser(request: Request) {
   if (!accessToken) throw new Error('UNAUTHORIZED')
 
   const ruangBocah = createRuangBocahAdminClient()
-  const {
-    data: { user },
-    error,
-  } = await ruangBocah.auth.getUser(accessToken)
-
+  const { data: { user }, error } = await ruangBocah.auth.getUser(accessToken)
   if (error || !user) throw new Error('UNAUTHORIZED')
   return { ruangBocah, user }
 }
@@ -37,28 +59,12 @@ async function authenticatedRuangBocahUser(request: Request) {
 export async function GET(request: Request) {
   try {
     const { ruangBocah, user } = await authenticatedRuangBocahUser(request)
-    if (new URL(request.url).searchParams.get('schema') === 'transactions') {
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
-      const schemaResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          Accept: 'application/openapi+json',
-        },
-      })
-      const schema = await schemaResponse.json() as {
-        definitions?: Record<string, { properties?: Record<string, unknown> }>
-      }
-      return NextResponse.json({
-        columns: Object.keys(schema.definitions?.transactions?.properties ?? {}),
-      })
-    }
-    const askara = createAdminClient()
     const [{ data, error }, { data: profile, error: profileError }] = await Promise.all([
-      askara
-        .from('transactions')
-        .select('id, reference_id, product_name, amount, status, created_at')
-        .like('reference_id', `RBM|${user.id}|%`)
+      ruangBocah
+        .from('notifications')
+        .select('id, user_id, title, message, type, created_at')
+        .eq('user_id', user.id)
+        .in('type', ['payment_pending', 'payment_processing', 'payment_done', 'payment_failed'])
         .order('created_at', { ascending: false })
         .limit(50),
       ruangBocah
@@ -67,42 +73,28 @@ export async function GET(request: Request) {
         .eq('id', user.id)
         .maybeSingle(),
     ])
-
     if (error) throw error
     if (profileError) throw profileError
 
-    const transactions = data ?? []
+    const transactions = (data ?? []).map((item) => transactionFromNotification(item as PaymentNotification))
     const hasCompletedAccessTransaction = transactions.some(
-      (transaction) =>
-        transaction.status === 'DONE' &&
-        (transaction.reference_id.includes('|INITIAL_ACCESS|') ||
-          transaction.reference_id.includes('|PREMIUM30|')),
+      (transaction) => transaction.status === 'DONE' &&
+        (transaction.reference_id.includes('|INITIAL_ACCESS|') || transaction.reference_id.includes('|PREMIUM30|')),
     )
     const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || hasCompletedAccessTransaction
     const premiumValidUntil = profile?.premium_valid_until ?? null
-    const isPremiumActive = Boolean(profile?.is_premium) &&
-      Boolean(premiumValidUntil) &&
-      new Date(premiumValidUntil).getTime() > Date.now()
+    const isPremiumActive = Boolean(profile?.is_premium) && Boolean(premiumValidUntil) && new Date(premiumValidUntil).getTime() > Date.now()
     const requiredPackageCode = hasInitialAccess ? 'PREMIUM30' : 'INITIAL_ACCESS'
     const hasPendingPayment = transactions.some(
-      (transaction) =>
-        transaction.status === 'PENDING' &&
-        transaction.reference_id.includes(`|${requiredPackageCode}|`),
+      (transaction) => transaction.status === 'PENDING' && transaction.reference_id.includes(`|${requiredPackageCode}|`),
     )
 
     return NextResponse.json({
       transactions,
-      access: {
-        hasInitialAccess,
-        isPremiumActive,
-        premiumValidUntil,
-        requiredPackageCode,
-        hasPendingPayment,
-      },
+      access: { hasInitialAccess, isPremiumActive, premiumValidUntil, requiredPackageCode, hasPendingPayment },
     })
   } catch (error) {
-    console.error('Ruang Bocah transaction GET failed', error)
-    const message = getErrorMessage(error, 'Gagal memuat transaksi')
+    const message = error instanceof Error ? error.message : 'Gagal memuat transaksi'
     return NextResponse.json(
       { error: message === 'UNAUTHORIZED' ? 'Sesi aplikasi tidak valid' : message },
       { status: message === 'UNAUTHORIZED' ? 401 : 500 },
@@ -120,73 +112,65 @@ export async function POST(request: Request) {
     }
 
     const packageInfo = RUANG_BOCAH_PACKAGES[packageCode]
-    const askara = createAdminClient()
     const pendingPattern = `RBM|${user.id}|${packageInfo.code}|%`
-    const { data: existing } = await askara
-      .from('transactions')
-      .select('id, reference_id, product_name, amount, status, created_at')
-      .like('reference_id', pendingPattern)
-      .eq('status', 'PENDING')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const { data: profile } = await ruangBocah
-      .from('profiles')
-      .select('full_name, is_premium, premium_valid_until')
-      .eq('id', user.id)
-      .maybeSingle()
+    const [{ data: existing, error: existingError }, { data: profile, error: profileError }] = await Promise.all([
+      ruangBocah
+        .from('notifications')
+        .select('id, user_id, title, message, type, created_at')
+        .eq('user_id', user.id)
+        .in('type', ['payment_pending', 'payment_processing'])
+        .like('title', pendingPattern)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      ruangBocah
+        .from('profiles')
+        .select('full_name, is_premium, premium_valid_until')
+        .eq('id', user.id)
+        .maybeSingle(),
+    ])
+    if (existingError) throw existingError
+    if (profileError) throw profileError
 
     if (packageCode === 'INITIAL_ACCESS' || packageCode === 'PREMIUM30') {
-      const { data: completedAccess, error: accessError } = await askara
-        .from('transactions')
-        .select('reference_id')
-        .like('reference_id', `RBM|${user.id}|%`)
-        .eq('status', 'DONE')
+      const { data: completedAccess, error: accessError } = await ruangBocah
+        .from('notifications')
+        .select('title')
+        .eq('user_id', user.id)
+        .eq('type', 'payment_done')
         .limit(50)
       if (accessError) throw accessError
-
       const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || (completedAccess ?? []).some(
-        (item) =>
-          item.reference_id.includes('|INITIAL_ACCESS|') ||
-          item.reference_id.includes('|PREMIUM30|'),
+        (item) => item.title.includes('|INITIAL_ACCESS|') || item.title.includes('|PREMIUM30|'),
       )
       if (packageCode === 'INITIAL_ACCESS' && hasInitialAccess) {
-        return NextResponse.json(
-          { error: 'Akses awal sudah pernah dibayar. Gunakan paket perpanjangan Rp 49.000.' },
-          { status: 409 },
-        )
+        return NextResponse.json({ error: 'Akses awal sudah pernah dibayar. Gunakan paket perpanjangan Rp 49.000.' }, { status: 409 })
       }
       if (packageCode === 'PREMIUM30' && !hasInitialAccess) {
-        return NextResponse.json(
-          { error: 'Selesaikan pembayaran akses awal Rp 99.000 terlebih dahulu.' },
-          { status: 409 },
-        )
+        return NextResponse.json({ error: 'Selesaikan pembayaran akses awal Rp 99.000 terlebih dahulu.' }, { status: 409 })
       }
     }
 
-    let transaction = existing
-    if (!transaction) {
+    let notification = existing as PaymentNotification | null
+    if (!notification) {
       const referenceId = createRuangBocahReference(user.id, packageCode)
-      const { data, error } = await askara
-        .from('transactions')
-        .insert({
-          reference_id: referenceId,
-          product_name: packageInfo.name,
-          buyer_name: profile?.full_name || user.user_metadata?.full_name || 'Pengguna Ruang Bocah',
-          buyer_email: user.email ?? null,
-          buyer_phone: user.phone ?? null,
-          amount: packageInfo.amount,
-          shipping_cost: 0,
-          status: 'PENDING',
-        })
-        .select('id, reference_id, product_name, amount, status, created_at')
+      const message = JSON.stringify({
+        product_name: packageInfo.name,
+        buyer_name: profile?.full_name || user.user_metadata?.full_name || 'Pengguna Ruang Bocah',
+        buyer_email: user.email ?? null,
+        buyer_phone: user.phone ?? null,
+        amount: packageInfo.amount,
+      })
+      const { data, error } = await ruangBocah
+        .from('notifications')
+        .insert({ user_id: user.id, title: referenceId, message, type: 'payment_pending', is_read: false })
+        .select('id, user_id, title, message, type, created_at')
         .single()
-
       if (error) throw error
-      transaction = data
+      notification = data as PaymentNotification
     }
 
+    const transaction = transactionFromNotification(notification)
     const message = [
       'Halo Admin Askara, saya sudah membayar QRIS Ruang Bocah.',
       `Paket: ${packageInfo.name}`,
@@ -206,11 +190,11 @@ export async function POST(request: Request) {
       whatsappUrl: `https://wa.me/${RUANG_BOCAH_ADMIN_WA}?text=${encodeURIComponent(message)}`,
     })
   } catch (error) {
-    console.error('Ruang Bocah transaction POST failed', error)
-    const message = getErrorMessage(error, 'Gagal membuat transaksi')
-    return NextResponse.json(
-      { error: message === 'UNAUTHORIZED' ? 'Sesi aplikasi tidak valid' : message },
-      { status: message === 'UNAUTHORIZED' ? 401 : 500 },
-    )
+    const message = error instanceof Error
+      ? error.message
+      : error && typeof error === 'object' && 'message' in error
+        ? String(error.message)
+        : 'Gagal membuat transaksi'
+    return NextResponse.json({ error: message }, { status: message === 'UNAUTHORIZED' ? 401 : 500 })
   }
 }
