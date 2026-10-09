@@ -71,7 +71,6 @@ export default function RuangBocahLandingPage() {
         <div className="mx-auto max-w-6xl">
           <SectionHeading eyebrow="Tampilan aplikasi nyata" title="Dibuat untuk keluarga Indonesia" description="Screenshot berikut diambil langsung dari aplikasi Ruang Bocah yang berjalan di perangkat Android." />
           <div className="mt-14 grid gap-10 md:grid-cols-2">
-            <ScreenshotCard src="/ruangbocah/app-login.png" alt="Layar masuk Ruang Bocah" title="Masuk dan kelola akun dengan aman" description="Login email, pemulihan kata sandi, serta akses masuk Google tersedia dari satu layar." />
             <ScreenshotCard src="/ruangbocah/app-home-features.png" alt="Beranda fitur utama Ruang Bocah" title="Semua fitur utama dari satu beranda" description="Pantau pertumbuhan, imunisasi, nutrisi, tidur, poin, aktivitas, konsultasi, profil anak, serta Kancil AI tanpa berpindah akun." />
             <ScreenshotCard src="/ruangbocah/app-subscription-popup.png" alt="Pilihan aktivasi aplikasi Ruang Bocah" title="Aktivasi langsung setelah login" description="Pengguna baru mendapat petunjuk aktivasi dan dapat memilih paket 6, 8, atau 12 bulan melalui QRIS." />
             <ScreenshotCard src="/ruangbocah/app-growth.png" alt="Grafik pertumbuhan tinggi dan berat badan anak" title="Grafik tumbuh kembang yang mudah dibaca" description="Riwayat tinggi dan berat badan ditampilkan dalam grafik berkala agar perubahan tumbuh kembang si Kecil mudah dipantau." />
