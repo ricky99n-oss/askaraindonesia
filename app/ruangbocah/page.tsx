@@ -15,23 +15,23 @@ const features = [
   {
     icon: '🩺',
     tone: 'bg-purple-100',
-    title: 'Konsultasi Telemedis Spesialis Anak',
-    description: 'Terhubung dengan Dokter Spesialis Anak, kirim foto, chat real-time, dan simpan riwayat konsultasi dalam satu aplikasi.',
-    points: ['Sistem koin untuk sesi konsultasi', 'Chat real-time', 'Rekam medis dan ulasan dokter'],
+    title: 'Tanya Dokter Spesialis Anak',
+    description: 'Saat khawatir dengan kondisi si Kecil, orang tua dapat berkonsultasi dengan dokter anak langsung melalui aplikasi.',
+    points: ['Ceritakan keluhan melalui chat', 'Kirim foto agar kondisi lebih mudah dijelaskan', 'Baca kembali riwayat konsultasi'],
   },
   {
     icon: '📈',
     tone: 'bg-orange-100',
-    title: 'Pantau Tumbuh Kembang Menyeluruh',
-    description: 'Catat berat, tinggi, nutrisi, tidur, gejala, dan imunisasi agar perkembangan si Kecil lebih mudah dipantau.',
-    points: ['Grafik pertumbuhan interaktif', 'Riwayat nutrisi dan tidur', 'Pengingat vaksin dan imunisasi'],
+    title: 'Pantau Tumbuh Kembang si Kecil',
+    description: 'Simpan catatan tinggi, berat, makan, tidur, keluhan kesehatan, dan imunisasi agar perkembangan anak lebih mudah dipahami.',
+    points: ['Lihat perubahan tinggi dan berat badan', 'Catat pola makan dan waktu tidur', 'Ingat jadwal imunisasi anak'],
   },
   {
     icon: '🧩',
     tone: 'bg-blue-100',
-    title: 'Aktivitas Edukatif & Poin Anak',
-    description: 'Permainan sensorik dan kognitif, sistem poin serta lencana, ditambah audio penenang untuk rutinitas tidur anak.',
-    points: ['Game edukasi interaktif', 'Poin dan lencana anak', 'White noise dan lullaby'],
+    title: 'Belajar dan Bermain Bersama',
+    description: 'Pilihan permainan sederhana membantu anak belajar mengenal bentuk, warna, hewan, serta melatih fokus dan gerak tangan.',
+    points: ['Permainan sesuai kemampuan anak', 'Hadiah poin sebagai penyemangat', 'Suara pengantar tidur untuk waktu istirahat'],
   },
 ]
 
@@ -69,18 +69,18 @@ export default function RuangBocahLandingPage() {
 
       <section className="bg-slate-50 px-6 py-20">
         <div className="mx-auto max-w-6xl">
-          <SectionHeading eyebrow="Tampilan aplikasi nyata" title="Dibuat untuk keluarga Indonesia" description="Screenshot berikut diambil langsung dari aplikasi Ruang Bocah yang berjalan di perangkat Android." />
+          <SectionHeading eyebrow="Tampilan aplikasi nyata" title="Dibuat untuk keluarga Indonesia" description="Kenali manfaat setiap fitur Ruang Bocah untuk membantu orang tua mendampingi tumbuh kembang si Kecil." />
           <div className="mt-14 grid gap-10 md:grid-cols-2">
-            <ScreenshotCard src="/ruangbocah/app-home-features.png" alt="Beranda fitur utama Ruang Bocah" title="Semua fitur utama dari satu beranda" description="Pantau pertumbuhan, imunisasi, nutrisi, tidur, poin, aktivitas, konsultasi, profil anak, serta Kancil AI tanpa berpindah akun." />
-            <ScreenshotCard src="/ruangbocah/app-subscription-popup.png" alt="Pilihan aktivasi aplikasi Ruang Bocah" title="Aktivasi langsung setelah login" description="Pengguna baru mendapat petunjuk aktivasi dan dapat memilih paket 6, 8, atau 12 bulan melalui QRIS." />
-            <ScreenshotCard src="/ruangbocah/app-growth.png" alt="Grafik pertumbuhan tinggi dan berat badan anak" title="Grafik tumbuh kembang yang mudah dibaca" description="Riwayat tinggi dan berat badan ditampilkan dalam grafik berkala agar perubahan tumbuh kembang si Kecil mudah dipantau." />
-            <ScreenshotCard src="/ruangbocah/app-doctors.png" alt="Daftar dokter spesialis anak Ruang Bocah" title="Konsultasi Dokter Spesialis Anak" description="Lihat dokter yang tersedia, biaya konsultasi dalam koin, dan mulai percakapan langsung dari aplikasi." />
-            <ScreenshotCard src="/ruangbocah/app-games.png" alt="Pusat permainan edukatif Ruang Bocah" title="Permainan edukatif dengan leveling" description="Enam aktivitas ringan dengan visual baru, progres level, audio, dan tingkat kesulitan adaptif." />
-            <ScreenshotCard src="/ruangbocah/app-wallet-qris.png" alt="Pembayaran QRIS di aplikasi Ruang Bocah" title="Pembayaran QRIS yang terhubung ke akun" description="Transaksi menyertakan User ID dan Transaction ID, lalu bukti pembayaran dikirim langsung ke admin melalui WhatsApp." />
-            <ScreenshotCard src="/ruangbocah/app-onboarding.png" alt="Panduan fitur pertama kali Ruang Bocah" title="Panduan singkat saat pertama masuk" description="Tur modern memperkenalkan pertumbuhan, dokter, Kancil AI, permainan, profil anak, dan pembayaran." />
-            <ScreenshotCard src="/ruangbocah/app-flashcards.png" alt="Flashcard hewan Ruang Bocah" title="Flashcard hewan yang lebih jelas" description="Enam belas hewan dengan ilustrasi besar, nama, suara, progres level, dan efek kemenangan." />
-            <ScreenshotCard src="/ruangbocah/app-rabbit-run.png" alt="Permainan Kelinci Lari Ruang Bocah" title="Kelinci Lari tanpa overlay pengganggu" description="Arena lapang, instruksi ringkas, ilustrasi kelinci baru, tingkat kecepatan bertahap, suara, dan confetti." />
-            <ScreenshotCard src="/ruangbocah/app-articles.png" alt="Artikel pengasuhan Ruang Bocah" title="Artikel terkurasi dari sumber tepercaya" description="Panduan pertumbuhan, MPASI, tidur, imunisasi, perkembangan, aktivitas, dan kesehatan gigi dengan referensi resmi." />
+            <ScreenshotCard src="/ruangbocah/app-home-features.png" alt="Beranda fitur utama Ruang Bocah" title="Kebutuhan si Kecil dalam satu beranda" description="Orang tua dapat membuka catatan pertumbuhan, imunisasi, makan, tidur, permainan, dan konsultasi dokter dengan mudah dari halaman utama." />
+            <ScreenshotCard src="/ruangbocah/app-subscription-popup.png" alt="Pilihan aktivasi aplikasi Ruang Bocah" title="Pilih masa akses sesuai kebutuhan" description="Tersedia pilihan akses 6, 8, atau 12 bulan. Setelah pembayaran disetujui, seluruh fitur dapat digunakan sesuai masa aktif yang dipilih." />
+            <ScreenshotCard src="/ruangbocah/app-growth.png" alt="Grafik pertumbuhan tinggi dan berat badan anak" title="Lihat perkembangan tinggi dan berat badan" description="Catatan tinggi dan berat badan disusun menjadi grafik sehingga orang tua lebih mudah melihat perubahan pertumbuhan si Kecil dari waktu ke waktu." />
+            <ScreenshotCard src="/ruangbocah/app-doctors.png" alt="Daftar dokter spesialis anak Ruang Bocah" title="Tanya langsung kepada dokter anak" description="Pilih dokter yang tersedia, ceritakan keluhan si Kecil, dan simpan percakapan agar dapat dibaca kembali saat dibutuhkan." />
+            <ScreenshotCard src="/ruangbocah/app-games.png" alt="Pusat permainan edukatif Ruang Bocah" title="Belajar melalui permainan sederhana" description="Pecah Balon membantu melatih koordinasi mata dan tangan. Cocok Bentuk, kartu hewan, dan permainan lainnya membantu anak mengenal bentuk, melatih ingatan, serta menjaga fokus." />
+            <ScreenshotCard src="/ruangbocah/app-wallet-qris.png" alt="Pembayaran QRIS di aplikasi Ruang Bocah" title="Bayar dengan QRIS secara mudah" description="Pilih paket, pindai QRIS, lalu kirim bukti pembayaran melalui WhatsApp. Pembayaran akan dicatat pada akun yang digunakan." />
+            <ScreenshotCard src="/ruangbocah/app-onboarding.png" alt="Panduan fitur pertama kali Ruang Bocah" title="Panduan singkat saat pertama masuk" description="Petunjuk singkat membantu orang tua mengenal cara mencatat pertumbuhan, berkonsultasi dengan dokter, memakai Kancil AI, memilih permainan, dan mengelola profil anak." />
+            <ScreenshotCard src="/ruangbocah/app-flashcards.png" alt="Flashcard hewan Ruang Bocah" title="Kenalkan berbagai hewan kepada anak" description="Gambar berukuran besar, nama, dan suara membantu anak mengenali 16 jenis hewan sambil menambah kosakata dengan cara yang menyenangkan." />
+            <ScreenshotCard src="/ruangbocah/app-rabbit-run.png" alt="Permainan Kelinci Lari Ruang Bocah" title="Latih fokus lewat Kelinci Lari" description="Anak membantu kelinci melompati rintangan. Permainan ini melatih perhatian, ketepatan waktu, dan koordinasi tangan secara bertahap." />
+            <ScreenshotCard src="/ruangbocah/app-articles.png" alt="Artikel pengasuhan Ruang Bocah" title="Bacaan praktis untuk mendampingi anak" description="Temukan panduan tentang pertumbuhan, MPASI, tidur, imunisasi, aktivitas, perkembangan anak, dan kesehatan gigi yang dirangkum dari sumber tepercaya." />
           </div>
         </div>
       </section>
