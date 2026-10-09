@@ -2,7 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
-type UserRole = 'parent' | 'doctor'
+type UserRole = 'parent' | 'doctor' | 'nutritionist' | 'psychologist' | 'consultant' | 'expert'
+const professionalRoles = new Set<UserRole>(['doctor', 'nutritionist', 'psychologist', 'consultant', 'expert'])
 
 type RuangBocahUser = {
   id: string
@@ -16,6 +17,12 @@ type RuangBocahUser = {
   created_at?: string
   last_sign_in_at?: string | null
   auth_missing?: boolean
+  specialty?: string
+  hospital?: string
+  experience?: string
+  rating?: number
+  price_in_coins?: number
+  is_online?: boolean
 }
 
 type RuangBocahTransaction = {
@@ -45,6 +52,11 @@ type UserForm = {
   coinBalance: string
   isPremium: boolean
   premiumValidUntil: string
+  specialty: string
+  hospital: string
+  experience: string
+  priceInCoins: string
+  isOnline: boolean
 }
 
 const emptyUserForm: UserForm = {
@@ -55,6 +67,11 @@ const emptyUserForm: UserForm = {
   coinBalance: '0',
   isPremium: false,
   premiumValidUntil: '',
+  specialty: 'Spesialis Anak',
+  hospital: '',
+  experience: '',
+  priceInCoins: '50',
+  isOnline: false,
 }
 
 const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })
@@ -106,8 +123,8 @@ export default function RuangBocahAdminPage() {
     const approved = data.transactions.filter((transaction) => transaction.status === 'DONE')
     return {
       users: data.users.length,
-      parents: data.users.filter((user) => user.role !== 'doctor').length,
-      doctors: data.users.filter((user) => user.role === 'doctor').length,
+      parents: data.users.filter((user) => !professionalRoles.has(user.role || 'parent')).length,
+      doctors: data.users.filter((user) => professionalRoles.has(user.role || 'parent')).length,
       premium: data.users.filter((user) => isPremiumActive(user, currentTime)).length,
       pending,
       approved: approved.length,
@@ -153,6 +170,11 @@ export default function RuangBocahAdminPage() {
       coinBalance: Number(form.coinBalance),
       isPremium: form.isPremium,
       premiumValidUntil: form.isPremium ? dateInputToIso(form.premiumValidUntil) : null,
+      specialty: form.specialty,
+      hospital: form.hospital,
+      experience: form.experience,
+      priceInCoins: Number(form.priceInCoins),
+      isOnline: form.isOnline,
     }
   }
 
@@ -168,10 +190,15 @@ export default function RuangBocahAdminPage() {
       fullName: user.full_name || '',
       email: user.email || '',
       password: '',
-      role: user.role === 'doctor' ? 'doctor' : 'parent',
+      role: user.role || 'parent',
       coinBalance: String(user.coin_balance ?? 0),
       isPremium: Boolean(user.is_premium),
       premiumValidUntil: user.premium_valid_until?.slice(0, 10) || '',
+      specialty: user.specialty || 'Spesialis Anak',
+      hospital: user.hospital || '',
+      experience: user.experience || '',
+      priceInCoins: String(user.price_in_coins ?? 50),
+      isOnline: Boolean(user.is_online),
     })
   }
 
@@ -205,7 +232,7 @@ export default function RuangBocahAdminPage() {
       ))}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Total akun" value={stats.users} detail={`${stats.parents} orang tua · ${stats.doctors} dokter`} />
+        <Stat label="Total akun" value={stats.users} detail={`${stats.parents} orang tua · ${stats.doctors} tenaga ahli`} />
         <Stat label="Subscriber aktif" value={stats.premium} detail="Premium aktif dan belum kedaluwarsa" />
         <Stat label="Menunggu approval" value={stats.pending} detail={`${stats.approved} transaksi disetujui`} highlight />
         <Stat label="Omzet disetujui" value={rupiah.format(stats.revenue)} detail="Transaksi Ruang Bocah DONE" />
@@ -245,27 +272,28 @@ export default function RuangBocahAdminPage() {
           <Field label="Nama lengkap"><input required value={createForm.fullName} onChange={(event) => setCreateForm({ ...createForm, fullName: event.target.value })} className="form-input" /></Field>
           <Field label="Email"><input required type="email" value={createForm.email} onChange={(event) => setCreateForm({ ...createForm, email: event.target.value })} className="form-input" /></Field>
           <Field label="Password awal"><input required minLength={6} type="password" value={createForm.password} onChange={(event) => setCreateForm({ ...createForm, password: event.target.value })} className="form-input" /></Field>
-          <Field label="Role"><select value={createForm.role} onChange={(event) => setCreateForm({ ...createForm, role: event.target.value as UserRole })} className="form-input"><option value="parent">Orang tua</option><option value="doctor">Dokter</option></select></Field>
+          <RoleField form={createForm} setForm={setCreateForm} />
           <Field label="Saldo koin"><input required min="0" step="1" type="number" value={createForm.coinBalance} onChange={(event) => setCreateForm({ ...createForm, coinBalance: event.target.value })} className="form-input" /></Field>
           <PremiumFields form={createForm} setForm={setCreateForm} />
+          <ProfessionalFields form={createForm} setForm={setCreateForm} />
           <div className="flex items-end"><button disabled={busyId === 'create-user' || data.capabilities?.authAdmin === false} title={data.capabilities?.authAdmin === false ? 'Membutuhkan service-role key Supabase Ruang Bocah' : undefined} className="w-full rounded-lg bg-purple-700 px-4 py-2.5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{busyId === 'create-user' ? 'Membuat...' : 'Buat akun'}</button></div>
         </form>
       </section>
 
       <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 p-5">
-          <div><h2 className="text-xl font-bold text-gray-900">CRUD pengguna aplikasi</h2><p className="text-sm text-gray-500">Atur identitas, login, role, koin, status premium, dan masa berlakunya.</p></div>
+          <div><h2 className="text-xl font-bold text-gray-900">CRUD pengguna aplikasi</h2><p className="text-sm text-gray-500">Atur identitas, login, role, koin, premium, keahlian, tarif konsultasi, dan status online.</p></div>
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, email, role, atau ID..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm sm:w-80" />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="p-4">Nama</th><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Koin</th><th className="p-4">Premium</th><th className="p-4">Login terakhir</th><th className="p-4">Aksi</th></tr></thead>
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="p-4">Nama</th><th className="p-4">Email</th><th className="p-4">Role / profesi</th><th className="p-4">Koin</th><th className="p-4">Premium</th><th className="p-4">Login terakhir</th><th className="p-4">Aksi</th></tr></thead>
             <tbody>
               {loading ? <EmptyRow text="Memuat pengguna..." columns={7} /> : visibleUsers.length === 0 ? <EmptyRow text={search ? 'Pengguna tidak ditemukan.' : 'Belum ada pengguna.'} columns={7} /> : visibleUsers.map((user) => (
                 <tr key={user.id} className="border-t border-gray-100">
                   <td className="p-4 font-semibold">{user.full_name || '-'}<div className="font-mono text-[10px] font-normal text-gray-400">{user.id}</div></td>
                   <td className="p-4">{user.email || <span className="text-amber-600">Auth tidak ditemukan</span>}</td>
-                  <td className="p-4"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">{user.role || 'parent'}</span></td>
+                  <td className="p-4"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">{user.role || 'parent'}</span>{professionalRoles.has(user.role || 'parent') && <div className="mt-2 text-xs text-gray-500">{user.specialty || 'Konsultan'} · {Number(user.price_in_coins ?? 50)} koin<br/><span className={user.is_online ? 'text-green-600' : 'text-gray-400'}>{user.is_online ? 'Online' : 'Offline'}</span></div>}</td>
                   <td className="p-4 font-semibold">{Number(user.coin_balance ?? 0).toLocaleString('id-ID')}</td>
                   <td className="p-4"><PremiumStatus user={user} currentTime={currentTime} /></td>
                   <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}</td>
@@ -285,9 +313,10 @@ export default function RuangBocahAdminPage() {
               <Field label="Nama lengkap"><input required value={editForm.fullName} onChange={(event) => setEditForm({ ...editForm, fullName: event.target.value })} className="form-input" /></Field>
               <Field label="Email login"><input required type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} className="form-input" /></Field>
               <Field label="Password baru (opsional)" hint="Kosongkan jika tidak diubah"><input minLength={6} type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} placeholder="Minimal 6 karakter" className="form-input" /></Field>
-              <Field label="Role"><select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserRole })} className="form-input"><option value="parent">Orang tua</option><option value="doctor">Dokter</option></select></Field>
+              <RoleField form={editForm} setForm={setEditForm} />
               <Field label="Saldo koin"><input required min="0" step="1" type="number" value={editForm.coinBalance} onChange={(event) => setEditForm({ ...editForm, coinBalance: event.target.value })} className="form-input" /></Field>
               <PremiumFields form={editForm} setForm={setEditForm} />
+              <ProfessionalFields form={editForm} setForm={setEditForm} />
               <div className="flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-5 md:col-span-2"><button type="button" disabled={Boolean(busyId)} onClick={() => setEditingUser(null)} className="rounded-lg bg-gray-100 px-5 py-2.5 font-semibold text-gray-700">Batal</button><button disabled={busyId === editingUser.id} className="rounded-lg bg-purple-700 px-5 py-2.5 font-bold text-white disabled:opacity-50">{busyId === editingUser.id ? 'Menyimpan...' : 'Simpan perubahan'}</button></div>
             </form>
           </div>
@@ -299,6 +328,21 @@ export default function RuangBocahAdminPage() {
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return <label className="block text-sm font-semibold text-gray-700"><span>{label}</span>{hint && <span className="ml-2 text-xs font-normal text-gray-400">{hint}</span>}<div className="mt-1.5">{children}</div></label>
+}
+
+function RoleField({ form, setForm }: { form: UserForm; setForm: (form: UserForm) => void }) {
+  return <Field label="Role"><select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })} className="form-input"><option value="parent">Orang tua</option><option value="doctor">Dokter</option><option value="nutritionist">Ahli gizi</option><option value="psychologist">Psikolog anak</option><option value="consultant">Konsultan</option><option value="expert">Pakar lainnya</option></select></Field>
+}
+
+function ProfessionalFields({ form, setForm }: { form: UserForm; setForm: (form: UserForm) => void }) {
+  if (!professionalRoles.has(form.role)) return null
+  return <div className="col-span-full grid gap-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4 md:grid-cols-2 xl:grid-cols-4">
+    <Field label="Bidang keahlian"><input required value={form.specialty} onChange={(event) => setForm({ ...form, specialty: event.target.value })} placeholder="Contoh: Ahli Gizi Anak" className="form-input" /></Field>
+    <Field label="Rumah sakit / institusi"><input value={form.hospital} onChange={(event) => setForm({ ...form, hospital: event.target.value })} className="form-input" /></Field>
+    <Field label="Pengalaman"><input value={form.experience} onChange={(event) => setForm({ ...form, experience: event.target.value })} placeholder="Contoh: 8 tahun" className="form-input" /></Field>
+    <Field label="Tarif konsultasi (koin)"><input required min="0" step="1" type="number" value={form.priceInCoins} onChange={(event) => setForm({ ...form, priceInCoins: event.target.value })} className="form-input" /></Field>
+    <label className="flex items-center gap-3 rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={form.isOnline} onChange={(event) => setForm({ ...form, isOnline: event.target.checked })} className="h-4 w-4 accent-purple-700"/><span>Chat online / menerima konsultasi</span></label>
+  </div>
 }
 
 function PremiumFields({ form, setForm }: { form: UserForm; setForm: (form: UserForm) => void }) {

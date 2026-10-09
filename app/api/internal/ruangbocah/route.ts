@@ -11,6 +11,11 @@ export const runtime = 'edge'
 
 class RequestValidationError extends Error {}
 
+type UserRole = 'parent' | 'doctor' | 'nutritionist' | 'psychologist' | 'consultant' | 'expert'
+const PROFESSIONAL_ROLES = new Set<UserRole>([
+  'doctor', 'nutritionist', 'psychologist', 'consultant', 'expert',
+])
+
 type PaymentNotification = {
   id: string | number
   user_id: string
@@ -60,11 +65,24 @@ function parseEmail(value: unknown) {
   return email
 }
 
-function parseRole(value: unknown): 'parent' | 'doctor' {
-  if (value !== 'parent' && value !== 'doctor') {
-    throw new RequestValidationError('Role harus parent atau doctor')
+function parseRole(value: unknown): UserRole {
+  if (!['parent', 'doctor', 'nutritionist', 'psychologist', 'consultant', 'expert'].includes(String(value))) {
+    throw new RequestValidationError('Role pengguna tidak valid')
   }
-  return value
+  return value as UserRole
+}
+
+function parseProfessional(body: Record<string, unknown>, role: UserRole) {
+  if (!PROFESSIONAL_ROLES.has(role)) return null
+  const priceInCoins = parseCoinBalance(body.priceInCoins ?? 50)
+  return {
+    specialty: requiredText(body.specialty || 'Konsultan Anak', 'Bidang keahlian'),
+    hospital: String(body.hospital || '').trim(),
+    experience: String(body.experience || '').trim(),
+    price_in_coins: priceInCoins,
+    is_online: body.isOnline === true,
+    updated_at: new Date().toISOString(),
+  }
 }
 
 function parseCoinBalance(value: unknown) {
@@ -112,12 +130,15 @@ export async function GET() {
     await requireInternalMember()
     const ruangBocah = createRuangBocahAdminClient()
 
-    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: paymentRows, error: transactionError }] =
+    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         ruangBocah
           .from('profiles')
           .select('id, role, full_name, coin_balance, is_premium, premium_valid_until'),
+        ruangBocah
+          .from('doctor_profiles')
+          .select('id, specialty, hospital, experience, rating, price_in_coins, is_online'),
         ruangBocah
           .from('notifications')
           .select('id, user_id, title, message, type, created_at')
@@ -127,9 +148,18 @@ export async function GET() {
 
     if (profileError) throw profileError
 
-    const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
+    const professionalById = new Map((professionalRows ?? []).map((profile) => [profile.id, profile]))
+    const profileById = new Map((profiles ?? []).map((profile) => [
+      profile.id,
+      { ...profile, ...professionalById.get(profile.id) },
+    ]))
     const users: Array<Record<string, unknown>> = authError
-      ? (profiles ?? []).map((profile) => ({ ...profile, email: '', phone: '' }))
+      ? (profiles ?? []).map((profile) => ({
+          ...profile,
+          ...professionalById.get(profile.id),
+          email: '',
+          phone: '',
+        }))
       : authData.users.map((user) => ({
           id: user.id,
           email: user.email ?? '',
@@ -143,7 +173,7 @@ export async function GET() {
       const authIds = new Set(authData.users.map((user) => user.id))
       for (const profile of profiles ?? []) {
         if (!authIds.has(profile.id)) {
-          users.push({ ...profile, email: '', phone: '', auth_missing: true })
+          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true })
         }
       }
     }
@@ -157,6 +187,7 @@ export async function GET() {
     if (transactionError) {
       warnings.push(`Riwayat transaksi belum dapat dimuat: ${errorMessage(transactionError)}`)
     }
+    if (professionalError) warnings.push(`Profil dokter/konsultan belum dapat dimuat: ${errorMessage(professionalError)}`)
 
     return NextResponse.json({
       users,
@@ -182,6 +213,7 @@ export async function POST(request: Request) {
     const password = String(body.password ?? '')
     const fullName = requiredText(body.fullName, 'Nama lengkap')
     const role = parseRole(body.role)
+    const professional = parseProfessional(body, role)
     const coinBalance = parseCoinBalance(body.coinBalance ?? 0)
     const { isPremium, premiumValidUntil } = parsePremium(body.isPremium, body.premiumValidUntil)
 
@@ -208,6 +240,16 @@ export async function POST(request: Request) {
     if (profileError) {
       await ruangBocah.auth.admin.deleteUser(data.user.id)
       throw profileError
+    }
+
+    if (professional) {
+      const { error: professionalError } = await ruangBocah
+        .from('doctor_profiles')
+        .upsert({ id: data.user.id, ...professional })
+      if (professionalError) {
+        await ruangBocah.auth.admin.deleteUser(data.user.id)
+        throw professionalError
+      }
     }
 
     return NextResponse.json({ success: true, id: data.user.id })
@@ -302,6 +344,7 @@ export async function PATCH(request: Request) {
       const email = parseEmail(body.email)
       const password = String(body.password ?? '')
       const role = parseRole(body.role)
+      const professional = parseProfessional(body, role)
       const coinBalance = parseCoinBalance(body.coinBalance)
       const { isPremium, premiumValidUntil } = parsePremium(body.isPremium, body.premiumValidUntil)
       if (password && password.length < 6) {
@@ -328,10 +371,23 @@ export async function PATCH(request: Request) {
         .upsert(profileValues)
       if (profileError) throw profileError
 
+      if (professional) {
+        const { error: professionalError } = await ruangBocah
+          .from('doctor_profiles')
+          .upsert({ id: userId, ...professional })
+        if (professionalError) throw professionalError
+      } else {
+        const { error: professionalError } = await ruangBocah
+          .from('doctor_profiles')
+          .delete()
+          .eq('id', userId)
+        if (professionalError) throw professionalError
+      }
+
       const authUpdate: {
         email: string
         password?: string
-        user_metadata: { full_name: string; role: 'parent' | 'doctor' }
+        user_metadata: { full_name: string; role: UserRole }
       } = { email, user_metadata: { full_name: fullName, role } }
       if (password) authUpdate.password = password
       const { error: authError } = await ruangBocah.auth.admin.updateUserById(userId, authUpdate)
