@@ -11,9 +11,9 @@ import {
 } from '@/lib/ruangbocah/downloads'
 
 const PLANS = [
-  { code: 'ACCESS6', label: '6 bulan', amount: 99_000, coins: 80 },
-  { code: 'ACCESS8', label: '8 bulan', amount: 149_000, coins: 120 },
-  { code: 'ACCESS12', label: '12 bulan', amount: 169_000, coins: 180, oldPrice: 199_000 },
+  { code: 'ACCESS6', label: 'Paket Hemat · 3 bulan', amount: 99_000, coins: 50 },
+  { code: 'ACCESS8', label: 'Paket Keluarga · 6 bulan', amount: 149_000, coins: 100 },
+  { code: 'ACCESS12', label: 'Paket Setahun · 12 bulan', amount: 180_000, coins: 150 },
 ]
 
 function SubscribeContent() {
@@ -70,7 +70,6 @@ function SubscribeContent() {
               {PLANS.map((plan) => (
                 <button key={plan.code} type="button" onClick={() => setSelectedCode(plan.code)} className={`rounded-2xl border p-4 text-left transition ${selectedCode === plan.code ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-100' : 'border-slate-200 hover:border-purple-300'}`}>
                   <span className="block text-sm font-black text-purple-700">{plan.label}</span>
-                  {plan.oldPrice && <span className="mt-1 block text-xs text-slate-400 line-through">Rp {plan.oldPrice.toLocaleString('id-ID')}</span>}
                   <span className="block font-bold">Rp {plan.amount.toLocaleString('id-ID')}</span>
                   <span className="mt-1 block text-xs text-slate-500">Bonus {plan.coins} koin</span>
                 </button>
@@ -91,7 +90,7 @@ function SubscribeContent() {
               <div className="sm:col-span-2"><Field label="Transaction ID" value={transactionId} onChange={setTransactionId} placeholder="ID transaksi dari menu Dompet" /></div>
             </div>
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="mt-5 block rounded-xl bg-emerald-600 px-6 py-4 text-center font-bold text-white transition hover:bg-emerald-700">Konfirmasi & Lampirkan Bukti via WhatsApp</a>
-            <p className="mt-4 text-xs leading-relaxed text-slate-500">Masa aktif ditambahkan otomatis setelah admin menyetujui bukti pembayaran. Top up tersedia Rp20.000 untuk 20 koin dan Rp49.000 untuk 80 koin di menu Dompet aplikasi.</p>
+            <p className="mt-4 text-xs leading-relaxed text-slate-500">Masa aktif ditambahkan otomatis setelah admin menyetujui bukti pembayaran. Top up tersedia Rp69.000 untuk 50 koin dan Rp90.000 untuk 100 koin di menu Dompet aplikasi.</p>
           </section>
         </div>
       </div>

@@ -75,9 +75,10 @@ export default function RuangBocahLandingPage() {
             <ScreenshotCard src="/ruangbocah/app-subscription-popup.png" alt="Pilihan aktivasi aplikasi Ruang Bocah" title="Pilih masa akses sesuai kebutuhan" description="Tersedia pilihan akses 6, 8, atau 12 bulan. Setelah pembayaran disetujui, seluruh fitur dapat digunakan sesuai masa aktif yang dipilih." />
             <ScreenshotCard src="/ruangbocah/app-growth.png" alt="Grafik pertumbuhan tinggi dan berat badan anak" title="Lihat perkembangan tinggi dan berat badan" description="Catatan tinggi dan berat badan disusun menjadi grafik sehingga orang tua lebih mudah melihat perubahan pertumbuhan si Kecil dari waktu ke waktu." />
             <ScreenshotCard src="/ruangbocah/app-doctors.png" alt="Daftar dokter spesialis anak Ruang Bocah" title="Tanya langsung kepada dokter anak" description="Pilih dokter yang tersedia, ceritakan keluhan si Kecil, dan simpan percakapan agar dapat dibaca kembali saat dibutuhkan." />
-            <ScreenshotCard src="/ruangbocah/app-games.png" alt="Pusat permainan edukatif Ruang Bocah" title="Belajar melalui permainan sederhana" description="Pecah Balon membantu melatih koordinasi mata dan tangan. Cocok Bentuk, kartu hewan, dan permainan lainnya membantu anak mengenal bentuk, melatih ingatan, serta menjaga fokus." />
+            <ScreenshotCard src="/ruangbocah/app-games.png" alt="Permainan Domba Awan di Ruang Bocah" title="Belajar merawat lewat Domba Awan" description="Anak memilih domba, merawatnya tahap demi tahap, mengumpulkan wol, dan membuat aksesori. Setiap level melatih urutan kegiatan, koordinasi tangan, dan tanggung jawab sederhana." />
             <ScreenshotCard src="/ruangbocah/app-wallet-qris.png" alt="Pembayaran QRIS di aplikasi Ruang Bocah" title="Bayar dengan QRIS secara mudah" description="Pilih paket, pindai QRIS, lalu kirim bukti pembayaran melalui WhatsApp. Pembayaran akan dicatat pada akun yang digunakan." />
-            <ScreenshotCard src="/ruangbocah/app-onboarding.png" alt="Panduan fitur pertama kali Ruang Bocah" title="Panduan singkat saat pertama masuk" description="Petunjuk singkat membantu orang tua mengenal cara mencatat pertumbuhan, berkonsultasi dengan dokter, memakai Kancil AI, memilih permainan, dan mengelola profil anak." />
+            <ScreenshotCard src="/ruangbocah/app-onboarding.png" alt="Panduan fitur pertama kali Ruang Bocah" title="Dipandu sejak pertama masuk" description="Wizard membantu orang tua membuat profil si Kecil terlebih dahulu, lalu menyorot langsung menu profil, pertumbuhan, pencatatan harian, konsultasi, aktivitas, dan Kancil AI satu per satu." />
+            <ScreenshotCard src="/ruangbocah/app-parent-reward.png" alt="Hadiah permainan anak di Ruang Bocah" title="Apresiasi progres bermain anak" description="Setelah menyelesaikan aktivitas, anak memperoleh hadiah visual. Orang tua dapat melihat progres dan memberi semangat untuk melanjutkan kebiasaan baik." />
             <ScreenshotCard src="/ruangbocah/app-flashcards.png" alt="Flashcard hewan Ruang Bocah" title="Kenalkan berbagai hewan kepada anak" description="Gambar berukuran besar, nama, dan suara membantu anak mengenali 16 jenis hewan sambil menambah kosakata dengan cara yang menyenangkan." />
             <ScreenshotCard src="/ruangbocah/app-rabbit-run.png" alt="Permainan Kelinci Lari Ruang Bocah" title="Latih fokus lewat Kelinci Lari" description="Anak membantu kelinci melompati rintangan. Permainan ini melatih perhatian, ketepatan waktu, dan koordinasi tangan secara bertahap." />
             <ScreenshotCard src="/ruangbocah/app-articles.png" alt="Artikel pengasuhan Ruang Bocah" title="Bacaan praktis untuk mendampingi anak" description="Temukan panduan tentang pertumbuhan, MPASI, tidur, imunisasi, aktivitas, perkembangan anak, dan kesehatan gigi yang dirangkum dari sumber tepercaya." />
@@ -108,13 +109,13 @@ export default function RuangBocahLandingPage() {
           <div className="bg-purple-700 p-10 text-white">
             <p className="text-sm font-bold uppercase tracking-widest text-purple-200">Premium Membership</p>
             <h2 className="mt-4 text-3xl font-black">Lebih lengkap bersama si Kecil</h2>
-            <div className="mt-8 text-5xl font-black">Mulai Rp 99K<span className="text-lg font-normal text-purple-200"> /6 bulan</span></div>
-            <p className="mt-3 text-sm text-purple-100">Pilih 6 bulan + 80 koin, 8 bulan + 120 koin, atau promo 12 bulan + 180 koin.</p>
+            <div className="mt-8 text-5xl font-black">Mulai Rp 99K<span className="text-lg font-normal text-purple-200"> /3 bulan</span></div>
+            <p className="mt-3 text-sm text-purple-100">Pilih 3 bulan + 50 koin, 6 bulan + 100 koin, atau 12 bulan + 150 koin.</p>
           </div>
           <div className="p-10">
             <h3 className="text-xl font-bold">Yang Anda dapatkan</h3>
             <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
-              {['6 bulan Rp99K', '8 bulan Rp149K', '12 bulan Rp169K (dari Rp199K)', 'Bonus hingga 180 koin', 'Akses telemedis', 'Metrik pertumbuhan', 'Pusat bermain edukatif'].map((item) => <div key={item} className="flex gap-2"><span className="text-orange-500">★</span>{item}</div>)}
+              {['3 bulan Rp99K + 50 koin', '6 bulan Rp149K + 100 koin', '12 bulan Rp180K + 150 koin', 'Top up mulai 50 koin', 'Akses telemedis', 'Metrik pertumbuhan', 'Pusat bermain edukatif'].map((item) => <div key={item} className="flex gap-2"><span className="text-orange-500">★</span>{item}</div>)}
             </div>
             <Link href="/ruangbocah/subscribe" className="mt-8 block rounded-xl bg-purple-700 px-6 py-4 text-center font-bold text-white transition hover:bg-purple-800">
               Pilih Paket & Bayar via QRIS

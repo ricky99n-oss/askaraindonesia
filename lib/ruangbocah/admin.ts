@@ -5,23 +5,23 @@ export const RUANG_BOCAH_ADMIN_WA = '6285815999953'
 export const RUANG_BOCAH_PACKAGES = {
   ACCESS6: {
     code: 'ACCESS6',
-    name: 'Akses Ruang Bocah 6 Bulan',
+    name: 'Paket Hemat Ruang Bocah 3 Bulan',
     amount: 99_000,
-    coinBonus: 80,
-    premiumDays: 180,
+    coinBonus: 50,
+    premiumDays: 90,
   },
   ACCESS8: {
     code: 'ACCESS8',
-    name: 'Akses Ruang Bocah 8 Bulan',
+    name: 'Paket Keluarga Ruang Bocah 6 Bulan',
     amount: 149_000,
-    coinBonus: 120,
-    premiumDays: 240,
+    coinBonus: 100,
+    premiumDays: 180,
   },
   ACCESS12: {
     code: 'ACCESS12',
     name: 'Akses Ruang Bocah 12 Bulan',
-    amount: 169_000,
-    coinBonus: 180,
+    amount: 180_000,
+    coinBonus: 150,
     premiumDays: 365,
   },
   COIN20: {
@@ -57,14 +57,14 @@ export const RUANG_BOCAH_PACKAGES = {
   COIN50: {
     code: 'COIN50',
     name: 'Top Up 50 Koin Ruang Bocah',
-    amount: 49_000,
+    amount: 69_000,
     coinBonus: 50,
     premiumDays: 0,
   },
   COIN100: {
     code: 'COIN100',
     name: 'Top Up 100 Koin Ruang Bocah',
-    amount: 95_000,
+    amount: 90_000,
     coinBonus: 100,
     premiumDays: 0,
   },
@@ -85,6 +85,7 @@ export const RUANG_BOCAH_PACKAGES = {
 } as const
 
 export const RUANG_BOCAH_ACCESS_CODES = ['ACCESS6', 'ACCESS8', 'ACCESS12', 'INITIAL_ACCESS', 'PREMIUM30'] as const
+export const RUANG_BOCAH_PURCHASABLE_CODES = ['ACCESS6', 'ACCESS8', 'ACCESS12', 'COIN50', 'COIN100'] as const
 
 export type RuangBocahPackageCode = keyof typeof RUANG_BOCAH_PACKAGES
 

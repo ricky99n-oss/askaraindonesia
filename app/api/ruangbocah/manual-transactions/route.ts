@@ -6,6 +6,7 @@ import {
   RUANG_BOCAH_ADMIN_WA,
   RUANG_BOCAH_ACCESS_CODES,
   RUANG_BOCAH_PACKAGES,
+  RUANG_BOCAH_PURCHASABLE_CODES,
 } from '@/lib/ruangbocah/admin'
 
 export const runtime = 'edge'
@@ -109,6 +110,9 @@ export async function POST(request: Request) {
     const packageCode = body.packageCode
     if (!isRuangBocahPackageCode(packageCode)) {
       return NextResponse.json({ error: 'Paket tidak valid' }, { status: 400 })
+    }
+    if (!(RUANG_BOCAH_PURCHASABLE_CODES as readonly string[]).includes(packageCode)) {
+      return NextResponse.json({ error: 'Paket ini sudah tidak tersedia' }, { status: 400 })
     }
 
     const packageInfo = RUANG_BOCAH_PACKAGES[packageCode]
