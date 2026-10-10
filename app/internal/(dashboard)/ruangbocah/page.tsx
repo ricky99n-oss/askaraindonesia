@@ -23,6 +23,7 @@ type RuangBocahUser = {
   rating?: number
   price_in_coins?: number
   is_online?: boolean
+  active_device_count?: number
 }
 
 type RuangBocahTransaction = {
@@ -40,8 +41,30 @@ type RuangBocahTransaction = {
 type DashboardData = {
   users: RuangBocahUser[]
   transactions: RuangBocahTransaction[]
+  feedback: AppFeedback[]
+  announcements: Announcement[]
   warnings?: string[]
   capabilities?: { authAdmin: boolean; transactions: boolean }
+}
+
+type AppFeedback = {
+  id: string
+  user_id: string
+  user_name: string
+  user_email: string
+  rating: number
+  comment: string
+  app_version: string
+  is_reviewed: boolean
+  created_at: string
+}
+
+type Announcement = {
+  id: string
+  title: string
+  message: string
+  type: 'promo' | 'app_update'
+  created_at: string
 }
 
 type UserForm = {
@@ -86,7 +109,7 @@ function isPremiumActive(user: RuangBocahUser, currentTime: number) {
 }
 
 export default function RuangBocahAdminPage() {
-  const [data, setData] = useState<DashboardData>({ users: [], transactions: [], warnings: [] })
+  const [data, setData] = useState<DashboardData>({ users: [], transactions: [], feedback: [], announcements: [], warnings: [] })
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
@@ -95,6 +118,12 @@ export default function RuangBocahAdminPage() {
   const [editingUser, setEditingUser] = useState<RuangBocahUser | null>(null)
   const [editForm, setEditForm] = useState<UserForm>(emptyUserForm)
   const [currentTime] = useState(() => Date.now())
+  const [notificationForm, setNotificationForm] = useState({
+    title: '',
+    message: '',
+    type: 'promo' as 'promo' | 'app_update',
+    target: 'all' as 'all' | 'parent' | 'professional',
+  })
 
   const load = useCallback(async (clearMessage = true) => {
     setLoading(true)
@@ -184,6 +213,15 @@ export default function RuangBocahAdminPage() {
     if (saved) setCreateForm(emptyUserForm)
   }
 
+  async function sendNotification(event: FormEvent) {
+    event.preventDefault()
+    const saved = await mutate('POST', {
+      action: 'send_notification',
+      ...notificationForm,
+    }, 'send-notification', 'Notifikasi berhasil dikirim ke aplikasi pengguna.')
+    if (saved) setNotificationForm({ title: '', message: '', type: 'promo', target: 'all' })
+  }
+
   function openEditor(user: RuangBocahUser) {
     setEditingUser(user)
     setEditForm({
@@ -236,6 +274,31 @@ export default function RuangBocahAdminPage() {
         <Stat label="Subscriber aktif" value={stats.premium} detail="Premium aktif dan belum kedaluwarsa" />
         <Stat label="Menunggu approval" value={stats.pending} detail={`${stats.approved} transaksi disetujui`} highlight />
         <Stat label="Omzet disetujui" value={rupiah.format(stats.revenue)} detail="Transaksi Ruang Bocah DONE" />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+        <form onSubmit={sendNotification} className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+          <div className="mb-5"><h2 className="text-xl font-bold text-gray-900">Kirim notifikasi aplikasi</h2><p className="text-sm text-gray-500">Promo atau informasi pembaruan akan muncul sebagai pop-up saat pengguna membuka aplikasi.</p></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Jenis"><select value={notificationForm.type} onChange={(event) => setNotificationForm({ ...notificationForm, type: event.target.value as 'promo' | 'app_update' })} className="form-input"><option value="promo">Promo</option><option value="app_update">Pembaruan aplikasi</option></select></Field>
+            <Field label="Penerima"><select value={notificationForm.target} onChange={(event) => setNotificationForm({ ...notificationForm, target: event.target.value as 'all' | 'parent' | 'professional' })} className="form-input"><option value="all">Semua pengguna</option><option value="parent">Orang tua</option><option value="professional">Dokter & tenaga ahli</option></select></Field>
+            <Field label="Judul"><input required maxLength={80} value={notificationForm.title} onChange={(event) => setNotificationForm({ ...notificationForm, title: event.target.value })} placeholder="Contoh: Versi baru tersedia" className="form-input" /></Field>
+            <div className="sm:col-span-2"><Field label="Isi pesan"><textarea required maxLength={500} rows={4} value={notificationForm.message} onChange={(event) => setNotificationForm({ ...notificationForm, message: event.target.value })} placeholder="Tuliskan manfaat promo atau perubahan pada versi terbaru..." className="form-input resize-y" /></Field></div>
+          </div>
+          <button disabled={busyId === 'send-notification'} className="mt-4 rounded-lg bg-purple-700 px-5 py-2.5 font-bold text-white disabled:opacity-50">{busyId === 'send-notification' ? 'Mengirim...' : 'Kirim notifikasi'}</button>
+          {data.announcements.length > 0 && <div className="mt-5 border-t border-gray-100 pt-4"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">Notifikasi terbaru</div>{data.announcements.slice(0, 3).map((item) => <div key={`${item.type}-${item.title}-${item.created_at}`} className="mb-2 rounded-lg bg-gray-50 p-3 text-sm"><span className="font-semibold text-gray-800">{item.title}</span><span className="ml-2 text-xs text-gray-400">{item.type === 'app_update' ? 'Update' : 'Promo'}</span><p className="mt-1 text-xs text-gray-500">{item.message}</p></div>)}</div>}
+        </form>
+
+        <div className="rounded-2xl border border-amber-100 bg-white shadow-sm">
+          <div className="border-b border-gray-100 p-5"><h2 className="text-xl font-bold text-gray-900">Feedback pengguna</h2><p className="text-sm text-gray-500">Penilaian yang dikirim dari pop-up aplikasi.</p></div>
+          <div className="max-h-[520px] overflow-y-auto p-5">
+            {data.feedback.length === 0 ? <p className="py-8 text-center text-sm text-gray-400">Belum ada feedback.</p> : data.feedback.map((item) => <article key={item.id} className={`mb-3 rounded-xl border p-4 ${item.is_reviewed ? 'border-gray-100 bg-gray-50' : 'border-amber-200 bg-amber-50/50'}`}>
+              <div className="flex flex-wrap items-start justify-between gap-2"><div><div className="font-semibold text-gray-900">{item.user_name}</div><div className="text-xs text-gray-400">{item.user_email || item.user_id} · {new Date(item.created_at).toLocaleString('id-ID')}</div></div><div className="text-amber-500" aria-label={`${item.rating} dari 5 bintang`}>{'★'.repeat(Math.max(0, Math.min(5, item.rating)))}{'☆'.repeat(Math.max(0, 5 - Math.min(5, item.rating)))}</div></div>
+              <p className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{item.comment || 'Tanpa komentar tertulis.'}</p>
+              <div className="mt-3 flex items-center justify-between"><span className="text-xs text-gray-400">Versi {item.app_version || '-'}</span>{!item.is_reviewed && <button disabled={busyId === item.id} onClick={() => void mutate('PATCH', { action: 'mark_feedback_reviewed', feedbackId: item.id }, item.id, 'Feedback ditandai sudah ditinjau.')} className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-amber-700 shadow-sm disabled:opacity-50">Tandai ditinjau</button>}</div>
+            </article>)}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -296,8 +359,8 @@ export default function RuangBocahAdminPage() {
                   <td className="p-4"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">{user.role || 'parent'}</span>{professionalRoles.has(user.role || 'parent') && <div className="mt-2 text-xs text-gray-500">{user.specialty || 'Konsultan'} · {Number(user.price_in_coins ?? 50)} koin<br/><span className={user.is_online ? 'text-green-600' : 'text-gray-400'}>{user.is_online ? 'Online' : 'Offline'}</span></div>}</td>
                   <td className="p-4 font-semibold">{Number(user.coin_balance ?? 0).toLocaleString('id-ID')}</td>
                   <td className="p-4"><PremiumStatus user={user} currentTime={currentTime} /></td>
-                  <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}</td>
-                  <td className="p-4"><div className="flex gap-2"><button disabled={busyId === user.id || user.auth_missing} onClick={() => openEditor(user)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 disabled:opacity-50">Kelola</button><button disabled={busyId === user.id || data.capabilities?.authAdmin === false || user.auth_missing} onClick={() => void deleteUser(user)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 disabled:opacity-50">Hapus</button></div></td>
+                  <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}<div className="mt-1 font-semibold text-purple-600">{user.active_device_count ?? 0}/3 perangkat</div></td>
+                  <td className="p-4"><div className="flex flex-wrap gap-2"><button disabled={busyId === user.id || user.auth_missing} onClick={() => openEditor(user)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 disabled:opacity-50">Kelola</button><button disabled={busyId === user.id || !(user.active_device_count)} onClick={() => { if (window.confirm('Keluarkan akun ini dari semua perangkat terdaftar?')) void mutate('PATCH', { action: 'reset_devices', userId: user.id }, user.id, 'Daftar perangkat pengguna berhasil dikosongkan.') }} className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 disabled:opacity-50">Reset perangkat</button><button disabled={busyId === user.id || data.capabilities?.authAdmin === false || user.auth_missing} onClick={() => void deleteUser(user)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 disabled:opacity-50">Hapus</button></div></td>
                 </tr>
               ))}
             </tbody>

@@ -23,6 +23,40 @@ type PaymentNotification = {
   message: string
   type: string
   created_at: string
+  is_read?: boolean
+}
+
+function parseNotificationMessage(message: string) {
+  try {
+    return JSON.parse(message) as Record<string, unknown>
+  } catch {
+    return { comment: message }
+  }
+}
+
+function feedbackFromNotification(notification: PaymentNotification) {
+  const details = parseNotificationMessage(notification.message)
+  return {
+    id: String(notification.id),
+    user_id: notification.user_id,
+    user_name: String(details.user_name ?? 'Pengguna Ruang Bocah'),
+    user_email: String(details.user_email ?? ''),
+    rating: Number(details.rating ?? 0),
+    comment: String(details.comment ?? ''),
+    app_version: String(details.app_version ?? ''),
+    is_reviewed: Boolean(notification.is_read),
+    created_at: notification.created_at,
+  }
+}
+
+function announcementFromNotification(notification: PaymentNotification) {
+  return {
+    id: String(notification.id),
+    title: notification.title,
+    message: notification.message,
+    type: notification.type,
+    created_at: notification.created_at,
+  }
 }
 
 function transactionFromNotification(notification: PaymentNotification) {
@@ -130,7 +164,7 @@ export async function GET() {
     await requireInternalMember()
     const ruangBocah = createRuangBocahAdminClient()
 
-    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }] =
+    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         ruangBocah
@@ -144,10 +178,30 @@ export async function GET() {
           .select('id, user_id, title, message, type, created_at')
           .in('type', ['payment_pending', 'payment_processing', 'payment_done', 'payment_failed'])
           .order('created_at', { ascending: false }),
+        ruangBocah
+          .from('notifications')
+          .select('id, user_id, title, message, type, created_at, is_read')
+          .eq('type', 'app_feedback')
+          .order('created_at', { ascending: false })
+          .limit(200),
+        ruangBocah
+          .from('notifications')
+          .select('id, user_id, title, message, type, created_at')
+          .in('type', ['promo', 'app_update'])
+          .order('created_at', { ascending: false })
+          .limit(100),
+        ruangBocah
+          .from('notifications')
+          .select('user_id')
+          .eq('type', 'device_session'),
       ])
 
     if (profileError) throw profileError
 
+    const deviceCounts = new Map<string, number>()
+    for (const row of deviceRows ?? []) {
+      deviceCounts.set(row.user_id, (deviceCounts.get(row.user_id) ?? 0) + 1)
+    }
     const professionalById = new Map((professionalRows ?? []).map((profile) => [profile.id, profile]))
     const profileById = new Map((profiles ?? []).map((profile) => [
       profile.id,
@@ -159,6 +213,7 @@ export async function GET() {
           ...professionalById.get(profile.id),
           email: '',
           phone: '',
+          active_device_count: deviceCounts.get(profile.id) ?? 0,
         }))
       : authData.users.map((user) => ({
           id: user.id,
@@ -167,13 +222,14 @@ export async function GET() {
           created_at: user.created_at,
           last_sign_in_at: user.last_sign_in_at,
           ...profileById.get(user.id),
+          active_device_count: deviceCounts.get(user.id) ?? 0,
         }))
 
     if (!authError) {
       const authIds = new Set(authData.users.map((user) => user.id))
       for (const profile of profiles ?? []) {
         if (!authIds.has(profile.id)) {
-          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true })
+          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0 })
         }
       }
     }
@@ -188,12 +244,24 @@ export async function GET() {
       warnings.push(`Riwayat transaksi belum dapat dimuat: ${errorMessage(transactionError)}`)
     }
     if (professionalError) warnings.push(`Profil dokter/konsultan belum dapat dimuat: ${errorMessage(professionalError)}`)
+    if (feedbackError) warnings.push(`Feedback aplikasi belum dapat dimuat: ${errorMessage(feedbackError)}`)
+    if (announcementError) warnings.push(`Riwayat notifikasi belum dapat dimuat: ${errorMessage(announcementError)}`)
+    if (deviceError) warnings.push(`Data perangkat belum dapat dimuat: ${errorMessage(deviceError)}`)
 
     return NextResponse.json({
       users,
       transactions: transactionError
         ? []
         : (paymentRows ?? []).map((item) => transactionFromNotification(item as PaymentNotification)),
+      feedback: feedbackError
+        ? []
+        : (feedbackRows ?? []).map((item) => feedbackFromNotification(item as PaymentNotification)),
+      announcements: announcementError
+        ? []
+        : Array.from(new Map((announcementRows ?? []).map((item) => {
+            const announcement = announcementFromNotification(item as PaymentNotification)
+            return [`${announcement.type}:${announcement.title}:${announcement.message}`, announcement]
+          })).values()).slice(0, 20),
       warnings,
       capabilities: {
         authAdmin: !authError,
@@ -209,6 +277,40 @@ export async function POST(request: Request) {
   try {
     await requireInternalMember()
     const body = await request.json()
+    if (body.action === 'send_notification') {
+      const title = requiredText(body.title, 'Judul notifikasi')
+      const message = requiredText(body.message, 'Isi notifikasi')
+      const type = body.type === 'app_update' ? 'app_update' : 'promo'
+      const target = ['all', 'parent', 'professional'].includes(String(body.target))
+        ? String(body.target)
+        : 'all'
+      if (title.length > 80) throw new RequestValidationError('Judul maksimal 80 karakter')
+      if (message.length > 500) throw new RequestValidationError('Isi notifikasi maksimal 500 karakter')
+
+      const ruangBocah = createRuangBocahAdminClient()
+      const { data: profiles, error: profileError } = await ruangBocah.from('profiles').select('id, role')
+      if (profileError) throw profileError
+      const recipients = (profiles ?? []).filter((profile) => {
+        if (target === 'parent') return !PROFESSIONAL_ROLES.has(profile.role as UserRole)
+        if (target === 'professional') return PROFESSIONAL_ROLES.has(profile.role as UserRole)
+        return true
+      })
+      if (recipients.length === 0) throw new RequestValidationError('Tidak ada pengguna pada target tersebut')
+
+      const rows = recipients.map((profile) => ({
+        user_id: profile.id,
+        title,
+        message,
+        type,
+        is_read: false,
+      }))
+      for (let index = 0; index < rows.length; index += 250) {
+        const { error } = await ruangBocah.from('notifications').insert(rows.slice(index, index + 250))
+        if (error) throw error
+      }
+      return NextResponse.json({ success: true, recipients: rows.length })
+    }
+
     const email = parseEmail(body.email)
     const password = String(body.password ?? '')
     const fullName = requiredText(body.fullName, 'Nama lengkap')
@@ -265,6 +367,28 @@ export async function PATCH(request: Request) {
     const { user: reviewer } = await requireInternalMember()
     const body = await request.json()
     const ruangBocah = createRuangBocahAdminClient()
+
+    if (body.action === 'mark_feedback_reviewed') {
+      const feedbackId = requiredText(body.feedbackId, 'ID feedback')
+      const { error } = await ruangBocah
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', feedbackId)
+        .eq('type', 'app_feedback')
+      if (error) throw error
+      return NextResponse.json({ success: true })
+    }
+
+    if (body.action === 'reset_devices') {
+      const userId = requiredText(body.userId, 'ID pengguna')
+      const { error } = await ruangBocah
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .eq('type', 'device_session')
+      if (error) throw error
+      return NextResponse.json({ success: true })
+    }
 
     if (body.action === 'approve_transaction') {
       const transactionId = String(body.transactionId ?? '')
