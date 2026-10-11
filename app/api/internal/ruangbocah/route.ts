@@ -166,7 +166,7 @@ export async function GET() {
     await requireInternalMember()
     const ruangBocah = createRuangBocahAdminClient()
 
-    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }, { data: childRows, error: childError }] =
+    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }, { data: childRows, error: childError }, { data: articles, error: articleError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         ruangBocah
@@ -197,6 +197,7 @@ export async function GET() {
           .select('user_id')
           .eq('type', 'device_session'),
         ruangBocah.from('children').select('parent_id'),
+        ruangBocah.from('articles').select('id,title,category,content,image_url,reading_time_minutes,is_featured,created_at').order('created_at', { ascending: false }),
       ])
 
     if (profileError) throw profileError
@@ -257,6 +258,7 @@ export async function GET() {
     if (announcementError) warnings.push(`Riwayat notifikasi belum dapat dimuat: ${errorMessage(announcementError)}`)
     if (deviceError) warnings.push(`Data perangkat belum dapat dimuat: ${errorMessage(deviceError)}`)
     if (childError) warnings.push(`Jumlah anak belum dapat dimuat: ${errorMessage(childError)}`)
+    if (articleError) warnings.push(`Artikel belum dapat dimuat: ${errorMessage(articleError)}`)
 
     return NextResponse.json({
       users,
@@ -272,6 +274,7 @@ export async function GET() {
             const announcement = announcementFromNotification(item as PaymentNotification)
             return [`${announcement.type}:${announcement.title}:${announcement.message}`, announcement]
           })).values()).slice(0, 20),
+      articles: articleError ? [] : articles ?? [],
       warnings,
       capabilities: {
         authAdmin: !authError,
@@ -288,6 +291,33 @@ export async function POST(request: Request) {
   try {
     await requireInternalMember()
     const body = await request.json()
+    if (body.action === 'save_article') {
+      const title = requiredText(body.title, 'Judul artikel')
+      const category = requiredText(body.category, 'Kategori artikel')
+      const content = requiredText(body.content, 'Isi artikel')
+      const readingTime = Math.max(1, Math.min(120, Number(body.readingTime) || 5))
+      const values = {
+        title,
+        category,
+        content,
+        image_url: String(body.imageUrl ?? '').trim() || null,
+        reading_time_minutes: readingTime,
+        is_featured: body.isFeatured === true,
+      }
+      const client = createRuangBocahAdminClient()
+      const query = body.id
+        ? client.from('articles').update(values).eq('id', String(body.id)).select().single()
+        : client.from('articles').insert(values).select().single()
+      const { data, error } = await query
+      if (error) throw error
+      return NextResponse.json({ success: true, article: data })
+    }
+    if (body.action === 'delete_article') {
+      const id = requiredText(body.id, 'ID artikel')
+      const { error } = await createRuangBocahAdminClient().from('articles').delete().eq('id', id)
+      if (error) throw error
+      return NextResponse.json({ success: true })
+    }
     if (body.action === 'send_notification') {
       const title = requiredText(body.title, 'Judul notifikasi')
       const message = requiredText(body.message, 'Isi notifikasi')

@@ -47,7 +47,10 @@ type DashboardData = {
   warnings?: string[]
   capabilities?: { authAdmin: boolean; transactions: boolean }
   currentAppVersion?: string
+  articles: Article[]
 }
+
+type Article = { id: string; title: string; category: string; content: string; image_url?: string | null; reading_time_minutes: number; is_featured: boolean; created_at: string }
 
 type AppFeedback = {
   id: string
@@ -111,7 +114,7 @@ function isPremiumActive(user: RuangBocahUser, currentTime: number) {
 }
 
 export default function RuangBocahAdminPage() {
-  const [data, setData] = useState<DashboardData>({ users: [], transactions: [], feedback: [], announcements: [], warnings: [] })
+  const [data, setData] = useState<DashboardData>({ users: [], transactions: [], feedback: [], announcements: [], articles: [], warnings: [] })
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
@@ -127,6 +130,8 @@ export default function RuangBocahAdminPage() {
     target: 'all' as 'all' | 'parent' | 'professional',
     version: '',
   })
+  const emptyArticle = { id: '', title: '', category: 'Pengasuhan', content: '', imageUrl: '', readingTime: '5', isFeatured: false }
+  const [articleForm, setArticleForm] = useState(emptyArticle)
 
   const load = useCallback(async (clearMessage = true) => {
     setLoading(true)
@@ -225,6 +230,12 @@ export default function RuangBocahAdminPage() {
     if (saved) setNotificationForm({ title: '', message: '', type: 'promo', target: 'all', version: '' })
   }
 
+  async function saveArticle(event: FormEvent) {
+    event.preventDefault()
+    const saved = await mutate('POST', { action: 'save_article', ...articleForm, readingTime: Number(articleForm.readingTime) }, 'save-article', articleForm.id ? 'Artikel diperbarui.' : 'Artikel diterbitkan.')
+    if (saved) setArticleForm(emptyArticle)
+  }
+
   function openEditor(user: RuangBocahUser) {
     setEditingUser(user)
     setEditForm({
@@ -303,6 +314,20 @@ export default function RuangBocahAdminPage() {
             </article>)}
           </div>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+        <div><h2 className="text-xl font-bold text-gray-900">Kelola artikel aplikasi</h2><p className="text-sm text-gray-500">Artikel yang disimpan langsung tampil pada menu Artikel Ruang Bocah.</p></div>
+        <form onSubmit={saveArticle} className="mt-5 grid gap-4 md:grid-cols-2">
+          <Field label="Judul"><input required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title:e.target.value})} className="form-input" /></Field>
+          <Field label="Kategori"><input required value={articleForm.category} onChange={e => setArticleForm({...articleForm, category:e.target.value})} className="form-input" /></Field>
+          <Field label="URL gambar"><input type="url" value={articleForm.imageUrl} onChange={e => setArticleForm({...articleForm, imageUrl:e.target.value})} className="form-input" /></Field>
+          <Field label="Menit baca"><input required min="1" max="120" type="number" value={articleForm.readingTime} onChange={e => setArticleForm({...articleForm, readingTime:e.target.value})} className="form-input" /></Field>
+          <div className="md:col-span-2"><Field label="Isi artikel"><textarea required rows={8} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content:e.target.value})} className="form-input resize-y" /></Field></div>
+          <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={articleForm.isFeatured} onChange={e => setArticleForm({...articleForm, isFeatured:e.target.checked})} /> Jadikan artikel unggulan</label>
+          <div className="flex justify-end gap-2"><button type="button" onClick={() => setArticleForm(emptyArticle)} className="rounded-lg bg-gray-100 px-4 py-2">Kosongkan</button><button disabled={busyId==='save-article'} className="rounded-lg bg-emerald-600 px-5 py-2 font-bold text-white">{busyId==='save-article'?'Menyimpan...':articleForm.id?'Perbarui artikel':'Terbitkan artikel'}</button></div>
+        </form>
+        <div className="mt-6 divide-y divide-gray-100 border-t border-gray-100">{data.articles.map(article => <div key={article.id} className="flex flex-wrap items-start justify-between gap-3 py-4"><div className="min-w-0 flex-1"><div className="font-bold">{article.title}</div><div className="text-xs text-gray-500">{article.category} · {article.reading_time_minutes} menit {article.is_featured?'· Unggulan':''}</div></div><div className="flex gap-2"><button onClick={() => setArticleForm({id:article.id,title:article.title,category:article.category,content:article.content,imageUrl:article.image_url||'',readingTime:String(article.reading_time_minutes),isFeatured:article.is_featured})} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">Edit</button><button onClick={() => {if(window.confirm('Hapus artikel ini?')) void mutate('POST',{action:'delete_article',id:article.id},article.id,'Artikel dihapus.')}} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">Hapus</button></div></div>)}</div>
       </section>
 
       <section className="rounded-2xl border border-gray-100 bg-white shadow-sm">

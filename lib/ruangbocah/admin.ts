@@ -20,7 +20,7 @@ export async function sendRuangBocahPush(input: {
         headings: { en: input.title, id: input.title },
         contents: { en: input.message, id: input.message },
         data: { type: input.type, version: input.version || '' },
-        android_channel_id: 'ruang_bocah_alerts_v2',
+        existing_android_channel_id: 'ruang_bocah_alerts_v2',
         android_sound: 'ruangbocah_notification',
         ios_sound: 'ruangbocah-notification.mp3',
       }),
