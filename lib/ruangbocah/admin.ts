@@ -4,7 +4,7 @@ export const RUANG_BOCAH_ADMIN_WA = '6285815999953'
 export const RUANG_BOCAH_APP_VERSION = process.env.RUANG_BOCAH_APP_VERSION || '1.1.0'
 
 export async function sendRuangBocahPush(input: {
-  userIds: string[]; title: string; message: string; type: string; version?: string
+  userIds: string[]; title: string; message: string; type: string; version?: string; broadcast?: boolean
 }) {
   const apiKey = process.env.ONESIGNAL_REST_API_KEY
   const appId = process.env.ONESIGNAL_APP_ID || '48a05f5f-216d-41b9-9ae1-a3f528fe5683'
@@ -17,7 +17,9 @@ export async function sendRuangBocahPush(input: {
       headers: { Authorization: `Key ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         app_id: appId,
-        include_aliases: { external_id: input.userIds.slice(index, index + 2000) },
+        ...(input.broadcast
+          ? { included_segments: ['Subscribed Users'] }
+          : { include_aliases: { external_id: input.userIds.slice(index, index + 2000) } }),
         target_channel: 'push',
         headings: { en: input.title, id: input.title },
         contents: { en: input.message, id: input.message },
@@ -41,6 +43,7 @@ export async function sendRuangBocahPush(input: {
     accepted += Number(result.recipients ?? 0)
     const aliases = result.errors && !Array.isArray(result.errors) ? result.errors.invalid_aliases?.external_id : undefined
     if (aliases) invalidAliases.push(...aliases)
+    if (input.broadcast) break
   }
   return { accepted, invalidAliases: invalidAliases.length }
 }

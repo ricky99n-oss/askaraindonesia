@@ -411,6 +411,7 @@ export async function POST(request: Request) {
         message: version ? `${message}\nVersi ${version}` : message,
         type,
         version,
+        broadcast: target === 'all',
       })
       return NextResponse.json({ success: true, recipients: rows.length, push })
     }
