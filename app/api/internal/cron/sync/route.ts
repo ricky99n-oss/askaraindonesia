@@ -13,7 +13,26 @@ function jakartaDate(value: Date) {
 }
 
 export async function GET(request: Request) {
-  if (new URL(request.url).searchParams.get('task') !== 'ruangbocah-reminders') {
+  const task = new URL(request.url).searchParams.get('task')
+  if (task === 'push-health') {
+    const expected = process.env.PUSH_HEALTH_SECRET
+    if (!expected || request.headers.get('authorization') !== `Bearer ${expected}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    try {
+      const push = await sendRuangBocahPush({
+        userIds: [],
+        title: 'Tes Push Produksi',
+        message: 'Push dari Cloudflare ke OneSignal berhasil.',
+        type: 'system_test',
+        broadcast: true,
+      })
+      return NextResponse.json({ success: true, push })
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Push health-check gagal' }, { status: 500 })
+    }
+  }
+  if (task !== 'ruangbocah-reminders') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
   const expected = process.env.RUANG_BOCAH_CRON_SECRET

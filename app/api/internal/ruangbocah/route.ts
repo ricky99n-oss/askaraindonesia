@@ -401,10 +401,6 @@ export async function POST(request: Request) {
         type,
         is_read: false,
       }))
-      for (let index = 0; index < rows.length; index += 250) {
-        const { error } = await ruangBocah.from('notifications').insert(rows.slice(index, index + 250))
-        if (error) throw error
-      }
       const push = await sendRuangBocahPush({
         userIds: recipients.map((profile) => profile.id),
         title,
@@ -413,6 +409,10 @@ export async function POST(request: Request) {
         version,
         broadcast: target === 'all',
       })
+      for (let index = 0; index < rows.length; index += 250) {
+        const { error } = await ruangBocah.from('notifications').insert(rows.slice(index, index + 250))
+        if (error) throw error
+      }
       return NextResponse.json({ success: true, recipients: rows.length, push })
     }
 
