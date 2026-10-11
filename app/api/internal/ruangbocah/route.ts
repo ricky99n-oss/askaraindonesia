@@ -176,7 +176,7 @@ export async function GET() {
     await requireInternalMember()
     const ruangBocah = createRuangBocahAdminClient()
 
-    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }, { data: childRows, error: childError }, { data: articles, error: articleError }] =
+    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }, { data: childRows, error: childError }, { data: articles, error: articleError }, { data: consentRows, error: consentError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         ruangBocah
@@ -208,6 +208,7 @@ export async function GET() {
           .eq('type', 'device_session'),
         ruangBocah.from('children').select('parent_id'),
         ruangBocah.from('articles').select('id,title,category,content,image_url,reading_time_minutes,is_featured,created_at').order('created_at', { ascending: false }),
+        ruangBocah.from('notifications').select('user_id,title,message,created_at').eq('type', 'privacy_consent').order('created_at', { ascending: false }),
       ])
 
     if (profileError) throw profileError
@@ -227,6 +228,16 @@ export async function GET() {
     for (const row of childRows ?? []) {
       childCounts.set(row.parent_id, (childCounts.get(row.parent_id) ?? 0) + 1)
     }
+    const consentByUser = new Map<string, { version: string; acceptedAt: string }>()
+    for (const row of consentRows ?? []) {
+      if (!consentByUser.has(row.user_id)) {
+        const details = parseNotificationMessage(row.message)
+        consentByUser.set(row.user_id, {
+          version: row.title,
+          acceptedAt: String(details.accepted_at ?? row.created_at),
+        })
+      }
+    }
     const professionalById = new Map((professionalRows ?? []).map((profile) => [profile.id, profile]))
     const profileById = new Map((profiles ?? []).map((profile) => [
       profile.id,
@@ -240,6 +251,8 @@ export async function GET() {
           phone: '',
           active_device_count: deviceCounts.get(profile.id) ?? 0,
           app_version: appVersions.get(profile.id) ?? '',
+          privacy_consent_version: consentByUser.get(profile.id)?.version ?? '',
+          privacy_consent_at: consentByUser.get(profile.id)?.acceptedAt ?? null,
           allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1),
         }))
       : authData.users.map((user) => ({
@@ -251,6 +264,8 @@ export async function GET() {
           ...profileById.get(user.id),
           active_device_count: deviceCounts.get(user.id) ?? 0,
           app_version: appVersions.get(user.id) ?? '',
+          privacy_consent_version: consentByUser.get(user.id)?.version ?? '',
+          privacy_consent_at: consentByUser.get(user.id)?.acceptedAt ?? null,
           allowed_device_count: Math.max(1, (childCounts.get(user.id) ?? 0) + 1),
         }))
 
@@ -258,7 +273,7 @@ export async function GET() {
       const authIds = new Set(authData.users.map((user) => user.id))
       for (const profile of profiles ?? []) {
         if (!authIds.has(profile.id)) {
-          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0, app_version: appVersions.get(profile.id) ?? '', allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1) })
+          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0, app_version: appVersions.get(profile.id) ?? '', privacy_consent_version: consentByUser.get(profile.id)?.version ?? '', privacy_consent_at: consentByUser.get(profile.id)?.acceptedAt ?? null, allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1) })
         }
       }
     }
@@ -278,6 +293,7 @@ export async function GET() {
     if (deviceError) warnings.push(`Data perangkat belum dapat dimuat: ${errorMessage(deviceError)}`)
     if (childError) warnings.push(`Jumlah anak belum dapat dimuat: ${errorMessage(childError)}`)
     if (articleError) warnings.push(`Artikel belum dapat dimuat: ${errorMessage(articleError)}`)
+    if (consentError) warnings.push(`Status persetujuan privasi belum dapat dimuat: ${errorMessage(consentError)}`)
 
     return NextResponse.json({
       users,
