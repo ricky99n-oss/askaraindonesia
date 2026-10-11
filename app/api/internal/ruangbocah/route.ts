@@ -405,14 +405,14 @@ export async function POST(request: Request) {
         const { error } = await ruangBocah.from('notifications').insert(rows.slice(index, index + 250))
         if (error) throw error
       }
-      await sendRuangBocahPush({
+      const push = await sendRuangBocahPush({
         userIds: recipients.map((profile) => profile.id),
         title,
         message: version ? `${message}\nVersi ${version}` : message,
         type,
         version,
       })
-      return NextResponse.json({ success: true, recipients: rows.length })
+      return NextResponse.json({ success: true, recipients: rows.length, push })
     }
 
     const email = parseEmail(body.email)

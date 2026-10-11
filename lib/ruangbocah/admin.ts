@@ -9,6 +9,8 @@ export async function sendRuangBocahPush(input: {
   const apiKey = process.env.ONESIGNAL_REST_API_KEY
   const appId = process.env.ONESIGNAL_APP_ID || '48a05f5f-216d-41b9-9ae1-a3f528fe5683'
   if (!apiKey) throw new Error('ONESIGNAL_REST_API_KEY belum dikonfigurasi')
+  let accepted = 0
+  const invalidAliases: string[] = []
   for (let index = 0; index < input.userIds.length; index += 2000) {
     const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
@@ -19,14 +21,28 @@ export async function sendRuangBocahPush(input: {
         target_channel: 'push',
         headings: { en: input.title, id: input.title },
         contents: { en: input.message, id: input.message },
-        data: { type: input.type, version: input.version || '' },
+        data: {
+          type: input.type,
+          version: input.version || '',
+          update_url: input.type === 'app_update'
+            ? 'https://askaraindonesia.com/ruangbocah'
+            : '',
+        },
+        url: input.type === 'app_update' ? 'com.askaraindonesia.ruangbocah://update' : undefined,
+        buttons: input.type === 'app_update' ? [{ id: 'install_update', text: 'Download & install' }] : undefined,
         existing_android_channel_id: 'ruang_bocah_alerts_v2',
         android_sound: 'ruangbocah_notification',
         ios_sound: 'ruangbocah-notification.mp3',
       }),
     })
     if (!response.ok) throw new Error(`OneSignal gagal (${response.status}): ${await response.text()}`)
+    const result = await response.json() as { id?: string; recipients?: number; errors?: { invalid_aliases?: Record<string, string[]> } | string[] }
+    if (!result.id) throw new Error(`OneSignal tidak menerima pesan: ${JSON.stringify(result.errors || 'unknown error')}`)
+    accepted += Number(result.recipients ?? 0)
+    const aliases = result.errors && !Array.isArray(result.errors) ? result.errors.invalid_aliases?.external_id : undefined
+    if (aliases) invalidAliases.push(...aliases)
   }
+  return { accepted, invalidAliases: invalidAliases.length }
 }
 
 export const RUANG_BOCAH_PACKAGES = {
