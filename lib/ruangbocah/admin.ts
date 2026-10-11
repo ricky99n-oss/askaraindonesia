@@ -9,17 +9,40 @@ export async function sendRuangBocahPush(input: {
   const apiKey = process.env.ONESIGNAL_REST_API_KEY
   const appId = process.env.ONESIGNAL_APP_ID || '48a05f5f-216d-41b9-9ae1-a3f528fe5683'
   if (!apiKey) throw new Error('ONESIGNAL_REST_API_KEY belum dikonfigurasi')
+  let subscriptionIds: string[] = []
+  if (input.broadcast) {
+    let offset = 0
+    while (true) {
+      const listResponse = await fetch(`https://api.onesignal.com/players?app_id=${appId}&limit=300&offset=${offset}`, {
+        headers: { Authorization: `Key ${apiKey}` },
+      })
+      if (!listResponse.ok) throw new Error(`OneSignal gagal membaca perangkat (${listResponse.status})`)
+      const list = await listResponse.json() as {
+        total_count?: number
+        players?: Array<{ id?: string; identifier?: string; invalid_identifier?: boolean }>
+      }
+      subscriptionIds.push(...(list.players ?? [])
+        .filter((player) => player.id && player.identifier && !player.invalid_identifier)
+        .map((player) => player.id as string))
+      offset += list.players?.length ?? 0
+      if (!list.players?.length || offset >= Number(list.total_count ?? 0)) break
+    }
+    subscriptionIds = [...new Set(subscriptionIds)]
+    if (subscriptionIds.length === 0) throw new Error('Belum ada perangkat aktif yang berlangganan push notification')
+  }
+  const targets = input.broadcast ? subscriptionIds : input.userIds
   let accepted = 0
   const invalidAliases: string[] = []
-  for (let index = 0; index < input.userIds.length; index += 2000) {
+  for (let index = 0; index < targets.length; index += 2000) {
+    const batch = targets.slice(index, index + 2000)
     const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: { Authorization: `Key ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         app_id: appId,
         ...(input.broadcast
-          ? { included_segments: ['Subscribed Users'] }
-          : { include_aliases: { external_id: input.userIds.slice(index, index + 2000) } }),
+          ? { include_subscription_ids: batch }
+          : { include_aliases: { external_id: batch } }),
         target_channel: 'push',
         headings: { en: input.title, id: input.title },
         contents: { en: input.message, id: input.message },
@@ -40,10 +63,9 @@ export async function sendRuangBocahPush(input: {
     if (!response.ok) throw new Error(`OneSignal gagal (${response.status}): ${await response.text()}`)
     const result = await response.json() as { id?: string; recipients?: number; errors?: { invalid_aliases?: Record<string, string[]> } | string[] }
     if (!result.id) throw new Error(`OneSignal tidak menerima pesan: ${JSON.stringify(result.errors || 'unknown error')}`)
-    accepted += Number(result.recipients ?? 0)
+    accepted += Number(result.recipients ?? batch.length)
     const aliases = result.errors && !Array.isArray(result.errors) ? result.errors.invalid_aliases?.external_id : undefined
     if (aliases) invalidAliases.push(...aliases)
-    if (input.broadcast) break
   }
   return { accepted, invalidAliases: invalidAliases.length }
 }
