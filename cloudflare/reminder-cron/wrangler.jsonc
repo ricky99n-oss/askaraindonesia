@@ -7,6 +7,6 @@
     "crons": ["0 1 * * *"]
   },
   "vars": {
-    "REMINDER_URL": "https://askaraindonesia.com/api/ruangbocah/subscription-reminders"
+    "REMINDER_URL": "https://askaraindonesia.com/api/internal/cron/sync?task=ruangbocah-reminders"
   }
 }
