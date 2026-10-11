@@ -3,8 +3,6 @@ import { createRuangBocahAdminClient } from '@/lib/ruangbocah/admin'
 
 export const runtime = 'edge'
 
-const MAX_DEVICES = 3
-
 function bearerToken(request: Request) {
   const value = request.headers.get('authorization') || ''
   return value.toLowerCase().startsWith('bearer ') ? value.slice(7).trim() : ''
@@ -41,6 +39,14 @@ export async function POST(request: Request) {
       .order('created_at', { ascending: true })
     if (error) throw error
 
+    const { count: childCount, error: childError } = await auth.client
+      .from('children')
+      .select('id', { count: 'exact', head: true })
+      .eq('parent_id', auth.user.id)
+    if (childError) throw childError
+    // Satu perangkat orang tua + satu perangkat untuk setiap profil anak.
+    const maxDevices = Math.max(1, (childCount ?? 0) + 1)
+
     const existing = (sessions ?? []).find((session) => session.title === deviceId)
     const now = new Date().toISOString()
     const details = JSON.stringify({
@@ -55,15 +61,15 @@ export async function POST(request: Request) {
         .update({ message: details, is_read: false })
         .eq('id', existing.id)
       if (updateError) throw updateError
-      return NextResponse.json({ success: true, activeDevices: sessions?.length ?? 1, maxDevices: MAX_DEVICES })
+      return NextResponse.json({ success: true, activeDevices: sessions?.length ?? 1, maxDevices })
     }
 
-    if ((sessions?.length ?? 0) >= MAX_DEVICES) {
+    if ((sessions?.length ?? 0) >= maxDevices) {
       return NextResponse.json({
-        error: `Akun ini sudah aktif di ${MAX_DEVICES} perangkat. Keluar dari salah satu perangkat atau hubungi admin.`,
+        error: `Akun ini sudah aktif di ${maxDevices} perangkat (${childCount ?? 0} anak + 1 orang tua). Keluar dari salah satu perangkat atau hubungi admin.`,
         code: 'DEVICE_LIMIT_REACHED',
-        activeDevices: sessions?.length ?? MAX_DEVICES,
-        maxDevices: MAX_DEVICES,
+        activeDevices: sessions?.length ?? maxDevices,
+        maxDevices,
       }, { status: 409 })
     }
 
@@ -75,7 +81,7 @@ export async function POST(request: Request) {
       is_read: false,
     })
     if (insertError) throw insertError
-    return NextResponse.json({ success: true, activeDevices: (sessions?.length ?? 0) + 1, maxDevices: MAX_DEVICES })
+    return NextResponse.json({ success: true, activeDevices: (sessions?.length ?? 0) + 1, maxDevices })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Registrasi perangkat gagal' }, { status: 500 })
   }

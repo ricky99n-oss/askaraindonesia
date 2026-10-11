@@ -24,6 +24,7 @@ type RuangBocahUser = {
   price_in_coins?: number
   is_online?: boolean
   active_device_count?: number
+  allowed_device_count?: number
 }
 
 type RuangBocahTransaction = {
@@ -45,6 +46,7 @@ type DashboardData = {
   announcements: Announcement[]
   warnings?: string[]
   capabilities?: { authAdmin: boolean; transactions: boolean }
+  currentAppVersion?: string
 }
 
 type AppFeedback = {
@@ -123,6 +125,7 @@ export default function RuangBocahAdminPage() {
     message: '',
     type: 'promo' as 'promo' | 'app_update',
     target: 'all' as 'all' | 'parent' | 'professional',
+    version: '',
   })
 
   const load = useCallback(async (clearMessage = true) => {
@@ -219,7 +222,7 @@ export default function RuangBocahAdminPage() {
       action: 'send_notification',
       ...notificationForm,
     }, 'send-notification', 'Notifikasi berhasil dikirim ke aplikasi pengguna.')
-    if (saved) setNotificationForm({ title: '', message: '', type: 'promo', target: 'all' })
+    if (saved) setNotificationForm({ title: '', message: '', type: 'promo', target: 'all', version: '' })
   }
 
   function openEditor(user: RuangBocahUser) {
@@ -261,7 +264,7 @@ export default function RuangBocahAdminPage() {
       <div>
         <p className="text-sm font-semibold uppercase tracking-widest text-purple-600">Ruang Bocah</p>
         <h1 className="text-3xl font-bold text-gray-900">Subscriber, Transaksi & Pengguna</h1>
-        <p className="mt-2 text-sm text-gray-500">Kelola penuh akun aplikasi dan setujui transaksi yang langsung tersinkron ke Supabase Ruang Bocah.</p>
+        <p className="mt-2 text-sm text-gray-500">Kelola akun dan rilis aplikasi. Versi produksi saat ini: <strong>{data.currentAppVersion || '1.1.0'}</strong>.</p>
       </div>
 
       {message && <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">{message}</div>}
@@ -283,6 +286,7 @@ export default function RuangBocahAdminPage() {
             <Field label="Jenis"><select value={notificationForm.type} onChange={(event) => setNotificationForm({ ...notificationForm, type: event.target.value as 'promo' | 'app_update' })} className="form-input"><option value="promo">Promo</option><option value="app_update">Pembaruan aplikasi</option></select></Field>
             <Field label="Penerima"><select value={notificationForm.target} onChange={(event) => setNotificationForm({ ...notificationForm, target: event.target.value as 'all' | 'parent' | 'professional' })} className="form-input"><option value="all">Semua pengguna</option><option value="parent">Orang tua</option><option value="professional">Dokter & tenaga ahli</option></select></Field>
             <Field label="Judul"><input required maxLength={80} value={notificationForm.title} onChange={(event) => setNotificationForm({ ...notificationForm, title: event.target.value })} placeholder="Contoh: Versi baru tersedia" className="form-input" /></Field>
+            {notificationForm.type === 'app_update' && <Field label="Versi baru"><input required pattern="[0-9]+\.[0-9]+\.[0-9]+.*" value={notificationForm.version} onChange={(event) => setNotificationForm({ ...notificationForm, version: event.target.value })} placeholder="Contoh: 1.1.0" className="form-input" /></Field>}
             <div className="sm:col-span-2"><Field label="Isi pesan"><textarea required maxLength={500} rows={4} value={notificationForm.message} onChange={(event) => setNotificationForm({ ...notificationForm, message: event.target.value })} placeholder="Tuliskan manfaat promo atau perubahan pada versi terbaru..." className="form-input resize-y" /></Field></div>
           </div>
           <button disabled={busyId === 'send-notification'} className="mt-4 rounded-lg bg-purple-700 px-5 py-2.5 font-bold text-white disabled:opacity-50">{busyId === 'send-notification' ? 'Mengirim...' : 'Kirim notifikasi'}</button>
@@ -359,7 +363,7 @@ export default function RuangBocahAdminPage() {
                   <td className="p-4"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">{user.role || 'parent'}</span>{professionalRoles.has(user.role || 'parent') && <div className="mt-2 text-xs text-gray-500">{user.specialty || 'Konsultan'} · {Number(user.price_in_coins ?? 50)} koin<br/><span className={user.is_online ? 'text-green-600' : 'text-gray-400'}>{user.is_online ? 'Online' : 'Offline'}</span></div>}</td>
                   <td className="p-4 font-semibold">{Number(user.coin_balance ?? 0).toLocaleString('id-ID')}</td>
                   <td className="p-4"><PremiumStatus user={user} currentTime={currentTime} /></td>
-                  <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}<div className="mt-1 font-semibold text-purple-600">{user.active_device_count ?? 0}/3 perangkat</div></td>
+                  <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}<div className="mt-1 font-semibold text-purple-600">{user.active_device_count ?? 0}/{user.allowed_device_count ?? 1} perangkat</div></td>
                   <td className="p-4"><div className="flex flex-wrap gap-2"><button disabled={busyId === user.id || user.auth_missing} onClick={() => openEditor(user)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 disabled:opacity-50">Kelola</button><button disabled={busyId === user.id || !(user.active_device_count)} onClick={() => { if (window.confirm('Keluarkan akun ini dari semua perangkat terdaftar?')) void mutate('PATCH', { action: 'reset_devices', userId: user.id }, user.id, 'Daftar perangkat pengguna berhasil dikosongkan.') }} className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 disabled:opacity-50">Reset perangkat</button><button disabled={busyId === user.id || data.capabilities?.authAdmin === false || user.auth_missing} onClick={() => void deleteUser(user)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 disabled:opacity-50">Hapus</button></div></td>
                 </tr>
               ))}

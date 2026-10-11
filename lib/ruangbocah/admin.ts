@@ -1,6 +1,33 @@
 import { createClient } from '@supabase/supabase-js'
 
 export const RUANG_BOCAH_ADMIN_WA = '6285815999953'
+export const RUANG_BOCAH_APP_VERSION = process.env.RUANG_BOCAH_APP_VERSION || '1.1.0'
+
+export async function sendRuangBocahPush(input: {
+  userIds: string[]; title: string; message: string; type: string; version?: string
+}) {
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY
+  const appId = process.env.ONESIGNAL_APP_ID || '48a05f5f-216d-41b9-9ae1-a3f528fe5683'
+  if (!apiKey) throw new Error('ONESIGNAL_REST_API_KEY belum dikonfigurasi')
+  for (let index = 0; index < input.userIds.length; index += 2000) {
+    const response = await fetch('https://api.onesignal.com/notifications', {
+      method: 'POST',
+      headers: { Authorization: `Key ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        app_id: appId,
+        include_aliases: { external_id: input.userIds.slice(index, index + 2000) },
+        target_channel: 'push',
+        headings: { en: input.title, id: input.title },
+        contents: { en: input.message, id: input.message },
+        data: { type: input.type, version: input.version || '' },
+        android_channel_id: 'ruang_bocah_alerts_v2',
+        android_sound: 'ruangbocah_notification',
+        ios_sound: 'ruangbocah-notification.mp3',
+      }),
+    })
+    if (!response.ok) throw new Error(`OneSignal gagal (${response.status}): ${await response.text()}`)
+  }
+}
 
 export const RUANG_BOCAH_PACKAGES = {
   ACCESS6: {

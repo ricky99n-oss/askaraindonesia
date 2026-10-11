@@ -4,6 +4,8 @@ import {
   createRuangBocahAdminClient,
   parseRuangBocahReference,
   RUANG_BOCAH_PACKAGES,
+  RUANG_BOCAH_APP_VERSION,
+  sendRuangBocahPush,
 } from '@/lib/ruangbocah/admin'
 
 // Cloudflare Pages menjalankan seluruh route dinamis melalui Edge Runtime.
@@ -164,7 +166,7 @@ export async function GET() {
     await requireInternalMember()
     const ruangBocah = createRuangBocahAdminClient()
 
-    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }] =
+    const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: professionalRows, error: professionalError }, { data: paymentRows, error: transactionError }, { data: feedbackRows, error: feedbackError }, { data: announcementRows, error: announcementError }, { data: deviceRows, error: deviceError }, { data: childRows, error: childError }] =
       await Promise.all([
         ruangBocah.auth.admin.listUsers({ page: 1, perPage: 1000 }),
         ruangBocah
@@ -194,6 +196,7 @@ export async function GET() {
           .from('notifications')
           .select('user_id')
           .eq('type', 'device_session'),
+        ruangBocah.from('children').select('parent_id'),
       ])
 
     if (profileError) throw profileError
@@ -201,6 +204,10 @@ export async function GET() {
     const deviceCounts = new Map<string, number>()
     for (const row of deviceRows ?? []) {
       deviceCounts.set(row.user_id, (deviceCounts.get(row.user_id) ?? 0) + 1)
+    }
+    const childCounts = new Map<string, number>()
+    for (const row of childRows ?? []) {
+      childCounts.set(row.parent_id, (childCounts.get(row.parent_id) ?? 0) + 1)
     }
     const professionalById = new Map((professionalRows ?? []).map((profile) => [profile.id, profile]))
     const profileById = new Map((profiles ?? []).map((profile) => [
@@ -214,6 +221,7 @@ export async function GET() {
           email: '',
           phone: '',
           active_device_count: deviceCounts.get(profile.id) ?? 0,
+          allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1),
         }))
       : authData.users.map((user) => ({
           id: user.id,
@@ -223,13 +231,14 @@ export async function GET() {
           last_sign_in_at: user.last_sign_in_at,
           ...profileById.get(user.id),
           active_device_count: deviceCounts.get(user.id) ?? 0,
+          allowed_device_count: Math.max(1, (childCounts.get(user.id) ?? 0) + 1),
         }))
 
     if (!authError) {
       const authIds = new Set(authData.users.map((user) => user.id))
       for (const profile of profiles ?? []) {
         if (!authIds.has(profile.id)) {
-          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0 })
+          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0, allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1) })
         }
       }
     }
@@ -247,6 +256,7 @@ export async function GET() {
     if (feedbackError) warnings.push(`Feedback aplikasi belum dapat dimuat: ${errorMessage(feedbackError)}`)
     if (announcementError) warnings.push(`Riwayat notifikasi belum dapat dimuat: ${errorMessage(announcementError)}`)
     if (deviceError) warnings.push(`Data perangkat belum dapat dimuat: ${errorMessage(deviceError)}`)
+    if (childError) warnings.push(`Jumlah anak belum dapat dimuat: ${errorMessage(childError)}`)
 
     return NextResponse.json({
       users,
@@ -267,6 +277,7 @@ export async function GET() {
         authAdmin: !authError,
         transactions: !transactionError,
       },
+      currentAppVersion: RUANG_BOCAH_APP_VERSION,
     })
   } catch (error) {
     return errorResponse(error)
@@ -281,11 +292,15 @@ export async function POST(request: Request) {
       const title = requiredText(body.title, 'Judul notifikasi')
       const message = requiredText(body.message, 'Isi notifikasi')
       const type = body.type === 'app_update' ? 'app_update' : 'promo'
+      const version = type === 'app_update' ? requiredText(body.version, 'Versi aplikasi') : undefined
       const target = ['all', 'parent', 'professional'].includes(String(body.target))
         ? String(body.target)
         : 'all'
       if (title.length > 80) throw new RequestValidationError('Judul maksimal 80 karakter')
       if (message.length > 500) throw new RequestValidationError('Isi notifikasi maksimal 500 karakter')
+      if (version && !/^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(version)) {
+        throw new RequestValidationError('Versi harus memakai format seperti 1.2.0')
+      }
 
       const ruangBocah = createRuangBocahAdminClient()
       const { data: profiles, error: profileError } = await ruangBocah.from('profiles').select('id, role')
@@ -300,7 +315,7 @@ export async function POST(request: Request) {
       const rows = recipients.map((profile) => ({
         user_id: profile.id,
         title,
-        message,
+        message: version ? `${message}\nVersi ${version}` : message,
         type,
         is_read: false,
       }))
@@ -308,6 +323,13 @@ export async function POST(request: Request) {
         const { error } = await ruangBocah.from('notifications').insert(rows.slice(index, index + 250))
         if (error) throw error
       }
+      await sendRuangBocahPush({
+        userIds: recipients.map((profile) => profile.id),
+        title,
+        message: version ? `${message}\nVersi ${version}` : message,
+        type,
+        version,
+      })
       return NextResponse.json({ success: true, recipients: rows.length })
     }
 

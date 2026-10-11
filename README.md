@@ -1,5 +1,12 @@
 # Askara Indonesia
 
+## Konfigurasi push Ruang Bocah
+
+Deployment Cloudflare Pages memerlukan `ONESIGNAL_REST_API_KEY`, `ONESIGNAL_APP_ID`,
+`RUANG_BOCAH_APP_VERSION`, dan `RUANG_BOCAH_CRON_SECRET`. Worker
+`cloudflare/reminder-cron` berjalan setiap hari pukul 08.00 WIB dan mengirim
+pengingat masa aktif H-7, H-3, H-1, dan hari H melalui OneSignal.
+
 Website publik dan dashboard internal Askara Indonesia, termasuk pengelolaan pengguna, subscriber, dan transaksi manual Ruang Bocah.
 
 ## Dashboard Ruang Bocah
