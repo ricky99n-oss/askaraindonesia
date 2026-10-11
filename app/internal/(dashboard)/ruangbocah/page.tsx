@@ -25,6 +25,7 @@ type RuangBocahUser = {
   is_online?: boolean
   active_device_count?: number
   allowed_device_count?: number
+  app_version?: string
 }
 
 type RuangBocahTransaction = {
@@ -127,7 +128,7 @@ export default function RuangBocahAdminPage() {
     title: '',
     message: '',
     type: 'promo' as 'promo' | 'app_update',
-    target: 'all' as 'all' | 'parent' | 'professional',
+    target: 'all' as 'all' | 'parent' | 'professional' | 'outdated',
     version: '',
   })
   const emptyArticle = { id: '', title: '', category: 'Pengasuhan', content: '', imageUrl: '', readingTime: '5', isFeatured: false }
@@ -275,7 +276,7 @@ export default function RuangBocahAdminPage() {
       <div>
         <p className="text-sm font-semibold uppercase tracking-widest text-purple-600">Ruang Bocah</p>
         <h1 className="text-3xl font-bold text-gray-900">Subscriber, Transaksi & Pengguna</h1>
-        <p className="mt-2 text-sm text-gray-500">Kelola akun dan rilis aplikasi. Versi produksi saat ini: <strong>{data.currentAppVersion || '1.1.0'}</strong>.</p>
+        <p className="mt-2 text-sm text-gray-500">Kelola akun dan rilis aplikasi. Versi produksi saat ini: <strong>{data.currentAppVersion || '1.1.1'}</strong>.</p>
       </div>
 
       {message && <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">{message}</div>}
@@ -294,8 +295,8 @@ export default function RuangBocahAdminPage() {
         <form onSubmit={sendNotification} className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
           <div className="mb-5"><h2 className="text-xl font-bold text-gray-900">Kirim notifikasi aplikasi</h2><p className="text-sm text-gray-500">Promo atau informasi pembaruan akan muncul sebagai pop-up saat pengguna membuka aplikasi.</p></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Jenis"><select value={notificationForm.type} onChange={(event) => setNotificationForm({ ...notificationForm, type: event.target.value as 'promo' | 'app_update' })} className="form-input"><option value="promo">Promo</option><option value="app_update">Pembaruan aplikasi</option></select></Field>
-            <Field label="Penerima"><select value={notificationForm.target} onChange={(event) => setNotificationForm({ ...notificationForm, target: event.target.value as 'all' | 'parent' | 'professional' })} className="form-input"><option value="all">Semua pengguna</option><option value="parent">Orang tua</option><option value="professional">Dokter & tenaga ahli</option></select></Field>
+            <Field label="Jenis"><select value={notificationForm.type} onChange={(event) => { const type = event.target.value as 'promo' | 'app_update'; setNotificationForm({ ...notificationForm, type, target: type === 'promo' && notificationForm.target === 'outdated' ? 'all' : notificationForm.target }) }} className="form-input"><option value="promo">Promo</option><option value="app_update">Pembaruan aplikasi</option></select></Field>
+            <Field label="Penerima"><select value={notificationForm.target} onChange={(event) => setNotificationForm({ ...notificationForm, target: event.target.value as 'all' | 'parent' | 'professional' | 'outdated' })} className="form-input"><option value="all">Semua pengguna</option>{notificationForm.type === 'app_update' && <option value="outdated">Hanya pengguna yang belum update</option>}<option value="parent">Orang tua</option><option value="professional">Dokter & tenaga ahli</option></select></Field>
             <Field label="Judul"><input required maxLength={80} value={notificationForm.title} onChange={(event) => setNotificationForm({ ...notificationForm, title: event.target.value })} placeholder="Contoh: Versi baru tersedia" className="form-input" /></Field>
             {notificationForm.type === 'app_update' && <Field label="Versi baru"><input required pattern="[0-9]+\.[0-9]+\.[0-9]+.*" value={notificationForm.version} onChange={(event) => setNotificationForm({ ...notificationForm, version: event.target.value })} placeholder="Contoh: 1.1.0" className="form-input" /></Field>}
             <div className="sm:col-span-2"><Field label="Isi pesan"><textarea required maxLength={500} rows={4} value={notificationForm.message} onChange={(event) => setNotificationForm({ ...notificationForm, message: event.target.value })} placeholder="Tuliskan manfaat promo atau perubahan pada versi terbaru..." className="form-input resize-y" /></Field></div>
@@ -378,14 +379,15 @@ export default function RuangBocahAdminPage() {
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, email, role, atau ID..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm sm:w-80" />
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="p-4">Nama</th><th className="p-4">Email</th><th className="p-4">Role / profesi</th><th className="p-4">Koin</th><th className="p-4">Premium</th><th className="p-4">Login terakhir</th><th className="p-4">Aksi</th></tr></thead>
+          <table className="w-full min-w-[1080px] text-left text-sm">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="p-4">Nama</th><th className="p-4">Email</th><th className="p-4">Role / profesi</th><th className="p-4">Versi app</th><th className="p-4">Koin</th><th className="p-4">Premium</th><th className="p-4">Login terakhir</th><th className="p-4">Aksi</th></tr></thead>
             <tbody>
-              {loading ? <EmptyRow text="Memuat pengguna..." columns={7} /> : visibleUsers.length === 0 ? <EmptyRow text={search ? 'Pengguna tidak ditemukan.' : 'Belum ada pengguna.'} columns={7} /> : visibleUsers.map((user) => (
+              {loading ? <EmptyRow text="Memuat pengguna..." columns={8} /> : visibleUsers.length === 0 ? <EmptyRow text={search ? 'Pengguna tidak ditemukan.' : 'Belum ada pengguna.'} columns={8} /> : visibleUsers.map((user) => (
                 <tr key={user.id} className="border-t border-gray-100">
                   <td className="p-4 font-semibold">{user.full_name || '-'}<div className="font-mono text-[10px] font-normal text-gray-400">{user.id}</div></td>
                   <td className="p-4">{user.email || <span className="text-amber-600">Auth tidak ditemukan</span>}</td>
                   <td className="p-4"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">{user.role || 'parent'}</span>{professionalRoles.has(user.role || 'parent') && <div className="mt-2 text-xs text-gray-500">{user.specialty || 'Konsultan'} · {Number(user.price_in_coins ?? 50)} koin<br/><span className={user.is_online ? 'text-green-600' : 'text-gray-400'}>{user.is_online ? 'Online' : 'Offline'}</span></div>}</td>
+                  <td className="p-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${user.app_version === data.currentAppVersion ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>{user.app_version || 'Belum terdeteksi'}</span></td>
                   <td className="p-4 font-semibold">{Number(user.coin_balance ?? 0).toLocaleString('id-ID')}</td>
                   <td className="p-4"><PremiumStatus user={user} currentTime={currentTime} /></td>
                   <td className="p-4 text-xs text-gray-500">{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Belum pernah'}<div className="mt-1 font-semibold text-purple-600">{user.active_device_count ?? 0}/{user.allowed_device_count ?? 1} perangkat</div></td>

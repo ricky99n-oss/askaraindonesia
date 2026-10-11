@@ -52,6 +52,8 @@ export async function POST(request: Request) {
     const details = JSON.stringify({
       device_name: String(body.deviceName || 'Perangkat Android').slice(0, 80),
       platform: String(body.platform || 'android').slice(0, 24),
+      app_version: String(body.appVersion || '').slice(0, 32),
+      build_number: String(body.buildNumber || '').slice(0, 24),
       last_seen_at: now,
     })
 

@@ -93,6 +93,16 @@ function requiredText(value: unknown, label: string) {
   return result
 }
 
+function compareVersions(left: string, right: string) {
+  const parts = (value: string) => value.split(/[.+-]/).slice(0, 3).map((item) => Number(item) || 0)
+  const a = parts(left)
+  const b = parts(right)
+  for (let index = 0; index < 3; index += 1) {
+    if (a[index] !== b[index]) return a[index] - b[index]
+  }
+  return 0
+}
+
 function parseEmail(value: unknown) {
   const email = requiredText(value, 'Email').toLowerCase()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -194,7 +204,7 @@ export async function GET() {
           .limit(100),
         ruangBocah
           .from('notifications')
-          .select('user_id')
+          .select('user_id, message, created_at')
           .eq('type', 'device_session'),
         ruangBocah.from('children').select('parent_id'),
         ruangBocah.from('articles').select('id,title,category,content,image_url,reading_time_minutes,is_featured,created_at').order('created_at', { ascending: false }),
@@ -203,8 +213,15 @@ export async function GET() {
     if (profileError) throw profileError
 
     const deviceCounts = new Map<string, number>()
+    const appVersions = new Map<string, string>()
     for (const row of deviceRows ?? []) {
       deviceCounts.set(row.user_id, (deviceCounts.get(row.user_id) ?? 0) + 1)
+      const details = parseNotificationMessage(row.message)
+      const version = String(details.app_version ?? '').trim()
+      const previous = appVersions.get(row.user_id)
+      if (version && (!previous || compareVersions(version, previous) > 0)) {
+        appVersions.set(row.user_id, version)
+      }
     }
     const childCounts = new Map<string, number>()
     for (const row of childRows ?? []) {
@@ -222,6 +239,7 @@ export async function GET() {
           email: '',
           phone: '',
           active_device_count: deviceCounts.get(profile.id) ?? 0,
+          app_version: appVersions.get(profile.id) ?? '',
           allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1),
         }))
       : authData.users.map((user) => ({
@@ -232,6 +250,7 @@ export async function GET() {
           last_sign_in_at: user.last_sign_in_at,
           ...profileById.get(user.id),
           active_device_count: deviceCounts.get(user.id) ?? 0,
+          app_version: appVersions.get(user.id) ?? '',
           allowed_device_count: Math.max(1, (childCounts.get(user.id) ?? 0) + 1),
         }))
 
@@ -239,7 +258,7 @@ export async function GET() {
       const authIds = new Set(authData.users.map((user) => user.id))
       for (const profile of profiles ?? []) {
         if (!authIds.has(profile.id)) {
-          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0, allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1) })
+          users.push({ ...profile, ...professionalById.get(profile.id), email: '', phone: '', auth_missing: true, active_device_count: deviceCounts.get(profile.id) ?? 0, app_version: appVersions.get(profile.id) ?? '', allowed_device_count: Math.max(1, (childCounts.get(profile.id) ?? 0) + 1) })
         }
       }
     }
@@ -323,7 +342,7 @@ export async function POST(request: Request) {
       const message = requiredText(body.message, 'Isi notifikasi')
       const type = body.type === 'app_update' ? 'app_update' : 'promo'
       const version = type === 'app_update' ? requiredText(body.version, 'Versi aplikasi') : undefined
-      const target = ['all', 'parent', 'professional'].includes(String(body.target))
+      const target = ['all', 'parent', 'professional', 'outdated'].includes(String(body.target))
         ? String(body.target)
         : 'all'
       if (title.length > 80) throw new RequestValidationError('Judul maksimal 80 karakter')
@@ -333,9 +352,26 @@ export async function POST(request: Request) {
       }
 
       const ruangBocah = createRuangBocahAdminClient()
-      const { data: profiles, error: profileError } = await ruangBocah.from('profiles').select('id, role')
+      const [{ data: profiles, error: profileError }, { data: deviceSessions, error: deviceError }] = await Promise.all([
+        ruangBocah.from('profiles').select('id, role'),
+        ruangBocah.from('notifications').select('user_id, message').eq('type', 'device_session'),
+      ])
       if (profileError) throw profileError
+      if (deviceError) throw deviceError
+      const versionsByUser = new Map<string, string>()
+      for (const session of deviceSessions ?? []) {
+        const installed = String(parseNotificationMessage(session.message).app_version ?? '').trim()
+        const previous = versionsByUser.get(session.user_id)
+        if (installed && (!previous || compareVersions(installed, previous) > 0)) {
+          versionsByUser.set(session.user_id, installed)
+        }
+      }
       const recipients = (profiles ?? []).filter((profile) => {
+        if (target === 'outdated') {
+          if (!version) return false
+          const installed = versionsByUser.get(profile.id)
+          return !installed || compareVersions(installed, version) < 0
+        }
         if (target === 'parent') return !PROFESSIONAL_ROLES.has(profile.role as UserRole)
         if (target === 'professional') return PROFESSIONAL_ROLES.has(profile.role as UserRole)
         return true
