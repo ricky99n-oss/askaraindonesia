@@ -3,13 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
-
 export async function POST(req: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl || !supabaseKey) throw new Error('Konfigurasi Supabase belum tersedia');
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const body = await req.json();
     // iPaymu mengirimkan status transaksi, reference_id, dll ke webhook ini
     const { reference_id, status_code } = body;

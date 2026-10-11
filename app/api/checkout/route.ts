@@ -3,13 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
 
-// Setup Supabase (Ambil dari Env)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export async function POST(request: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl || !supabaseKey) throw new Error('Konfigurasi Supabase belum tersedia');
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const body = await request.json();
     const { productId, name, price, quantity = 1, buyerName, buyerEmail, buyerPhone, shippingCost = 0 } = body;
 

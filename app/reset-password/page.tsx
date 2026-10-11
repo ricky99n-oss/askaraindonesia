@@ -4,8 +4,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'build-placeholder';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Komponen Form Utama
