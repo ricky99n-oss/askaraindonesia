@@ -15,7 +15,7 @@ function jakartaDate(value: Date) {
 export async function GET(request: Request) {
   const task = new URL(request.url).searchParams.get('task')
   if (task === 'push-health') {
-    const expected = process.env.PUSH_HEALTH_SECRET
+    const expected = process.env.PUSH_HEALTH_SECRET?.trim()
     const received = request.headers.get('x-push-health-secret') ?? ''
     if (!expected || received !== expected) {
       return NextResponse.json({ error: 'Unauthorized', configured: Boolean(expected), expectedLength: expected?.length ?? 0, receivedLength: received.length }, { status: 401 })

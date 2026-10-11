@@ -6,8 +6,8 @@ export const RUANG_BOCAH_APP_VERSION = process.env.RUANG_BOCAH_APP_VERSION || '1
 export async function sendRuangBocahPush(input: {
   userIds: string[]; title: string; message: string; type: string; version?: string; broadcast?: boolean
 }) {
-  const apiKey = process.env.ONESIGNAL_REST_API_KEY
-  const appId = process.env.ONESIGNAL_APP_ID || '48a05f5f-216d-41b9-9ae1-a3f528fe5683'
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY?.trim()
+  const appId = process.env.ONESIGNAL_APP_ID?.trim() || '48a05f5f-216d-41b9-9ae1-a3f528fe5683'
   if (!apiKey) throw new Error('ONESIGNAL_REST_API_KEY belum dikonfigurasi')
   let subscriptionIds: string[] = []
   if (input.broadcast) {
