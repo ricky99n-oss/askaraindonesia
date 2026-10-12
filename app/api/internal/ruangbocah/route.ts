@@ -692,11 +692,19 @@ export async function PUT(request: Request) {
     if (!/^\d+\.\d+\.\d+$/.test(version)) {
       throw new RequestValidationError('Versi aplikasi tidak valid')
     }
+    const path = `Ruang-Bocah-Android-v${version}-arm64.apk`
+    if (request.headers.get('x-create-signed-upload') === 'true') {
+      const { data, error } = await createRuangBocahAdminClient()
+        .storage
+        .from('ruang-bocah-releases')
+        .createSignedUploadUrl(path, { upsert: true })
+      if (error) throw error
+      return NextResponse.json({ success: true, path, signedUrl: data.signedUrl })
+    }
     const bytes = await request.arrayBuffer()
     if (bytes.byteLength === 0 || bytes.byteLength > 80 * 1024 * 1024) {
       throw new RequestValidationError('Ukuran APK tidak valid')
     }
-    const path = `Ruang-Bocah-Android-v${version}-arm64.apk`
     const { error } = await createRuangBocahAdminClient()
       .storage
       .from('ruang-bocah-releases')
