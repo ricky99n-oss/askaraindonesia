@@ -353,6 +353,22 @@ export async function POST(request: Request) {
       if (error) throw error
       return NextResponse.json({ success: true })
     }
+    if (body.action === 'delete_notification') {
+      const title = requiredText(body.title, 'Judul notifikasi')
+      const message = requiredText(body.message, 'Isi notifikasi')
+      const type = requiredText(body.type, 'Jenis notifikasi')
+      if (!['promo', 'app_update'].includes(type)) {
+        throw new RequestValidationError('Jenis notifikasi tidak valid')
+      }
+      const { error, count } = await createRuangBocahAdminClient()
+        .from('notifications')
+        .delete({ count: 'exact' })
+        .eq('title', title)
+        .eq('message', message)
+        .eq('type', type)
+      if (error) throw error
+      return NextResponse.json({ success: true, deleted: count ?? 0 })
+    }
     if (body.action === 'send_notification') {
       const title = requiredText(body.title, 'Judul notifikasi')
       const message = requiredText(body.message, 'Isi notifikasi')
@@ -660,6 +676,36 @@ export async function DELETE(request: Request) {
     const { error: profileError } = await ruangBocah.from('profiles').delete().eq('id', userId)
     if (profileError) throw profileError
     return NextResponse.json({ success: true })
+  } catch (error) {
+    return errorResponse(error)
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const configuredSecret = process.env.RELEASE_UPLOAD_SECRET?.trim()
+    const providedSecret = request.headers.get('x-release-upload-secret')?.trim()
+    if (!configuredSecret || providedSecret !== configuredSecret) {
+      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+    }
+    const version = request.headers.get('x-app-version')?.trim() ?? ''
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      throw new RequestValidationError('Versi aplikasi tidak valid')
+    }
+    const bytes = await request.arrayBuffer()
+    if (bytes.byteLength === 0 || bytes.byteLength > 80 * 1024 * 1024) {
+      throw new RequestValidationError('Ukuran APK tidak valid')
+    }
+    const path = `Ruang-Bocah-Android-v${version}-arm64.apk`
+    const { error } = await createRuangBocahAdminClient()
+      .storage
+      .from('ruang-bocah-releases')
+      .upload(path, bytes, {
+        contentType: 'application/vnd.android.package-archive',
+        upsert: true,
+      })
+    if (error) throw error
+    return NextResponse.json({ success: true, path, size: bytes.byteLength })
   } catch (error) {
     return errorResponse(error)
   }

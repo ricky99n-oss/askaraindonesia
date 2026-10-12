@@ -55,7 +55,7 @@ export async function sendRuangBocahPush(input: {
         },
         url: input.type === 'app_update' ? 'com.askaraindonesia.ruangbocah://update' : undefined,
         buttons: input.type === 'app_update' ? [{ id: 'install_update', text: 'Download & install' }] : undefined,
-        existing_android_channel_id: 'ruang_bocah_alerts_v3',
+        existing_android_channel_id: 'ruang_bocah_alerts_v4',
         android_sound: 'ruangbocah_notification',
         ios_sound: 'ruangbocah-notification.mp3',
       }),
