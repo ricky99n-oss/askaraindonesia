@@ -67,6 +67,19 @@ export default function RuangBocahLandingPage() {
         </div>
       </section>
 
+      <section className="border-b border-slate-100 bg-white px-6 py-16">
+        <div className="mx-auto max-w-4xl rounded-3xl border border-purple-100 bg-purple-50 p-7 md:p-10">
+          <p className="text-sm font-bold uppercase tracking-widest text-purple-600">Panduan instalasi Android</p>
+          <h2 className="mt-3 text-2xl font-black md:text-3xl">Instal Ruang Bocah dalam beberapa langkah</h2>
+          <ol className="mt-7 grid gap-4 text-sm text-slate-700 md:grid-cols-3">
+            <li className="rounded-2xl bg-white p-5 shadow-sm"><strong className="mb-2 block text-purple-700">1. Unduh APK</strong>Tekan tombol Unduh untuk Android, lalu buka file APK setelah unduhan selesai.</li>
+            <li className="rounded-2xl bg-white p-5 shadow-sm"><strong className="mb-2 block text-purple-700">2. Izinkan instalasi</strong>Jika diminta, izinkan browser memasang aplikasi dari sumber ini, kemudian kembali ke installer.</li>
+            <li className="rounded-2xl bg-white p-5 shadow-sm"><strong className="mb-2 block text-purple-700">3. Pindai dan instal</strong>Jika Google Play Protect muncul, pilih <em>Pindai aplikasi</em>. Setelah hasil pemindaian aman, pilih <em>Tetap instal</em> atau <em>Install anyway</em>.</li>
+          </ol>
+          <p className="mt-5 text-xs leading-relaxed text-slate-500">Jangan menonaktifkan Google Play Protect. Pastikan APK diunduh hanya dari halaman resmi Askara Indonesia ini.</p>
+        </div>
+      </section>
+
       <section className="bg-slate-50 px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <SectionHeading eyebrow="Tampilan aplikasi nyata" title="Dibuat untuk keluarga Indonesia" description="Kenali manfaat setiap fitur Ruang Bocah untuk membantu orang tua mendampingi tumbuh kembang si Kecil." />
