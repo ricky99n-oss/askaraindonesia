@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
-export default function SuccessPage({
+export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: { transaction_status?: string; order_id?: string }
+  searchParams: Promise<{ transaction_status?: string; order_id?: string }>
 }) {
+  const params = await searchParams;
   // 🔒 PROTEKSI HALAMAN: Cek apakah ada status lunas dari Midtrans
-  const status = searchParams.transaction_status;
+  const status = params.transaction_status;
   if (status !== 'settlement' && status !== 'capture') {
     // Jika tidak ada bukti lunas, tendang kembali ke halaman utama
     redirect('/'); 
@@ -26,7 +27,7 @@ export default function SuccessPage({
           </div>
           <h1 className="text-3xl font-bold mb-2">Pembayaran Berhasil!</h1>
           <p className="text-emerald-100 text-lg">Terima kasih telah bergabung dengan Askara Smart POS</p>
-          <p className="text-emerald-100 text-sm mt-2 opacity-80">Order ID: {searchParams.order_id}</p>
+          <p className="text-emerald-100 text-sm mt-2 opacity-80">Order ID: {params.order_id}</p>
         </div>
 
         <div className="p-8">
