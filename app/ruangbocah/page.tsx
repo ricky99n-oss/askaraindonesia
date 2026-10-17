@@ -22,9 +22,16 @@ const features = [
   {
     icon: '📈',
     tone: 'bg-orange-100',
-    title: 'Pantau Tumbuh Kembang si Kecil',
-    description: 'Simpan catatan tinggi, berat, makan, tidur, keluhan kesehatan, dan imunisasi agar perkembangan anak lebih mudah dipahami.',
-    points: ['Lihat perubahan tinggi dan berat badan', 'Catat pola makan dan waktu tidur', 'Ingat jadwal imunisasi anak'],
+    title: 'Pantau Tumbuh Kembang & Milestone',
+    description: 'Simpan catatan tinggi, berat, makan, tidur, dan pantau 5 pilar milestone tumbuh kembang dengan ide stimulasi di rumah.',
+    points: ['Grafik pertumbuhan WHO & KMS', 'Target 5 pilar milestone & panduan stimulasi', 'Pengingat imunisasi & deteksi red flag'],
+  },
+  {
+    icon: '📖',
+    tone: 'bg-emerald-100',
+    title: 'Buku Cerita Bergambar Nusantara',
+    description: 'Koleksi dongeng dan legenda Nusantara berilustrasi indah dengan animasi buka buku, mode landscape 2-halaman, dan pesan moral.',
+    points: ['Animasi slide halaman buku khas nusantara', 'Pesan moral & panduan diskusi orang tua-anak', 'Tersedia mode baca santai & mode gelap'],
   },
   {
     icon: '🧩',
@@ -84,7 +91,10 @@ export default function RuangBocahLandingPage() {
         <div className="mx-auto max-w-6xl">
           <SectionHeading eyebrow="Tampilan aplikasi nyata" title="Dibuat untuk keluarga Indonesia" description="Kenali manfaat setiap fitur Ruang Bocah untuk membantu orang tua mendampingi tumbuh kembang si Kecil." />
           <div className="mt-14 grid gap-10 md:grid-cols-2">
-            <ScreenshotCard src="/ruangbocah/v101-home-features.png" alt="Beranda fitur utama Ruang Bocah versi 1.0.1" title="Kebutuhan si Kecil dalam satu beranda" description="Orang tua dapat membuka catatan pertumbuhan, imunisasi, makan, tidur, permainan, dan konsultasi dokter dengan mudah dari halaman utama." />
+            <ScreenshotCard src="/ruangbocah/v101-home-features.png" alt="Beranda fitur utama Ruang Bocah" title="Kebutuhan si Kecil dalam satu beranda simetris" description="Orang tua dapat membuka catatan pertumbuhan, milestone, imunisasi, nutrisi, buku cerita, aktivitas, pola tidur, dan konsultasi dokter langsung dari beranda yang rapi." />
+            <ScreenshotCard src="/ruangbocah/v101-storybook.png" alt="Buku Cerita Bergambar Nusantara Ruang Bocah" title="Buku Cerita Bergambar Nusantara" description="Koleksi cerita rakyat dan dongeng budi pekerti dengan ilustrasi memukau, animasi transisi halaman khas buku, mode bentang landscape 2 halaman, dan panduan diskusi moral keluarga." />
+            <ScreenshotCard src="/ruangbocah/v101-milestone.png" alt="Milestone Tumbuh Kembang Ruang Bocah" title="Milestone Tumbuh Kembang 5 Pilar" description="Pantau target perkembangan motorik kasar, halus, bahasa, sosial-emosi, dan kognitif si Kecil sesuai rentang usia dengan checklist terstruktur, ide stimulasi, dan konsultasi telemedis." />
+            <ScreenshotCard src="/ruangbocah/v101-profile.png" alt="Profil Anak dan Orang Tua Ruang Bocah" title="Profil Anak & Manajemen Terintegrasi" description="Kelola data multi-anak, cek saldo koin reward, status langganan VIP, catatan aktivitas, dan pengaturan proteksi layar si Kecil dalam satu halaman profil terpadu." />
             <ScreenshotCard src="/ruangbocah/v101-subscription-popup.png" alt="Pilihan aktivasi aplikasi Ruang Bocah" title="Pilih masa akses sesuai kebutuhan" description="Tersedia Paket Hemat 3 bulan, Paket Keluarga 6 bulan, atau Paket Setahun 12 bulan. Setelah pembayaran disetujui, seluruh fitur dapat digunakan sesuai masa aktif yang dipilih." />
             <ScreenshotCard src="/ruangbocah/v101-growth.png" alt="Grafik pertumbuhan tinggi dan berat badan anak" title="Lihat perkembangan tinggi dan berat badan" description="Catatan tinggi dan berat badan disusun menjadi grafik sehingga orang tua lebih mudah melihat perubahan pertumbuhan si Kecil dari waktu ke waktu." />
             <ScreenshotCard src="/ruangbocah/v101-doctors.png" alt="Daftar dokter spesialis anak Ruang Bocah" title="Tanya langsung kepada dokter anak" description="Pilih dokter yang tersedia, ceritakan keluhan si Kecil, dan simpan percakapan agar dapat dibaca kembali saat dibutuhkan." />
@@ -102,7 +112,7 @@ export default function RuangBocahLandingPage() {
       <section className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <SectionHeading eyebrow="Semua dalam satu aplikasi" title="Fitur lengkap Ruang Bocah" description="Fitur orang tua, anak, dan dokter tersinkron dengan akun Ruang Bocah." />
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <article key={feature.title} className="rounded-3xl border border-slate-100 bg-white p-7 shadow-lg shadow-slate-200/60">
                 <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-2xl ${feature.tone}`}>{feature.icon}</div>

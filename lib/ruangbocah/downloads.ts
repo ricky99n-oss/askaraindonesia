@@ -1,16 +1,16 @@
-export const RUANG_BOCAH_VERSION = '1.2.3'
+export const RUANG_BOCAH_VERSION = '1.8.5'
 
 const RELEASE_BASE_URL =
   'https://raw.githubusercontent.com/ricky99n-oss/askaraindonesia/main/releases'
 
 export const RUANG_BOCAH_ANDROID_DOWNLOAD_URL =
-  `${RELEASE_BASE_URL}/Ruang-Bocah-Android-v1.2.3-arm64.apk`
+  `${RELEASE_BASE_URL}/Ruang-Bocah-Android-v1.8.5-arm64.apk`
 
 export const RUANG_BOCAH_ANDROID_32_DOWNLOAD_URL =
-  `${RELEASE_BASE_URL}/Ruang-Bocah-Android-v1.0.1-armv7.apk`
+  `${RELEASE_BASE_URL}/Ruang-Bocah-Android-v1.8.5-armv7.apk`
 
 export const RUANG_BOCAH_ANDROID_SHA256 =
-  '3BE8D600246AC9F77FC8B4AA5F51AB6977729CC501FB25633BE1615B679F2E4F'
+  '3018dc5b545a6a2cb841c506680c5403c2a65e526845b03154ba691cf0d2daf9'
 
 export const RUANG_BOCAH_ANDROID_32_SHA256 =
-  'E470DCAA0D2D2582F7607FCCB74E677F53590AB9F591432AB5529FCBF2BE3E07'
+  '37c9ea5b76f286d09ecff888fb981d4a6583211346d6785c14a07f6cccad7264'
