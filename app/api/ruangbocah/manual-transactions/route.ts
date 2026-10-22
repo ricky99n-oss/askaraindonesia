@@ -21,6 +21,29 @@ type PaymentNotification = {
   created_at: string
 }
 
+const FREE_TRIAL_TYPE = 'free_trial_started'
+const FREE_TRIAL_TITLE = 'FREE_TRIAL_3_DAYS'
+const FREE_TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000
+const NEW_USER_ELIGIBILITY_MS = 7 * 24 * 60 * 60 * 1000
+
+function trialDates(notification: PaymentNotification | null) {
+  if (!notification) return { trialStartedAt: null, trialEndsAt: null }
+  let details: Record<string, unknown> = {}
+  try {
+    details = JSON.parse(notification.message)
+  } catch {
+    details = {}
+  }
+  const trialStartedAt = String(details.started_at ?? notification.created_at)
+  const parsedStart = new Date(trialStartedAt)
+  if (Number.isNaN(parsedStart.getTime())) return { trialStartedAt: null, trialEndsAt: null }
+  const explicitEnd = new Date(String(details.ends_at ?? ''))
+  const trialEndsAt = Number.isNaN(explicitEnd.getTime())
+    ? new Date(parsedStart.getTime() + FREE_TRIAL_DURATION_MS).toISOString()
+    : explicitEnd.toISOString()
+  return { trialStartedAt: parsedStart.toISOString(), trialEndsAt }
+}
+
 function paymentStatus(type: string): PaymentStatus {
   if (type === 'payment_done') return 'DONE'
   if (type === 'payment_failed') return 'FAILED'
@@ -61,7 +84,11 @@ async function authenticatedRuangBocahUser(request: Request) {
 export async function GET(request: Request) {
   try {
     const { ruangBocah, user } = await authenticatedRuangBocahUser(request)
-    const [{ data, error }, { data: profile, error: profileError }] = await Promise.all([
+    const [
+      { data, error },
+      { data: profile, error: profileError },
+      { data: existingTrial, error: trialError },
+    ] = await Promise.all([
       ruangBocah
         .from('notifications')
         .select('id, user_id, title, message, type, created_at')
@@ -71,20 +98,83 @@ export async function GET(request: Request) {
         .limit(50),
       ruangBocah
         .from('profiles')
-        .select('is_premium, premium_valid_until')
+        .select('role, is_premium, premium_valid_until')
         .eq('id', user.id)
+        .maybeSingle(),
+      ruangBocah
+        .from('notifications')
+        .select('id, user_id, title, message, type, created_at')
+        .eq('user_id', user.id)
+        .eq('type', FREE_TRIAL_TYPE)
+        .eq('title', FREE_TRIAL_TITLE)
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle(),
     ])
     if (error) throw error
     if (profileError) throw profileError
+    if (trialError) throw trialError
 
     const transactions = (data ?? []).map((item) => transactionFromNotification(item as PaymentNotification))
     const hasCompletedAccessTransaction = transactions.some((transaction) =>
       transaction.status === 'DONE' && RUANG_BOCAH_ACCESS_CODES.some((code) => transaction.reference_id.includes(`|${code}|`)),
     )
-    const hasInitialAccess = Boolean(profile?.is_premium) || Boolean(profile?.premium_valid_until) || hasCompletedAccessTransaction
-    const premiumValidUntil = profile?.premium_valid_until ?? null
-    const isPremiumActive = Boolean(profile?.is_premium) && Boolean(premiumValidUntil) && new Date(premiumValidUntil).getTime() > Date.now()
+    let trialNotification = existingTrial as PaymentNotification | null
+    let trialJustStarted = false
+    let effectiveProfile = profile
+    const createdAt = new Date(user.created_at).getTime()
+    const isNewUser = Number.isFinite(createdAt) && Date.now() - createdAt <= NEW_USER_ELIGIBILITY_MS
+    const shouldStartTrial = Boolean(
+      profile?.role === 'parent' &&
+      !profile.is_premium &&
+      !profile.premium_valid_until &&
+      !hasCompletedAccessTransaction &&
+      !trialNotification &&
+      isNewUser,
+    )
+
+    if (shouldStartTrial) {
+      const startedAt = new Date()
+      const endsAt = new Date(startedAt.getTime() + FREE_TRIAL_DURATION_MS)
+      const { data: insertedTrial, error: insertTrialError } = await ruangBocah
+        .from('notifications')
+        .insert({
+          user_id: user.id,
+          title: FREE_TRIAL_TITLE,
+          message: JSON.stringify({ started_at: startedAt.toISOString(), ends_at: endsAt.toISOString() }),
+          type: FREE_TRIAL_TYPE,
+          is_read: false,
+        })
+        .select('id, user_id, title, message, type, created_at')
+        .single()
+      if (insertTrialError) throw insertTrialError
+
+      const { error: activateTrialError } = await ruangBocah
+        .from('profiles')
+        .update({ is_premium: true, premium_valid_until: endsAt.toISOString() })
+        .eq('id', user.id)
+      if (activateTrialError) throw activateTrialError
+
+      trialNotification = insertedTrial as PaymentNotification
+      effectiveProfile = {
+        role: profile?.role ?? 'parent',
+        is_premium: true,
+        premium_valid_until: endsAt.toISOString(),
+      }
+      trialJustStarted = true
+    }
+
+    const { trialStartedAt, trialEndsAt } = trialDates(trialNotification)
+    const premiumValidUntil = effectiveProfile?.premium_valid_until ?? null
+    const isPremiumActive = Boolean(effectiveProfile?.is_premium) && Boolean(premiumValidUntil) && new Date(premiumValidUntil).getTime() > Date.now()
+    const premiumExpiryTime = premiumValidUntil ? new Date(premiumValidUntil).getTime() : 0
+    const trialExpiryTime = trialEndsAt ? new Date(trialEndsAt).getTime() : 0
+    const isTrialActive = Boolean(
+      isPremiumActive &&
+      trialExpiryTime > Date.now() &&
+      premiumExpiryTime <= trialExpiryTime + 60_000,
+    )
+    const hasInitialAccess = Boolean(effectiveProfile?.is_premium) || Boolean(effectiveProfile?.premium_valid_until) || hasCompletedAccessTransaction
     const requiredPackageCode = 'ACCESS6'
     const hasPendingPayment = transactions.some(
       (transaction) => transaction.status === 'PENDING' && RUANG_BOCAH_ACCESS_CODES.some((code) => transaction.reference_id.includes(`|${code}|`)),
@@ -92,7 +182,17 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       transactions,
-      access: { hasInitialAccess, isPremiumActive, premiumValidUntil, requiredPackageCode, hasPendingPayment },
+      access: {
+        hasInitialAccess,
+        isPremiumActive,
+        premiumValidUntil,
+        requiredPackageCode,
+        hasPendingPayment,
+        isTrialActive,
+        trialJustStarted,
+        trialStartedAt,
+        trialEndsAt,
+      },
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gagal memuat transaksi'
