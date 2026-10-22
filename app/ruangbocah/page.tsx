@@ -15,7 +15,7 @@ const features = [
   {
     icon: '🩺',
     tone: 'bg-purple-100',
-    title: 'Tanya Dokter Spesialis Anak',
+    title: 'Mulai Konsultasi',
     description: 'Saat khawatir dengan kondisi si Kecil, orang tua dapat berkonsultasi dengan dokter anak langsung melalui aplikasi.',
     points: ['Ceritakan keluhan melalui chat', 'Kirim foto agar kondisi lebih mudah dijelaskan', 'Baca kembali riwayat konsultasi'],
   },
@@ -54,7 +54,7 @@ export default function RuangBocahLandingPage() {
             </div>
             <h1 className="text-4xl font-black leading-tight md:text-6xl">Teman terbaik tumbuh kembang si Kecil</h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-purple-100 md:mx-0">
-              Pantau kesehatan, konsultasi dengan dokter anak, dan nikmati aktivitas edukatif keluarga dalam satu aplikasi.
+              Pantau kesehatan, konsultasi dengan dokter anak, dan nikmati aktivitas edukatif keluarga dalam satu aplikasi. Pengguna baru mendapat Free Trial 3 hari.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row md:justify-start">
               <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="rounded-xl bg-orange-500 px-7 py-4 text-center font-bold text-white shadow-lg transition hover:bg-orange-600">
@@ -66,9 +66,10 @@ export default function RuangBocahLandingPage() {
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm md:justify-start">
               <span className="rounded-full bg-white/15 px-3 py-1.5">✓ Tersedia untuk Android</span>
+              <span className="rounded-full bg-orange-400/30 px-3 py-1.5 text-orange-50">Free Trial 3 Hari</span>
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-purple-100">iOS segera hadir</span>
             </div>
-            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 46,0 MB</p>
+            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 77,4 MB</p>
           </div>
           <PhoneScreenshot src="/ruangbocah/v101-home-features.png" alt="Beranda aplikasi Ruang Bocah versi 1.0.1 dengan fitur tumbuh kembang, aktivitas, konsultasi, dan Kancil AI" priority />
         </div>
@@ -133,7 +134,7 @@ export default function RuangBocahLandingPage() {
             <p className="text-sm font-bold uppercase tracking-widest text-purple-200">Premium Membership</p>
             <h2 className="mt-4 text-3xl font-black">Lebih lengkap bersama si Kecil</h2>
             <div className="mt-8 text-5xl font-black">Mulai Rp 99K<span className="text-lg font-normal text-purple-200"> /3 bulan</span></div>
-            <p className="mt-3 text-sm text-purple-100">Pilih 3 bulan + 50 koin, 6 bulan + 100 koin, atau 12 bulan + 150 koin.</p>
+            <p className="mt-3 text-sm text-purple-100">Coba gratis 3 hari untuk akun baru, lalu pilih 3 bulan + 50 koin, 6 bulan + 100 koin, atau 12 bulan + 150 koin.</p>
           </div>
           <div className="p-10">
             <h3 className="text-xl font-bold">Yang Anda dapatkan</h3>
@@ -151,7 +152,7 @@ export default function RuangBocahLandingPage() {
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-orange-400">Unduh Ruang Bocah</p>
           <h2 className="mt-4 text-3xl font-black md:text-4xl">Mulai perjalanan tumbuh kembang hari ini</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-slate-300">Unduh aplikasi, buat akun orang tua, lalu lakukan pembelian premium atau koin dari menu Dompet agar transaksi langsung terhubung ke akun.</p>
+          <p className="mx-auto mt-4 max-w-2xl text-slate-300">Unduh aplikasi dan buat akun orang tua untuk menikmati Free Trial 3 hari. Setelahnya, pembelian premium atau koin dari menu Dompet langsung terhubung ke akun.</p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="rounded-xl bg-orange-500 px-7 py-4 font-bold text-white hover:bg-orange-600">Unduh Android 64-bit</a>
             <a href={RUANG_BOCAH_ANDROID_32_DOWNLOAD_URL} className="rounded-xl border border-slate-600 px-7 py-4 font-bold text-slate-200 hover:bg-slate-800">Android lama 32-bit</a>
