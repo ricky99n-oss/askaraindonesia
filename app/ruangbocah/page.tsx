@@ -8,16 +8,16 @@ import {
 
 export const metadata = {
   title: 'Ruang Bocah | Ekosistem Parenting & Tumbuh Kembang Anak',
-  description: 'Aplikasi Android untuk memantau tumbuh kembang anak, konsultasi dokter spesialis, dan aktivitas edukatif.',
+  description: 'Aplikasi Android untuk memantau tumbuh kembang anak dan menikmati aktivitas edukatif keluarga.',
 }
 
 const features = [
   {
     icon: '🩺',
     tone: 'bg-purple-100',
-    title: 'Mulai Konsultasi',
-    description: 'Saat khawatir dengan kondisi si Kecil, orang tua dapat berkonsultasi dengan dokter anak langsung melalui aplikasi.',
-    points: ['Ceritakan keluhan melalui chat', 'Kirim foto agar kondisi lebih mudah dijelaskan', 'Baca kembali riwayat konsultasi'],
+    title: 'Konsultasi — Segera Hadir',
+    description: 'Fitur konsultasi sedang dipersiapkan agar Ayah dan Bunda mendapatkan layanan terbaik saat resmi tersedia.',
+    points: ['Status segera hadir tampil di aplikasi', 'Menu dinonaktifkan sementara', 'Informasi peluncuran akan diumumkan kemudian'],
   },
   {
     icon: '📈',
@@ -54,7 +54,7 @@ export default function RuangBocahLandingPage() {
             </div>
             <h1 className="text-4xl font-black leading-tight md:text-6xl">Teman terbaik tumbuh kembang si Kecil</h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-purple-100 md:mx-0">
-              Pantau kesehatan, konsultasi dengan dokter anak, dan nikmati aktivitas edukatif keluarga dalam satu aplikasi. Pengguna baru mendapat Free Trial 3 hari.
+              Pantau kesehatan dan nikmati aktivitas edukatif keluarga dalam satu aplikasi. Fitur konsultasi sedang dipersiapkan dan akan segera hadir. Pengguna baru mendapat Free Trial 3 hari.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row md:justify-start">
               <a href={RUANG_BOCAH_ANDROID_DOWNLOAD_URL} className="rounded-xl bg-orange-500 px-7 py-4 text-center font-bold text-white shadow-lg transition hover:bg-orange-600">
@@ -69,7 +69,7 @@ export default function RuangBocahLandingPage() {
               <span className="rounded-full bg-orange-400/30 px-3 py-1.5 text-orange-50">Free Trial 3 Hari</span>
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-purple-100">iOS segera hadir</span>
             </div>
-            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 77,4 MB</p>
+            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 77,2 MB</p>
           </div>
           <PhoneScreenshot src="/ruangbocah/v101-home-features.png" alt="Beranda aplikasi Ruang Bocah versi 1.0.1 dengan fitur tumbuh kembang, aktivitas, konsultasi, dan Kancil AI" priority />
         </div>
@@ -94,11 +94,11 @@ export default function RuangBocahLandingPage() {
           <div className="mt-14 grid gap-10 md:grid-cols-2">
             <ScreenshotCard src="/ruangbocah/v101-home-features.png" alt="Beranda fitur utama Ruang Bocah" title="Kebutuhan si Kecil dalam satu beranda simetris" description="Orang tua dapat membuka catatan pertumbuhan, milestone, imunisasi, nutrisi, buku cerita, aktivitas, pola tidur, dan konsultasi dokter langsung dari beranda yang rapi." />
             <ScreenshotCard src="/ruangbocah/v101-storybook.png" alt="Buku Cerita Bergambar Nusantara Ruang Bocah" title="Buku Cerita Bergambar Nusantara" description="Koleksi cerita rakyat dan dongeng budi pekerti dengan ilustrasi memukau, animasi transisi halaman khas buku, mode bentang landscape 2 halaman, dan panduan diskusi moral keluarga." />
-            <ScreenshotCard src="/ruangbocah/v101-milestone.png" alt="Milestone Tumbuh Kembang Ruang Bocah" title="Milestone Tumbuh Kembang 5 Pilar" description="Pantau target perkembangan motorik kasar, halus, bahasa, sosial-emosi, dan kognitif si Kecil sesuai rentang usia dengan checklist terstruktur, ide stimulasi, dan konsultasi telemedis." />
+            <ScreenshotCard src="/ruangbocah/v101-milestone.png" alt="Milestone Tumbuh Kembang Ruang Bocah" title="Milestone Tumbuh Kembang 5 Pilar" description="Pantau target perkembangan motorik kasar, halus, bahasa, sosial-emosi, dan kognitif si Kecil sesuai rentang usia dengan checklist terstruktur dan ide stimulasi." />
             <ScreenshotCard src="/ruangbocah/v101-profile.png" alt="Profil Anak dan Orang Tua Ruang Bocah" title="Profil Anak & Manajemen Terintegrasi" description="Kelola data multi-anak, cek saldo koin reward, status langganan VIP, catatan aktivitas, dan pengaturan proteksi layar si Kecil dalam satu halaman profil terpadu." />
             <ScreenshotCard src="/ruangbocah/v101-subscription-popup.png" alt="Pilihan aktivasi aplikasi Ruang Bocah" title="Pilih masa akses sesuai kebutuhan" description="Tersedia Paket Hemat 3 bulan, Paket Keluarga 6 bulan, atau Paket Setahun 12 bulan. Setelah pembayaran disetujui, seluruh fitur dapat digunakan sesuai masa aktif yang dipilih." />
             <ScreenshotCard src="/ruangbocah/v101-growth.png" alt="Grafik pertumbuhan tinggi dan berat badan anak" title="Lihat perkembangan tinggi dan berat badan" description="Catatan tinggi dan berat badan disusun menjadi grafik sehingga orang tua lebih mudah melihat perubahan pertumbuhan si Kecil dari waktu ke waktu." />
-            <ScreenshotCard src="/ruangbocah/v101-doctors.png" alt="Daftar dokter spesialis anak Ruang Bocah" title="Tanya langsung kepada dokter anak" description="Pilih dokter yang tersedia, ceritakan keluhan si Kecil, dan simpan percakapan agar dapat dibaca kembali saat dibutuhkan." />
+            <ScreenshotCard src="/ruangbocah/v101-doctors.png" alt="Pratinjau konsultasi Ruang Bocah" title="Konsultasi segera hadir" description="Layanan konsultasi sedang kami persiapkan dan untuk sementara dinonaktifkan di dalam aplikasi." />
             <ScreenshotCard src="/ruangbocah/v101-games.png" alt="Permainan Domba Awan di Ruang Bocah versi 1.0.1" title="Belajar merawat lewat Domba Awan" description="Anak memilih domba, merawatnya tahap demi tahap, mengumpulkan wol, dan membuat aksesori. Setiap level melatih urutan kegiatan, koordinasi tangan, dan tanggung jawab sederhana." />
             <ScreenshotCard src="/ruangbocah/v101-wallet-qris.png" alt="Pembayaran QRIS di aplikasi Ruang Bocah" title="Bayar dengan QRIS secara mudah" description="Pilih paket, pindai QRIS, lalu kirim bukti pembayaran melalui WhatsApp. Pembayaran akan dicatat pada akun yang digunakan." />
             <ScreenshotCard src="/ruangbocah/v101-onboarding.png" alt="Panduan fitur pertama kali Ruang Bocah" title="Dipandu sejak pertama masuk" description="Wizard membantu orang tua membuat profil si Kecil terlebih dahulu, lalu menyorot langsung menu profil, pertumbuhan, pencatatan harian, konsultasi, aktivitas, dan Kancil AI satu per satu." />
@@ -112,7 +112,7 @@ export default function RuangBocahLandingPage() {
 
       <section className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
-          <SectionHeading eyebrow="Semua dalam satu aplikasi" title="Fitur lengkap Ruang Bocah" description="Fitur orang tua, anak, dan dokter tersinkron dengan akun Ruang Bocah." />
+          <SectionHeading eyebrow="Semua dalam satu aplikasi" title="Fitur lengkap Ruang Bocah" description="Fitur orang tua dan anak tersinkron dengan akun Ruang Bocah. Konsultasi akan segera hadir." />
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <article key={feature.title} className="rounded-3xl border border-slate-100 bg-white p-7 shadow-lg shadow-slate-200/60">
@@ -139,7 +139,7 @@ export default function RuangBocahLandingPage() {
           <div className="p-10">
             <h3 className="text-xl font-bold">Yang Anda dapatkan</h3>
             <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
-              {['3 bulan Rp99K + 50 koin', '6 bulan Rp149K + 100 koin', '12 bulan Rp180K + 150 koin', 'Top up mulai 50 koin', 'Akses telemedis', 'Metrik pertumbuhan', 'Pusat bermain edukatif'].map((item) => <div key={item} className="flex gap-2"><span className="text-orange-500">★</span>{item}</div>)}
+              {['3 bulan Rp99K + 50 koin', '6 bulan Rp149K + 100 koin', '12 bulan Rp180K + 150 koin', 'Top up mulai 50 koin', 'Konsultasi segera hadir', 'Metrik pertumbuhan', 'Pusat bermain edukatif'].map((item) => <div key={item} className="flex gap-2"><span className="text-orange-500">★</span>{item}</div>)}
             </div>
             <Link href="/ruangbocah/subscribe" className="mt-8 block rounded-xl bg-purple-700 px-6 py-4 text-center font-bold text-white transition hover:bg-purple-800">
               Pilih Paket & Bayar via QRIS
