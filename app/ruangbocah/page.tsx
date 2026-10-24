@@ -69,7 +69,7 @@ export default function RuangBocahLandingPage() {
               <span className="rounded-full bg-orange-400/30 px-3 py-1.5 text-orange-50">Free Trial 3 Hari</span>
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-purple-100">iOS segera hadir</span>
             </div>
-            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 77,2 MB</p>
+            <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 77,3 MB</p>
             <p className="mt-2 text-xs text-purple-100">Versi terbaru dapat diunduh dan dibuka langsung dari menu notifikasi aplikasi.</p>
           </div>
           <PhoneScreenshot src="/ruangbocah/v101-home-features.png" alt="Beranda aplikasi Ruang Bocah dengan fitur tumbuh kembang, aktivitas, dan Kancil AI" priority />
