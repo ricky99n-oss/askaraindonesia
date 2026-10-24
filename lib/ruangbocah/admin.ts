@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 export const RUANG_BOCAH_ADMIN_WA = '6285815999953'
-export const RUANG_BOCAH_APP_VERSION = process.env.RUANG_BOCAH_APP_VERSION?.trim() || '1.9.1'
+export const RUANG_BOCAH_APP_VERSION = process.env.RUANG_BOCAH_APP_VERSION?.trim() || '1.9.2'
 
 export async function sendRuangBocahPush(input: {
   userIds: string[]; title: string; message: string; type: string; version?: string; broadcast?: boolean
@@ -53,7 +53,7 @@ export async function sendRuangBocahPush(input: {
             ? 'https://askaraindonesia.com/ruangbocah'
             : '',
         },
-        url: input.type === 'app_update' ? 'com.askaraindonesia.ruangbocah://update' : undefined,
+        url: input.type === 'app_update' ? 'https://askaraindonesia.com/ruangbocah' : undefined,
         buttons: input.type === 'app_update' ? [{ id: 'install_update', text: 'Download & install' }] : undefined,
         existing_android_channel_id: 'ruang_bocah_alerts_v4',
         android_sound: 'ruangbocah_notification',

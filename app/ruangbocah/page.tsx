@@ -23,8 +23,8 @@ const features = [
     icon: '📈',
     tone: 'bg-orange-100',
     title: 'Pantau Tumbuh Kembang & Milestone',
-    description: 'Simpan catatan tinggi, berat, makan, tidur, dan pantau 5 pilar milestone tumbuh kembang dengan ide stimulasi di rumah.',
-    points: ['Grafik pertumbuhan WHO & KMS', 'Target 5 pilar milestone & panduan stimulasi', 'Pengingat imunisasi & deteksi red flag'],
+    description: 'Simpan, edit, dan hapus catatan tinggi, berat, makan, tidur, imunisasi, serta 5 pilar milestone tumbuh kembang.',
+    points: ['CRUD lengkap untuk seluruh catatan anak', 'Target 5 pilar milestone & panduan stimulasi', 'Pengingat imunisasi & deteksi red flag'],
   },
   {
     icon: '📖',
@@ -70,8 +70,9 @@ export default function RuangBocahLandingPage() {
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-purple-100">iOS segera hadir</span>
             </div>
             <p className="mt-3 text-xs text-purple-200">Versi {RUANG_BOCAH_VERSION} · Android 64-bit · 77,2 MB</p>
+            <p className="mt-2 text-xs text-purple-100">Versi terbaru dapat diunduh dan dibuka langsung dari menu notifikasi aplikasi.</p>
           </div>
-          <PhoneScreenshot src="/ruangbocah/v101-home-features.png" alt="Beranda aplikasi Ruang Bocah versi 1.0.1 dengan fitur tumbuh kembang, aktivitas, konsultasi, dan Kancil AI" priority />
+          <PhoneScreenshot src="/ruangbocah/v101-home-features.png" alt="Beranda aplikasi Ruang Bocah dengan fitur tumbuh kembang, aktivitas, dan Kancil AI" priority />
         </div>
       </section>
 
