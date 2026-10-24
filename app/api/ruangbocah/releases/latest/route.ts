@@ -8,6 +8,8 @@ import {
   RUANG_BOCAH_VERSION,
 } from '@/lib/ruangbocah/downloads'
 
+export const runtime = 'edge'
+
 export async function GET() {
   return NextResponse.json(
     {
