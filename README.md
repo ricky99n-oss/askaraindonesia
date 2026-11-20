@@ -1,5 +1,16 @@
 # Askara Indonesia
 
+## Askara Network Monitoring
+
+- Panel admin: `/internal/network-monitoring`, menu **Lisensi Network Monitoring**.
+- API admin: `/api/internal/anm`, mewajibkan sesi internal aktif dengan role `owner`, `admin`, atau `super_admin`.
+- Mendukung pembuatan kunci sekali tampil (192 bit acak, SHA-256), pengaturan expired dalam WIB, kuota instalasi/host, pencabutan perangkat, daftar pelanggan dan audit.
+- Default menggunakan Supabase internal yang sama. Jika dipisah, set secret server `ANM_SUPABASE_URL` dan `ANM_SUPABASE_SECRET_KEY`; keanggotaan admin tetap diperiksa pada Supabase internal.
+- Migrasi ANM ada dalam `supabase/migrations/`. Keduanya telah diterapkan ke proyek `powusazheadrnfbdqxpj` pada 21 November 2026. Jangan jalankan ulang migrasi pertama secara manual pada database yang sudah terpasang.
+- Pemulihan password aplikasi: `/anm/reset-password`; halaman setelah verifikasi email: `/anm/verified`. Keduanya ditambahkan pada daftar redirect Supabase tanpa mengganti redirect aplikasi lain.
+- Data jaringan pelanggan memakai RLS. Tabel lisensi, aktivasi dan audit hanya dapat dibaca oleh server; pelanggan menggunakan RPC terautentikasi yang dibatasi.
+- Riwayat monitoring/insight dibersihkan setelah 30 hari oleh job `anm-retention-daily` pukul 01.17 WIB.
+
 ## Konfigurasi push Ruang Bocah
 
 Deployment Cloudflare Pages memerlukan `ONESIGNAL_REST_API_KEY`, `ONESIGNAL_APP_ID`,
