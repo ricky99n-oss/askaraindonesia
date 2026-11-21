@@ -26,13 +26,21 @@ export async function telegramRequest<T>(token: string, method: string, body: Re
     const multipart = body instanceof FormData
     const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: 'POST', headers: multipart ? undefined : { 'Content-Type': 'application/json' }, body: multipart ? body : JSON.stringify(body), signal: AbortSignal.timeout(20000) })
     const result = await response.json() as TelegramEnvelope<T>
-    if (!response.ok || !result.ok) throw new Error('TELEGRAM_DELIVERY_FAILED')
+    if (!response.ok || !result.ok) {
+      if (response.status === 401) throw new ShopError(400, 'Token bot Telegram tidak valid atau sudah dicabut.')
+      throw new Error('TELEGRAM_DELIVERY_FAILED')
+    }
     return result.result
-  } catch { throw new Error('TELEGRAM_DELIVERY_FAILED') }
+  } catch (error) { if (error instanceof ShopError) throw error; throw new Error('TELEGRAM_DELIVERY_FAILED') }
 }
 export async function configureTelegram(token: string, chat: string, admins: string[], actor: string) {
   if (!/^-?\d{4,20}$/.test(chat) || !admins.length || admins.length > 10 || admins.some(id => !/^\d{4,20}$/.test(id))) throw new ShopError(400, 'Chat ID dan ID admin Telegram belum sesuai.')
   const me = await telegramRequest<{ id: number; username: string }>(token, 'getMe', {})
+  if (chat === String(me.id) || admins.includes(String(me.id))) throw new ShopError(400, 'Gunakan Chat ID dan ID pengguna admin, bukan ID bot itu sendiri.')
+  let destination: { id: number; type: string }
+  try { destination = await telegramRequest(token, 'getChat', { chat_id: chat }) }
+  catch { throw new ShopError(400, 'Bot belum dapat mengakses Chat ID tujuan. Kirim /start ke bot atau tambahkan bot ke grup terlebih dahulu.') }
+  if (String(destination.id) !== chat || (destination.type === 'private' && !admins.includes(chat))) throw new ShopError(400, 'Untuk chat pribadi, ID admin harus sesuai dengan Chat ID penerima.')
   const secret = randomToken(), encrypted = await encrypt(token)
   await telegramRequest(token, 'setWebhook', { url: 'https://askaraindonesia.com/api/anm/telegram', secret_token: secret, allowed_updates: ['message', 'callback_query'], max_connections: 5 })
   checked(await createAnmAdmin().from('anm_shop_settings').update({ telegram_token_ciphertext: encrypted, telegram_webhook_secret_hash: await hash(secret), telegram_chat_id: chat, telegram_admin_ids: [...new Set(admins)], telegram_bot_id: String(me.id), telegram_bot_username: me.username, telegram_reviewer_id: actor, updated_at: new Date().toISOString() }).eq('id', true))
