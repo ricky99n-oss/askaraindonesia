@@ -58,6 +58,7 @@ export default function ClientSidebar({ role }: { role: string }) {
     { name: 'Data Transaksi', href: '/internal/transactions' },
     { name: 'Ruang Bocah', href: '/internal/ruangbocah' },
     { name: 'Lisensi Network Monitoring', href: '/internal/network-monitoring' },
+    { name: 'Pesanan & Penjualan ANM', href: '/internal/network-monitoring-shop' },
     { name: 'Pengaturan', href: '/internal/settings' },
   ]
 

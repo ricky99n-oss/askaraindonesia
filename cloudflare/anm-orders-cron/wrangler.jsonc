@@ -1,0 +1,8 @@
+{
+  "name": "askara-anm-order-delivery",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-21",
+  "workers_dev": false,
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "vars": { "SITE_ORIGIN": "https://askaraindonesia.com" }
+}

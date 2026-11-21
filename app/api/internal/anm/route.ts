@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createAnmAdmin, requireAnmAdmin, validateLicense } from '@/lib/anm/admin'
+import { checkOrigin, ShopError } from '@/lib/anm/commerce-security'
 export const runtime = 'edge'
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function reply(value: unknown, status = 200) {
   return NextResponse.json(value, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } })
 }
 function failure(error: unknown) {
+  if (error instanceof ShopError) return reply({ error: error.message }, error.status)
   const message = error instanceof Error ? error.message : ''
   if (message === 'UNAUTHORIZED') return reply({ error: 'Silakan login.' }, 401)
   if (message === 'FORBIDDEN') return reply({ error: 'Hanya admin atau owner yang dapat mengelola lisensi.' }, 403)
@@ -38,8 +40,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { user } = await requireAnmAdmin()
-    const origin = request.headers.get('origin')
-    if (origin !== new URL(request.url).origin || !request.headers.get('content-type')?.includes('application/json')) return reply({ error: 'Permintaan ditolak.' }, 403)
+    checkOrigin(request)
+    if (!request.headers.get('content-type')?.includes('application/json')) return reply({ error: 'Permintaan ditolak.' }, 403)
     const text = await request.text()
     if (text.length > 10000) return reply({ error: 'Permintaan terlalu besar.' }, 413)
     const body = JSON.parse(text) as Record<string, unknown>

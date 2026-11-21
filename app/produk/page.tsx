@@ -36,9 +36,9 @@ export default function ProdukPage() {
     {
       id: "netmon",
       title: "Askara Network Monitoring",
-      status: "Release Soon",
-      link: "#",
-      description: "Sistem pemantauan infrastruktur jaringan real-time. Melacak lalu lintas data, mendeteksi anomali, dan memberikan peringatan dini untuk mencegah downtime pada jaringan bisnis Anda.",
+      status: "Available",
+      link: "/askaranetworkmonitoring",
+      description: "Pantau perangkat LAN, status koneksi, latensi, topologi logis, dan riwayat melalui aplikasi Android. Kelola lokasi, ekspor CSV, serta aktifkan atau perpanjang lisensi Askara.",
       icon: "📡",
       gradient: "from-gray-700 to-gray-900"
     },
