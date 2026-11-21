@@ -53,4 +53,4 @@ Gunakan idempotency key email dan transaksi database untuk menghadapi retry. Jan
 
 ## Distribusi Android
 
-Rilis 2.0.2 ARM64 tersedia pada GitHub Release `anm-v2.0.2`. Android 7.0+ diperlukan. Aplikasi memerlukan internet untuk login/lisensi dan monitoring berjalan saat aplikasi terbuka. Installer Windows belum tersedia.
+Rilis 2.0.2 ARM64 tersedia pada GitHub Release `anm-v2.0.2`. Android 7.0+ diperlukan. Aplikasi memerlukan internet untuk login/lisensi dan monitoring berjalan saat aplikasi terbuka. Windows x64 tersedia sebagai installer EXE dan ZIP portable untuk Windows 10 (1809+) / Windows 11. Halaman produk menampilkan unduhan Android dan Windows, serta panduan PDF. Source Flutter dan workflow build Windows disimpan pada repository privat `ricky99n-oss/askara-network-monitoring`; hanya binari hasil rilis dipublikasikan pada release `anm-v2.0.2` di repository website.

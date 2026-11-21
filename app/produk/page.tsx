@@ -38,7 +38,7 @@ export default function ProdukPage() {
       title: "Askara Network Monitoring",
       status: "Available",
       link: "/askaranetworkmonitoring",
-      description: "Pantau perangkat LAN, status koneksi, latensi, topologi logis, dan riwayat melalui aplikasi Android. Kelola lokasi, ekspor CSV, serta aktifkan atau perpanjang lisensi Askara.",
+      description: "Pantau perangkat LAN, status koneksi, latensi, topologi logis, dan riwayat melalui aplikasi Android dan Windows. Kelola lokasi, ekspor CSV, serta aktifkan atau perpanjang lisensi Askara.",
       icon: "📡",
       gradient: "from-gray-700 to-gray-900"
     },
