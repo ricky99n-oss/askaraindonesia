@@ -7,6 +7,7 @@ export default function AnmResetPassword() {
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const [visible, setVisible] = useState(false)
+  const [confirmVisible, setConfirmVisible] = useState(false)
   const [passwordLength, setPasswordLength] = useState(0)
   const [message, setMessage] = useState('Memeriksa tautan pemulihan...')
   useEffect(() => {
@@ -61,18 +62,22 @@ export default function AnmResetPassword() {
       <h1 className="text-3xl font-bold">Pemulihan password</h1>
       <p role="status" className="text-base text-slate-300">{message}</p>
       {ready && <>
-        <label className="block text-sm">Password baru
-          <input name="password" type={visible ? 'text' : 'password'} onChange={event => setPasswordLength(event.target.value.length)} required minLength={12} autoComplete="new-password" className="mt-2 w-full rounded-xl bg-slate-800 p-3 text-base" />
-        </label>
-        <label className="block text-sm">Konfirmasi password
-          <input name="confirm" type={visible ? 'text' : 'password'} required minLength={12} autoComplete="new-password" className="mt-2 w-full rounded-xl bg-slate-800 p-3 text-base" />
-        </label>
-        <div className="flex items-center justify-between gap-3 text-sm text-slate-300">
-          <span>{passwordLength}/12 karakter minimum</span>
-          <button type="button" aria-pressed={visible} onClick={() => setVisible(value => !value)} className="font-semibold text-purple-300">{visible ? 'Sembunyikan password' : 'Tampilkan password'}</button>
+        <div><label htmlFor="anm-password-new" className="block text-sm">Password baru</label>
+          <div className="relative mt-2"><input id="anm-password-new" name="password" type={visible ? 'text' : 'password'} onChange={event => setPasswordLength(event.target.value.length)} required minLength={12} autoComplete="new-password" className="w-full rounded-xl bg-slate-800 p-3 pr-14 text-base" />
+            <button type="button" aria-label={visible ? 'Sembunyikan password baru' : 'Tampilkan password baru'} aria-controls="anm-password-new" aria-pressed={visible} onClick={() => setVisible(value => !value)} className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-purple-300 hover:bg-slate-700"><EyeIcon visible={visible} /></button>
+          </div><p className="mt-2 text-sm text-slate-400">{passwordLength} karakter, minimal 12.</p>
+        </div>
+        <div><label htmlFor="anm-password-confirm" className="block text-sm">Konfirmasi password</label>
+          <div className="relative mt-2"><input id="anm-password-confirm" name="confirm" type={confirmVisible ? 'text' : 'password'} required minLength={12} autoComplete="new-password" className="w-full rounded-xl bg-slate-800 p-3 pr-14 text-base" />
+            <button type="button" aria-label={confirmVisible ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'} aria-controls="anm-password-confirm" aria-pressed={confirmVisible} onClick={() => setConfirmVisible(value => !value)} className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-purple-300 hover:bg-slate-700"><EyeIcon visible={confirmVisible} /></button>
+          </div>
         </div>
         <button disabled={busy} className="w-full rounded-xl bg-purple-500 p-3 text-base font-semibold disabled:opacity-50">{busy ? 'Menyimpan...' : 'Simpan password'}</button>
       </>}
     </form>
   </main>
+}
+
+function EyeIcon({ visible }: { visible: boolean }) {
+  return <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />{visible && <path d="m3 3 18 18" />}</svg>
 }
