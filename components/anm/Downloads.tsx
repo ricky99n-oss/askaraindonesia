@@ -6,6 +6,7 @@ export default function Downloads() {
       <p className="text-sm font-semibold uppercase tracking-[.22em] text-purple-300">Pilih perangkat Anda</p>
       <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Unduh Askara Network Monitoring</h2>
       <p className="mt-5 max-w-2xl leading-relaxed text-slate-400">Pantau jaringan dari ponsel atau PC. Masuk dengan email pembelian dan aktifkan license key yang sama, sesuai batas instalasi paket Anda.</p>
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-purple-200">Versi {anmDownloads.version} menyertakan pembaruan keamanan koneksi dan perbaikan monitoring antar lokasi. Gunakan versi terbaru untuk Android maupun Windows.</p>
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         <article className="flex flex-col rounded-3xl border border-white/10 bg-[#111a26] p-7 sm:p-9">
           <p className="text-sm font-medium text-emerald-300">Android · Versi {anmDownloads.version}</p>
