@@ -8,6 +8,7 @@ function reply(value: unknown, status = 200) {
 }
 function failure(error: unknown) {
   if (error instanceof ShopError) return reply({ error: error.message }, error.status)
+  if (error && typeof error === 'object' && 'message' in error && error.message === 'REGISTERED_USER_NOT_FOUND') return reply({ error: 'Akun pengguna berubah atau sudah dihapus. Perbarui daftar pendaftar.' }, 404)
   const message = error instanceof Error ? error.message : ''
   if (message === 'UNAUTHORIZED') return reply({ error: 'Silakan login.' }, 401)
   if (message === 'FORBIDDEN') return reply({ error: 'Hanya admin atau owner yang dapat mengelola lisensi.' }, 403)
@@ -17,9 +18,17 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request) {
   try {
-    await requireAnmAdmin()
+    const { user } = await requireAnmAdmin()
     const db = createAnmAdmin()
-    const page = Math.max(0, Math.min(10000, Number(new URL(request.url).searchParams.get('page')) || 0))
+    const params = new URL(request.url).searchParams
+    const page = Math.floor(Math.max(0, Math.min(10000, Number(params.get('page')) || 0)))
+    if (params.get('view') === 'users') {
+      const query = (params.get('q') || '').trim()
+      if (query.length > 120) return reply({ error: 'Pencarian maksimal 120 karakter.' }, 400)
+      const { data, error } = await db.rpc('anm_admin_customers', { p_actor: user.id, p_page: page, p_query: query })
+      if (error) throw error
+      return reply(data)
+    }
     const result = await db.from('anm_licenses')
       .select('id,label,customer_email,user_id,key_hint,plan,status,expires_at,max_devices,max_monitored,created_at,updated_at', { count: 'exact' })
       .order('created_at', { ascending: false }).range(page * 50, page * 50 + 49)
@@ -54,7 +63,17 @@ export async function POST(request: Request) {
     }
     if (!['create', 'update'].includes(String(body.action)) || (body.action === 'update' && !uuid.test(String(body.id)))) throw new Error('INVALID_LICENSE')
     const creating = body.action === 'create'
-    const values = validateLicense(body, creating)
+    let recipient: string | null = null
+    let canonicalEmail = ''
+    if (creating) {
+      if (!uuid.test(String(body.customer_id))) return reply({ error: 'Pilih pengguna terdaftar terlebih dahulu.' }, 400)
+      const { data, error } = await db.auth.admin.getUserById(String(body.customer_id))
+      if (error && error.status !== 404) throw error
+      if (!data.user?.email || data.user.is_anonymous) return reply({ error: 'Pengguna sudah tidak tersedia. Perbarui daftar pendaftar.' }, 404)
+      recipient = data.user.id
+      canonicalEmail = data.user.email.trim().toLowerCase()
+    }
+    const values = { ...validateLicense({ ...body, customer_email: canonicalEmail }, creating), user_id: recipient }
     let key: string | null = null, hash: string | null = null
     if (creating) {
       const bytes = crypto.getRandomValues(new Uint8Array(24))
