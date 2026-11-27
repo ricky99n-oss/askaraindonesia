@@ -8,7 +8,7 @@ const features = [
   ['03', 'Edit topologi sesuai lokasi', 'Geser node, edit label dan gambar, kelola hubungan, unggah denah, lalu ekspor PDF atau PNG. Topologi berasal dari perangkat yang Anda simpan.'],
   ['04', 'Self troubleshoot offline', 'Pemeriksaan lokal dan 30 artikel manual tersedia tanpa internet, termasuk dari halaman login. Status membedakan normal, gangguan, dan bukti yang belum cukup.'],
   ['05', 'Panduan perbaikan dari AI', 'Kirim keluhan dan ringkasan pengujian untuk mendapat penjelasan serta urutan perbaikan. Login, lisensi aktif, koneksi internet, dan kuota AI diperlukan.'],
-  ['06', 'WiFi Analyzer tanpa iklan', 'Spektrum 2.4/5/6 GHz sesuai radio, daftar AP, rekomendasi kanal, riwayat sinyal, dan proyek heatmap dengan impor/foto denah Android dan ekspor PNG/CSV.'],
+  ['06', 'WiFi Analyzer tanpa iklan', 'Kontrol scan dan pita radio lebih ringkas, dengan Spektrum, Daftar AP, Kanal, Riwayat dan Heatmap. Hasil tetap tersedia saat berpindah halaman; titik survey memakai sampel baru. Impor/foto denah Android serta ekspor PNG/CSV tersedia.'],
   ['07', 'Alat diagnosis jaringan', 'Tab atas Ringkasan, WiFi Analyzer, Troubleshoot, dan Speed Test tetap terlihat saat digulir. Akses ping, traceroute, DNS, port TCP, RDAP/Whois, audit TLS, LAN discovery dan informasi koneksi.'],
   ['08', 'Ukur dan dokumentasikan', 'Pilih server speed test global atau otomatis, ukur RTT HTTP dan jitter, throughput LAN dengan peer Askara, riwayat lokal, serta laporan PDF dan CSV untuk dokumentasi teknisi.'],
   ['09', 'Bantuan Askara lebih siap', 'Tombol merah menyiapkan form teknisi dan laporan PDF untuk konsultasi, remote, atau penanganan jaringan melalui WhatsApp Askara.'],

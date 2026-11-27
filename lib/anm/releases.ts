@@ -1,4 +1,4 @@
-const version = '2.1.2'
+const version = '2.1.3'
 const release = `https://github.com/ricky99n-oss/askaraindonesia/releases/download/anm-v${version}`
 
 export const anmDownloads = {
