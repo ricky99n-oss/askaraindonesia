@@ -3,13 +3,13 @@ import Pricing from '@/components/anm/Pricing'
 import Downloads from '@/components/anm/Downloads'
 import { anmDownloads } from '@/lib/anm/releases'
 const features = [
-  ['01', 'Simpan perangkat pilihan', 'Scan menemukan perangkat sementara. Pilih sendiri, beri nama, lalu simpan dengan MAC, IPv6, BSSID, hostname dan vendor bila tersedia.'],
+  ['01', 'Simpan perangkat pilihan', 'Scan Windows memakai ARP aktif untuk membaca MAC pada adaptor terpilih, termasuk host yang menolak ping. Pilih hasil scan, beri nama, lalu simpan; MAC, IPv6, hostname dan vendor ditampilkan bila tersedia.'],
   ['02', 'Kelola setiap jaringan', 'CRUD lokasi dan perangkat, identitas jaringan, serta popup scan ulang saat koneksi berubah. Monitoring dan topologi mengikuti lokasi yang dipilih.'],
   ['03', 'Edit topologi sesuai lokasi', 'Geser node, edit label dan gambar, kelola hubungan, unggah denah, lalu ekspor PDF atau PNG. Topologi berasal dari perangkat yang Anda simpan.'],
   ['04', 'Self troubleshoot offline', 'Pemeriksaan lokal dan 30 artikel manual tersedia tanpa internet, termasuk dari halaman login. Status membedakan normal, gangguan, dan bukti yang belum cukup.'],
   ['05', 'Panduan perbaikan dari AI', 'Kirim keluhan dan ringkasan pengujian untuk mendapat penjelasan serta urutan perbaikan. Login, lisensi aktif, koneksi internet, dan kuota AI diperlukan.'],
   ['06', 'WiFi Analyzer tanpa iklan', 'Spektrum 2.4/5/6 GHz sesuai radio, daftar AP, rekomendasi kanal, riwayat sinyal, dan proyek heatmap dengan impor/foto denah Android dan ekspor PNG/CSV.'],
-  ['07', 'Alat diagnosis jaringan', 'Ping, traceroute, DNS, audit record email, port TCP, RDAP/Whois, pemeriksaan native versi/cipher/rantai TLS, LAN discovery dan informasi koneksi dalam satu ruang kerja.'],
+  ['07', 'Alat diagnosis jaringan', 'Tab atas Ringkasan, WiFi Analyzer, Troubleshoot, dan Speed Test tetap terlihat saat digulir. Akses ping, traceroute, DNS, port TCP, RDAP/Whois, audit TLS, LAN discovery dan informasi koneksi.'],
   ['08', 'Ukur dan dokumentasikan', 'Pilih server speed test global atau otomatis, ukur RTT HTTP dan jitter, throughput LAN dengan peer Askara, riwayat lokal, serta laporan PDF dan CSV untuk dokumentasi teknisi.'],
   ['09', 'Bantuan Askara lebih siap', 'Tombol merah menyiapkan form teknisi dan laporan PDF untuk konsultasi, remote, atau penanganan jaringan melalui WhatsApp Askara.'],
 ]
